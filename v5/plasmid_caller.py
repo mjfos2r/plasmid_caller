@@ -24,6 +24,7 @@ from intervaltree import Interval, IntervalTree
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 def get_input_files(in_dir, ext):
+    print(f'looking in {in_dir} for input files with extension: {ext}')
     files = glob.glob(f'{in_dir}/*.{ext}')
     if len(files) == 0:
         files = glob.glob(f'{in_dir}/**/*.{ext}', recursive=True)
@@ -35,7 +36,7 @@ def get_output_path(results_dir):
     output_path = os.path.join(cwd, results_dir)
     if not os.path.exists(output_path):
         print(f"Creating output path: {output_path}")
-        os.makedirs(output_path)
+        os.makedirs(output_path, exist_ok=True) # too lazy to refactor this function rn i just need my calls 
     return output_path
 
 def get_blast_command(prog, input_file, output_path, database, job_threads):
@@ -127,9 +128,13 @@ def parse_hit_id(hit_id):
     elif gene_id_list[0] == 'NE': # this is the NE_1234 strains single case, hate this too.
         strain = '_'.join(gene_id_list[0:2])
         plasmid_id = gene_id_list[2]
+    elif gene_id_list.startswith('RS'):
+        strain = gene_id_list[1]
+        plasmid_id = gene_id_list[-3]        
     else:
         strain = gene_id_list[0]
         plasmid_id = gene_id_list[1]
+        
     return strain, plasmid_id
 
 def parse_blast_xml(xml_file, **kwargs):
@@ -152,6 +157,7 @@ def parse_blast_xml(xml_file, **kwargs):
                 "ref_length", "overall_percent_identity", "query_coverage_percentage",
                 "query_covered_length", "ref_covered_length", "covered_intervals", "query_intervals", "subject_hit_coords",
             ]
+            
             contig_id = record.query
             contig_length = record.query_length
             hsp_counter = 0
@@ -222,7 +228,7 @@ def parse_to_tsv(file, output_path, parsing_type):
     hits = parse_blast_xml(file, parsing_type=parsing_type)
     hits_df = get_hits_table(hits)
     hits_df.to_csv(str(output_path), sep='\t', index=False)
-    return f'{parsing_type} table for: {Path(file).stem.split('_')[0]} written to {output_path}'
+    return f"{parsing_type} table for: {Path(file).stem.split('_')[0]} written to {output_path}"
     
 ################################################################################
 #:::::::::::::::::::::::::::::: MULTIPROCESSING :::::::::::::::::::::::::::::::#
@@ -231,9 +237,9 @@ def run_command(command):
     try:
         command = [str(arg) for arg in command]
         result = subprocess.run(command, check=True, capture_output=True, text=True)
-        return f'Successfully completed: {' '.join(command)}' if result.returncode == 0 else result.stderr
+        return f"SUCCESS: {' '.join(command)}" if result.returncode == 0 else result.stderr
     except subprocess.CalledProcessError as e:
-        return f"Command '{command}' failed with error: {e.stderr}"
+        return f"FAILURE: '{command}'\nerror: {e.stderr}"
     except Exception as e:
         return f"An unexpected error occurred: {str(e)}"
 
@@ -248,23 +254,27 @@ def progress_bar(futures):
             pbar.update(1)
 
 def parallel_blast(num_workers, job_threads, prog, database, input_files, results_dir):
+    print('Starting parallel_blast!')
     with ProcessPoolExecutor(max_workers=num_workers) as executor:
-            futures = []
-            output_path = get_output_path(results_dir)
-            for file in input_files:
-                command = get_blast_command(prog, file, output_path, database, job_threads)
-                futures.append(executor.submit(run_command, command))
-            progress_bar(futures)
+        futures = []
+        #output_path = get_output_path(results_dir) BAD?
+        for file in input_files:
+            command = get_blast_command(prog, file, results_dir, database, job_threads)
+            print(f'Queueing {prog} job for {file}!')
+            futures.append(executor.submit(run_command, command))
+        progress_bar(futures)
 
 def parallel_parse(cpus, results, db_name, output_dir):
+    print('Starting parallel_parse!')
     with ProcessPoolExecutor(max_workers=cpus) as executor:
-            futures = []
-            output_path = get_output_path(output_dir)
-            for file in results:
-                results_table  = f'{Path(file).stem}_results_table.tsv'
-                output_table = str(os.path.join(output_path, results_table))
-                futures.append(executor.submit(parse_to_tsv, file, output_table, db_name))
-            progress_bar(futures)
+        futures = []
+        #output_path = get_output_path(output_dir)
+        for file in results:
+            results_table  = f'{Path(file).stem}_table.tsv'
+            output_table = str(os.path.join(output_dir, results_table))
+            print(f'Queueing parse job for {file}!')
+            futures.append(executor.submit(parse_to_tsv, file, output_table, db_name))
+        progress_bar(futures)
 
 def get_results(results_dir):
     print(os.listdir(results_dir))
@@ -273,35 +283,45 @@ def get_results(results_dir):
 
 ## Define main function logic.
 def main(args):
-    ## determine how many parallel workers we're gonna spin up
+    # First things first, let's fix the input to path correctly within the container. 
+    # User should not have to worry about anything other than binding the working directory and specifying locations.
+    input_path = os.path.join('/data', args.input)
+    output_path = os.path.join('/data', args.output)
+    
+    if not os.path.exists(input_path):
+        parser.error("Must specify a directory containing fasta files!")
+    
+    # determine how many parallel workers we're gonna spin up
     num_workers = floor(args.cpus/args.job_threads)
-    # ok now let's get our inputs.
-    inputs = get_input_files(args.input, 'fna')
-    # now lets get our dbs to run against
-    dbs = get_db_type(args.db)
-    # and let's start running against them
-
+    
     print(f"Input directory: {args.input}")
     print(f"Output directory: {args.output}")
     print(f"CPUs: {args.cpus}")
     print(f"Job threads: {args.job_threads}")
     print(f"Databases: {args.db}")
-    print(f"Blast option: {args.blast}")
+    print(f"Run BLAST?: {args.blast}")
     print(f"Number of parallel workers: {num_workers}")
-    print(f"Input files: {len(inputs)}")
+    
+    # now lets get our dbs to run against
+    dbs = get_db_type(args.db)
     print(f"Databases to run against: {dbs}")
+    # ok now let's get our inputs.
+    inputs = get_input_files(input_path, 'fna')
+    print(f"Input files: {len(inputs)}")
     print('\n')
-
-    if not os.path.exists(args.output):
-        os.mkdir(args.output)
+    
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
         print('creating output directory!\n')
     
     for db in dbs:
         db_path = db[0]
         prog = db[1]
         db_name = Path(db_path).stem
-        results_dir = os.path.join(args.output, db_name,'xml_files')
-        tables_dir = os.path.join(args.output, db_name,'tables')
+        results_dir = os.path.join(output_path, db_name,'xml_files')
+        tables_dir = os.path.join(output_path, db_name,'tables')
+        os.makedirs(results_dir, exist_ok=True)
+        os.makedirs(tables_dir, exist_ok=True)
         if args.blast:
             parallel_blast(num_workers, args.job_threads, prog, db_path, inputs, results_dir)
         results = get_results(results_dir)
@@ -318,13 +338,10 @@ if __name__ == "__main__":
     #parser.add_argument('annotations_dir',required=True,  type=str, help='The directory containing the annotations (genbanks)') # Not yet!
     parser.add_argument('--output',        required=True,  type=str, help='The directory for outputs')
     parser.add_argument('--cpus',          required=True,  type=int, help='How many cores we rippin')
-    parser.add_argument('--job_threads',   required=True,  type=int, help='How many cores per job?')
+    parser.add_argument('--job_threads',   required=False,  type=int, help='How many cores per job?', default=2)
     parser.add_argument('--db',            required=False, type=str, help='path to directory containing *all* blast databases to use in analysis', default='/db',)
-    parser.add_argument('--blast', action='store_true', required=False, help='Use this to run blast against all provided databases')
+    parser.add_argument('--blast', action='store_true', required=False, help='Use this to run blast against all provided databases', default=True)
     # Parse the arguments
     args = parser.parse_args()
-
-    if not os.path.exists(args.input):
-        parser.error("Must specify a directory containing fasta files!")
-    
+    print(args)
     main(args)

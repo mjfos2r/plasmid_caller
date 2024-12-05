@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 LABEL org.opencontainers.image.authors="mfoster11@mgh.harvard.edu" \
     org.opencontainers.image.source="https://github.com/mjfos2r/plasmid_caller" \
@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir /tmp/blast /db /app
+RUN mkdir /tmp/blast /db /app /data
 WORKDIR /app
 
 RUN wget -P /tmp/blast https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.16.0+-x64-linux.tar.gz
@@ -23,9 +23,11 @@ RUN tar -xzvf /tmp/blast/ncbi-blast-2.16.0+-x64-linux.tar.gz -C /tmp/blast/ --st
     
 RUN rm -rf /tmp/blast
 
-COPY ["db", "/db/"]
-COPY ["requirements.txt", "plasmid_caller.py", "blast_parsing_dict.pkl", "/app/"]
+COPY [ "requirements.txt", "blast_parsing_dict.pkl", "/app/" ]
 
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-ENTRYPOINT ["python", "/app/plasmid_caller.py"]
+COPY [ "db", "/db/" ]
+COPY [ "plasmid_caller.py", "/app/" ]
+
+ENTRYPOINT [ "python", "/app/plasmid_caller.py" ]
