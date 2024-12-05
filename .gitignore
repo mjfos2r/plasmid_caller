@@ -1,0 +1,6 @@
+## .gitignore
+
+.ipynb_checkpoints/
+.DS_Store
+plasmid_caller/v3/
+plasmid_caller/v4_test/
