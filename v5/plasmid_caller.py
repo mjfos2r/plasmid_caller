@@ -5,6 +5,7 @@
 # - Ben Kotzen
 
 import os
+import re
 import csv
 import sys
 import subprocess
@@ -121,20 +122,22 @@ def parse_hit_id(hit_id):
     gene_id_list = hit_id.strip().split('_')
     if len(gene_id_list) == 2:
         strain = gene_id_list[0]
-        plasmid_id = gene_id_list[-1]
+    #     plasmid_id = gene_id_list[-1]
     elif len(gene_id_list) == 1: # this is the weird pdb case.
         strain = gene_id_list[0].split('|')[1]
-        plasmid_id = gene_id_list[0].split('|')[-1]
+    #     plasmid_id = gene_id_list[0].split('|')[-1]
     elif gene_id_list[0] == 'NE': # this is the NE_1234 strains single case, hate this too.
         strain = '_'.join(gene_id_list[0:2])
-        plasmid_id = gene_id_list[2]
-    elif gene_id_list.startswith('RS'):
+    #     plasmid_id = gene_id_list[2]
+    elif gene_id_list.endswith('X') or gene_id_list.startswith('RS'):
         strain = gene_id_list[1]
-        plasmid_id = gene_id_list[-3]        
+    #     plasmid_id = gene_id_list[-2]        
     else:
         strain = gene_id_list[0]
-        plasmid_id = gene_id_list[1]
-        
+    #     plasmid_id = gene_id_list[1]
+    pattern = r"chromosome|(?:lp|cp)\d{1,2}(?:[-+#](?:lp|cp)?\d{1,2})*"
+    match = re.findall(pattern, string.replace('_', '-'))
+    plasmid_id = match[0] if match else HO14_NovelPFam32 if 'HO14_NovelPFam32_DatabaseShortContig' in hit_id else None
     return strain, plasmid_id
 
 def parse_blast_xml(xml_file, **kwargs):
