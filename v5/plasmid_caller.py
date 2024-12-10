@@ -129,21 +129,21 @@ def parse_hit_id(hit_id):
     elif gene_id_list[0] == 'NE': # this is the NE_1234 strains single case, hate this too.
         strain = '_'.join(gene_id_list[0:2])
     #     plasmid_id = gene_id_list[2]
-    elif gene_id_list.endswith('X') or gene_id_list.startswith('RS'):
-        strain = gene_id_list[1]
+    #elif gene_id_list.endswith('X') or gene_id_list.startswith('RS'):
+    #    strain = gene_id_list[1]
     #     plasmid_id = gene_id_list[-2]        
     else:
         strain = gene_id_list[0]
     #     plasmid_id = gene_id_list[1]
     pattern = r"chromosome|(?:lp|cp)\d{1,2}(?:[-+#](?:lp|cp)?\d{1,2})*"
-    match = re.findall(pattern, string.replace('_', '-'))
-    plasmid_id = match[0] if match else HO14_NovelPFam32 if 'HO14_NovelPFam32_DatabaseShortContig' in hit_id else None
+    match = re.findall(pattern, hit_id.replace('_', '-'))
+    plasmid_id = match[0] if match else 'HO14_NovelPFam32' if 'HO14_NovelPFam32_DatabaseShortContig' in hit_id else None
     return strain, plasmid_id
 
 def parse_blast_xml(xml_file, **kwargs):
     """ This is the new and improved blast results parsing function.
     - it takes kwargs for parsing_type which is either 'wp' or 'pf32'"""
-    assembly_id = Path(xml_file).stem.split('_')[0]
+    assembly_id = Path(xml_file).stem.replace('_blast_results', '')#.split('_')[0]
     parsing_type = kwargs.get('parsing_type', 'general')
 
     with open(xml_file, 'r') as handle:
@@ -224,7 +224,7 @@ def get_hits_table(hits):
     return df
 
 def join_and_write_tables(tables):
-    main_df = pandas.concat(tables, ignore_index = True)
+    main_df = pandas.concat(tables, index=False)
     main_df.to_csv(output_table_path, sep='\t')
 
 def parse_to_tsv(file, output_path, parsing_type):
@@ -302,7 +302,7 @@ def main(args):
     print(f"CPUs: {args.cpus}")
     print(f"Job threads: {args.job_threads}")
     print(f"Databases: {args.db}")
-    print(f"Run BLAST?: {args.blast}")
+    print(f"Skip BLAST?: {args.skip_blast}")
     print(f"Number of parallel workers: {num_workers}")
     
     # now lets get our dbs to run against
@@ -325,7 +325,7 @@ def main(args):
         tables_dir = os.path.join(output_path, db_name,'tables')
         os.makedirs(results_dir, exist_ok=True)
         os.makedirs(tables_dir, exist_ok=True)
-        if args.blast:
+        if not args.skip_blast:
             parallel_blast(num_workers, args.job_threads, prog, db_path, inputs, results_dir)
         results = get_results(results_dir)
         parallel_parse(args.cpus, results, db_name, tables_dir)
@@ -343,7 +343,7 @@ if __name__ == "__main__":
     parser.add_argument('--cpus',          required=True,  type=int, help='How many cores we rippin')
     parser.add_argument('--job_threads',   required=False,  type=int, help='How many cores per job?', default=2)
     parser.add_argument('--db',            required=False, type=str, help='path to directory containing *all* blast databases to use in analysis', default='/db',)
-    parser.add_argument('--blast', action='store_true', required=False, help='Use this to run blast against all provided databases', default=True)
+    parser.add_argument('--skip_blast', action='store_true', required=False, help='Use this to run blast against all provided databases', default=False)
     # Parse the arguments
     args = parser.parse_args()
     print(args)
