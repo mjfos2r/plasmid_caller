@@ -73,6 +73,15 @@ def get_db_type(db_dir):
             progs.append('blastn')
     return list(zip(dbs, progs))
 
+def get_contig_len(args, assembly_id, contig_id):
+    assemblies_dir = args.input
+    records = SeqIO.parse(f'/data/{assemblies_dir}/{assembly_id}/{assembly_id}.gbff', 'genbank')
+    records = list(records)
+    idx = [rec.id for rec in records].index(contig_id.split()[0])
+    contig_len = [len(rec.seq) for rec in records][idx]
+    return contig_len
+    
+
 ################################################################################
 #:::::::::::::::::::::::::::::: RESULTS PARSING :::::::::::::::::::::::::::::::#
 ################################################################################
@@ -187,6 +196,7 @@ def parse_blast_xml(xml_file, **kwargs):
                 results = {
                     "assembly_id": assembly_id,
                     "contig_id": contig_id,
+                    "contig_len":get_contig_len(args, assembly_id, contig_id),
                     "plasmid_id": plasmid_id,
                     "plasmid_name": plasmid_name,
                     "strain": strain,
@@ -343,6 +353,8 @@ if __name__ == "__main__":
     parser.add_argument('--cpus',          required=True,  type=int, help='How many cores we rippin')
     parser.add_argument('--job_threads',   required=False,  type=int, help='How many cores per job?', default=2)
     parser.add_argument('--db',            required=False, type=str, help='path to directory containing *all* blast databases to use in analysis', default='/db',)
+    # parser.add_argument('--assemblies-dir',required=False, type=str, help='path to directory containing assemblies',\
+    #                                        default='/home/mf019/longread_pangenome/expanded_dataset_analysis/assemblies/dataset_v5/')
     parser.add_argument('--skip_blast', action='store_true', required=False, help='Use this to run blast against all provided databases', default=False)
     # Parse the arguments
     args = parser.parse_args()
