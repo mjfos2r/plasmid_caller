@@ -80,7 +80,6 @@ def get_contig_len(args, assembly_id, contig_id):
     idx = [rec.id for rec in records].index(contig_id.split()[0])
     contig_len = [len(rec.seq) for rec in records][idx]
     return contig_len
-    
 
 ################################################################################
 #:::::::::::::::::::::::::::::: RESULTS PARSING :::::::::::::::::::::::::::::::#
@@ -169,7 +168,7 @@ def parse_blast_xml(xml_file, **kwargs):
                 "ref_length", "overall_percent_identity", "query_coverage_percentage",
                 "query_covered_length", "ref_covered_length", "covered_intervals", "query_intervals", "subject_hit_coords",
             ]
-            
+
             contig_id = record.query
             contig_length = record.query_length
             hsp_counter = 0
@@ -242,7 +241,7 @@ def parse_to_tsv(file, output_path, parsing_type):
     hits_df = get_hits_table(hits)
     hits_df.to_csv(str(output_path), sep='\t', index=False)
     return f"{parsing_type} table for: {Path(file).stem.split('_')[0]} written to {output_path}"
-    
+
 ################################################################################
 #:::::::::::::::::::::::::::::: MULTIPROCESSING :::::::::::::::::::::::::::::::#
 ################################################################################
@@ -300,13 +299,13 @@ def main(args):
     # User should not have to worry about anything other than binding the working directory and specifying locations.
     input_path = os.path.join('/data', args.input)
     output_path = os.path.join('/data', args.output)
-    
+
     if not os.path.exists(input_path):
         parser.error("Must specify a directory containing fasta files!")
-    
+
     # determine how many parallel workers we're gonna spin up
     num_workers = floor(args.cpus/args.job_threads)
-    
+
     print(f"Input directory: {args.input}")
     print(f"Output directory: {args.output}")
     print(f"CPUs: {args.cpus}")
@@ -314,7 +313,7 @@ def main(args):
     print(f"Databases: {args.db}")
     print(f"Skip BLAST?: {args.skip_blast}")
     print(f"Number of parallel workers: {num_workers}")
-    
+
     # now lets get our dbs to run against
     dbs = get_db_type(args.db)
     print(f"Databases to run against: {dbs}")
@@ -322,11 +321,11 @@ def main(args):
     inputs = get_input_files(input_path, 'fna')
     print(f"Input files: {len(inputs)}")
     print('\n')
-    
+
     if not os.path.exists(output_path):
         os.mkdir(output_path)
         print('creating output directory!\n')
-    
+
     for db in dbs:
         db_path = db[0]
         prog = db[1]
