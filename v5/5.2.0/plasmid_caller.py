@@ -13,14 +13,11 @@ import pandas
 import pickle
 import argparse
 from Bio import SeqIO
-from Bio.Seq import Seq
 from Bio.Blast import NCBIXML
-from Bio.SeqRecord import SeqRecord
 from collections import defaultdict
-from tqdm import tqdm
 from pathlib import Path
-from intervaltree import Interval, IntervalTree
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from intervaltree import IntervalTree
+
 
 def get_output_path(results_dir):
     cwd = Path(os.getcwd())
@@ -30,51 +27,88 @@ def get_output_path(results_dir):
         os.makedirs(output_path, exist_ok=True)
     return output_path
 
+
 def get_blast_command(prog, input_file, output_path, database, threads):
     file_id = Path(input_file).stem
-    output_file = f'{output_path}/{file_id}_blast_results.xml'
-    command = [prog, '-query', input_file, '-db', database,
-               '-out', output_file, '-evalue', '1e-100', '-num_threads', threads,
-               '-outfmt', '5', '-max_target_seqs', '5', '-max_hsps', '10']
+    output_file = f"{output_path}/{file_id}_blast_results.xml"
+    command = [
+        prog,
+        "-query",
+        input_file,
+        "-db",
+        database,
+        "-out",
+        output_file,
+        "-evalue",
+        "1e-100",
+        "-num_threads",
+        threads,
+        "-outfmt",
+        "5",
+        "-max_target_seqs",
+        "5",
+        "-max_hsps",
+        "10",
+    ]
     return command
+
 
 def make_blast_db(dbtype, input_file, db_output):
-    logfile = f'{Path(input_file).stem}_blastdb_creation.log'
-    command = ['makeblastdb','-in', input_file, '-dbtype', dbtype,
-               '-parse_seqids', '-logfile', logfile, '-out', db_output]
+    logfile = f"{Path(input_file).stem}_blastdb_creation.log"
+    command = [
+        "makeblastdb",
+        "-in",
+        input_file,
+        "-dbtype",
+        dbtype,
+        "-parse_seqids",
+        "-logfile",
+        logfile,
+        "-out",
+        db_output,
+    ]
     return command
 
+
 def get_db_type(db_dir, quiet=True):
-    """ Get the individual database for blast and the database type """
-    command = ['blastdbcmd', '-list', f'{db_dir}', '-recursive',]
+    """Get the individual database for blast and the database type"""
+    command = [
+        "blastdbcmd",
+        "-list",
+        f"{db_dir}",
+        "-recursive",
+    ]
     results = subprocess.run(command, capture_output=True, text=True)
     dbs = []
     progs = []
     output = results.stdout
-    for line in output.split('\n')[:-1]: # last line is empty so don't iterate to it!
-        db_info = line.split(' ')
+    for line in output.split("\n")[:-1]:  # last line is empty so don't iterate to it!
+        db_info = line.split(" ")
         if not quiet:
             print(db_info)
         db_name = db_info[0]
         db_type = db_info[1].lower()
         dbs.append(db_name)
-        if db_type == 'protein':
-            progs.append('blastx')
-        elif db_type == 'nucleotide':
-            progs.append('blastn')
+        if db_type == "protein":
+            progs.append("blastx")
+        elif db_type == "nucleotide":
+            progs.append("blastn")
     return list(zip(dbs, progs))
+
 
 def get_contig_len(args, contig_id):
     """Get contig length directly from the input FASTA file"""
     fasta_file = args.input
-    for record in SeqIO.parse(fasta_file, 'fasta'):
+    for record in SeqIO.parse(fasta_file, "fasta"):
         if record.id.split()[0] == contig_id.split()[0]:
             return len(record.seq)
-    return 1 # TODO Raise exception.
+    return 1  # TODO Raise exception.
+
 
 ################################################################################
 #:::::::::::::::::::::::::::::: RESULTS PARSING :::::::::::::::::::::::::::::::#
 ################################################################################
+
 
 def calculate_percent_identity_and_coverage(alignment):
     total_identities = 0
@@ -98,59 +132,91 @@ def calculate_percent_identity_and_coverage(alignment):
     contig_covered_length = sum(interval.length() for interval in query_intervals)
 
     # Calculate overall percent identity
-    overall_percent_identity = (total_identities / total_alignment_length) * 100 if total_alignment_length != 0 else 0
+    overall_percent_identity = (
+        (total_identities / total_alignment_length) * 100
+        if total_alignment_length != 0
+        else 0
+    )
 
     return {
         "overall_percent_identity": overall_percent_identity,
         "query_covered_length": contig_covered_length,
         "ref_covered_length": ref_covered_length,
-        "covered_intervals": [(interval.begin, interval.end) for interval in subject_intervals],
-        "query_intervals": [(interval.begin, interval.end) for interval in query_intervals],
-        "subject_hit_coords": [(hsp.sbjct_start, hsp.sbjct_end) for hsp in alignment.hsps]
+        "covered_intervals": [
+            (interval.begin, interval.end) for interval in subject_intervals
+        ],
+        "query_intervals": [
+            (interval.begin, interval.end) for interval in query_intervals
+        ],
+        "subject_hit_coords": [
+            (hsp.sbjct_start, hsp.sbjct_end) for hsp in alignment.hsps
+        ],
     }
 
+
 def get_name_from_acc(hit_id, parsing_dict):
-    """ this is how strain and plasmid name are parsed using the previously assembled parsing dictionary"""
-    acc_id = hit_id.split('|')[1]
-    name = parsing_dict[acc_id]['name']
-    strain = parsing_dict[acc_id]['strain']
+    """this is how strain and plasmid name are parsed using the previously assembled parsing dictionary"""
+    acc_id = hit_id.split("|")[1]
+    name = parsing_dict[acc_id]["name"]
+    strain = parsing_dict[acc_id]["strain"]
     return strain, name
 
+
 def parse_hit_id(hit_id):
-    """ this is how strain and plasmid name are parsed using the hit_id for pf32 hits """
-    gene_id_list = hit_id.strip().split('_')
+    """this is how strain and plasmid name are parsed using the hit_id for pf32 hits"""
+    gene_id_list = hit_id.strip().split("_")
     if len(gene_id_list) == 2:
         strain = gene_id_list[0]
-    elif len(gene_id_list) == 1: # this is the weird pdb case.
-        strain = gene_id_list[0].split('|')[1]
-    elif gene_id_list[0] == 'NE': # this is the NE_1234 strains single case, hate this too.
-        strain = '_'.join(gene_id_list[0:2])
+    elif len(gene_id_list) == 1:  # this is the weird pdb case.
+        strain = gene_id_list[0].split("|")[1]
+    elif (
+        gene_id_list[0] == "NE"
+    ):  # this is the NE_1234 strains single case, hate this too.
+        strain = "_".join(gene_id_list[0:2])
     else:
         strain = gene_id_list[0]
     pattern = r"chromosome|(?:lp|cp)\d{1,2}(?:[-+#](?:lp|cp)?\d{1,2})*"
-    match = re.findall(pattern, hit_id.replace('_', '-'))
-    plasmid_id = match[0] if match else 'HO14_NovelPFam32' if 'HO14_NovelPFam32_DatabaseShortContig' in hit_id else None
+    match = re.findall(pattern, hit_id.replace("_", "-"))
+    plasmid_id = (
+        match[0]
+        if match
+        else "HO14_NovelPFam32"
+        if "HO14_NovelPFam32_DatabaseShortContig" in hit_id
+        else None
+    )
     return strain, plasmid_id
 
-def parse_blast_xml(xml_file, args, **kwargs):
-    """ This is the new and improved blast results parsing function.
-    - it takes kwargs for parsing_type which is either 'wp' or 'pf32'"""
-    assembly_id = Path(xml_file).stem.replace('_blast_results', '')
-    parsing_type = kwargs.get('parsing_type', 'general')
 
-    with open(xml_file, 'r') as handle:
+def parse_blast_xml(xml_file, args, **kwargs):
+    """This is the new and improved blast results parsing function.
+    - it takes kwargs for parsing_type which is either 'wp' or 'pf32'"""
+    assembly_id = Path(xml_file).stem.replace("_blast_results", "")
+    parsing_type = kwargs.get("parsing_type", "general")
+
+    with open(xml_file, "r") as handle:
         records = NCBIXML.parse(handle)
-        parsing_pkl = '/app/blast_parsing_dict.pkl'
-        parsing_dict = pickle.load(open(parsing_pkl, 'rb'))
+        parsing_pkl = "/app/blast_parsing_dict.pkl"
+        parsing_dict = pickle.load(open(parsing_pkl, "rb"))
 
         # set up dict for intervals
         blast_hits = defaultdict(dict)
 
         for record in records:
             keys = [
-                "assembly_id", "contig_id", "plasmid_id", "plasmid_name", "strain", "query_length",
-                "ref_length", "overall_percent_identity", "query_coverage_percentage",
-                "query_covered_length", "ref_covered_length", "covered_intervals", "query_intervals", "subject_hit_coords",
+                "assembly_id",
+                "contig_id",
+                "plasmid_id",
+                "plasmid_name",
+                "strain",
+                "query_length",
+                "ref_length",
+                "overall_percent_identity",
+                "query_coverage_percentage",
+                "query_covered_length",
+                "ref_covered_length",
+                "covered_intervals",
+                "query_intervals",
+                "subject_hit_coords",
             ]
 
             contig_id = record.query
@@ -161,17 +227,17 @@ def parse_blast_xml(xml_file, args, **kwargs):
             hits = blast_hits[contig_id]
 
             if len(record.alignments) == 0:
-                hits = dict(zip(keys, 'NaN'*len(keys)))
+                hits = dict(zip(keys, "NaN" * len(keys)))
             for alignment in record.alignments:
                 plasmid_id = alignment.hit_id
                 ref_length = alignment.length
 
-                if parsing_type == 'wp':
+                if parsing_type == "wp":
                     strain, plasmid_name = get_name_from_acc(plasmid_id, parsing_dict)
-                elif parsing_type == 'pf32':
+                elif parsing_type == "pf32":
                     strain, plasmid_name = parse_hit_id(plasmid_id)
                 else:
-                    strain = 'unknown'
+                    strain = "unknown"
                     plasmid_name = alignment.hit_id
 
                 results = {
@@ -185,10 +251,13 @@ def parse_blast_xml(xml_file, args, **kwargs):
                     "ref_length": ref_length,
                 }
                 alignment_results = calculate_percent_identity_and_coverage(alignment)
-                alignment_results['query_coverage_percent'] = alignment_results['query_covered_length'] / contig_length * 100
+                alignment_results["query_coverage_percent"] = (
+                    alignment_results["query_covered_length"] / contig_length * 100
+                )
                 results.update(alignment_results)
                 hits.append(results)
     return blast_hits
+
 
 # Function to determine the best match
 def get_best_match(matches, key):
@@ -202,9 +271,11 @@ def get_best_match(matches, key):
             best_match = match
     return best_match
 
+
 ################################################################################
 #:::::::::::::::::::::::::::::TABLE OUTPUT STUFF:::::::::::::::::::::::::::::::#
 ################################################################################
+
 
 def get_hits_table(hits):
     rows = []
@@ -214,14 +285,16 @@ def get_hits_table(hits):
     df = pandas.DataFrame(rows)
     return df
 
+
 def parse_to_tsv(file, output_path, args, parsing_type):
     hits = parse_blast_xml(file, args, parsing_type=parsing_type)
     hits_df = get_hits_table(hits)
-    hits_df.to_csv(str(output_path), sep='\t', index=False)
+    hits_df.to_csv(str(output_path), sep="\t", index=False)
     message = f"{parsing_type} table for: {Path(file).stem.split('_')[0]} written to {output_path}"
     if not args.quiet:
         print(message)
     return message
+
 
 ################################################################################
 #:::::::::::::::::::::::::::::: MULTIPROCESSING :::::::::::::::::::::::::::::::#
@@ -230,22 +303,27 @@ def run_command(command):
     try:
         command = [str(arg) for arg in command]
         result = subprocess.run(command, check=True, capture_output=True, text=True)
-        return f"SUCCESS: {' '.join(command)}" if result.returncode == 0 else result.stderr
+        return (
+            f"SUCCESS: {' '.join(command)}" if result.returncode == 0 else result.stderr
+        )
     except subprocess.CalledProcessError as e:
         return f"FAILURE: '{command}'\nerror: {e.stderr}"
     except Exception as e:
         return f"An unexpected error occurred: {str(e)}"
 
+
 def run_blast(prog, database, input_file, results_dir, threads, quiet=False):
     if not quiet:
-        print(f'Running {prog} for {input_file}!')
+        print(f"Running {prog} for {input_file}!")
     command = get_blast_command(prog, input_file, results_dir, database, threads)
     return run_command(command)
+
 
 def get_results(results_dir, quiet=False):
     if not quiet:
         print(os.listdir(results_dir))
-    return glob.glob(f'{results_dir}/**/*.xml', recursive=True)
+    return glob.glob(f"{results_dir}/**/*.xml", recursive=True)
+
 
 ## Define main function logic.
 def main(args):
@@ -267,21 +345,21 @@ def main(args):
     dbs = get_db_type(args.db)
     print(f"Databases to run against: {dbs}")
     # ok now let's get our inputs.
-    inputs = get_input_files(input_path, 'fasta')
+    inputs = get_input_files(input_path, "fasta")
     print(f"Input files: {len(inputs)}")
-    print('\n')
+    print("\n")
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
         if not args.quiet:
-            print('Creating output directory!\n')
+            print("Creating output directory!\n")
 
     for db in dbs:
         db_path = db[0]
         prog = db[1]
         db_name = Path(db_path).stem
-        results_dir = os.path.join(output_path, db_name, 'xml_files')
-        tables_dir = os.path.join(output_path, db_name, 'tables')
+        results_dir = os.path.join(output_path, db_name, "xml_files")
+        tables_dir = os.path.join(output_path, db_name, "tables")
         os.makedirs(results_dir, exist_ok=True)
         os.makedirs(tables_dir, exist_ok=True)
 
@@ -292,7 +370,7 @@ def main(args):
         # Parse results
         results = get_results(results_dir, args.quiet)
         for result_file in results:
-            results_table = f'{Path(result_file).stem}_table.tsv'
+            results_table = f"{Path(result_file).stem}_table.tsv"
             output_table = str(os.path.join(tables_dir, results_table))
             parse_to_tsv(result_file, output_table, args, db_name)
 
@@ -300,17 +378,42 @@ def main(args):
         print("Finished!")
     return 0
 
+
 if __name__ == "__main__":
     # Create the parser
-    parser = argparse.ArgumentParser(prog = "PlasmidCaller_v6.0.0",
-                                    description = "Plasmid/replicon classifier for a single FASTA file")
+    parser = argparse.ArgumentParser(
+        prog="PlasmidCaller_v6.0.0",
+        description="Plasmid/replicon classifier for a single FASTA file",
+    )
     # Add the arguments
-    parser.add_argument('--input', required=True, type=str, help='Input FASTA file path')
-    parser.add_argument('--output', required=True, type=str, help='The directory for outputs')
-    parser.add_argument('--threads', required=False, type=int, help='How many cores to use?')
-    parser.add_argument('--db', required=False, type=str, help='Path to directory containing blast databases', default='/db')
-    parser.add_argument('--skip_blast', action='store_true', help='Skip running BLAST and only parse existing results', default=False)
-    parser.add_argument('--quiet', action='store_true', help='Run without terminal output for workflow integration', default=False)
+    parser.add_argument(
+        "--input", required=True, type=str, help="Input FASTA file path"
+    )
+    parser.add_argument(
+        "--output", required=True, type=str, help="The directory for outputs"
+    )
+    parser.add_argument(
+        "--threads", required=False, type=int, help="How many cores to use?"
+    )
+    parser.add_argument(
+        "--db",
+        required=False,
+        type=str,
+        help="Path to directory containing blast databases",
+        default="/db",
+    )
+    parser.add_argument(
+        "--skip_blast",
+        action="store_true",
+        help="Skip running BLAST and only parse existing results",
+        default=False,
+    )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Run without terminal output for workflow integration",
+        default=False,
+    )
 
     # Parse the arguments
     args = parser.parse_args()
