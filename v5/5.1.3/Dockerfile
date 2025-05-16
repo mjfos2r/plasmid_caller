@@ -25,7 +25,8 @@ RUN rm -rf /tmp/blast
 
 COPY [ "requirements.txt", "wp_v2_info.pkl", "/opt/" ]
 
-RUN pip install --no-cache-dir -r /app/requirements.txt
+# RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --no-cache-dir -r /opt/requirements.txt
 
 COPY [ "db", "/db/" ]
 COPY [ "plasmid_caller.py", "/opt/" ]

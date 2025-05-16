@@ -75,7 +75,8 @@ def get_db_type(db_dir):
 
 def get_contig_len(args, assembly_id, contig_id):
     assemblies_dir = args.input
-    records = SeqIO.parse(f'/data/{assemblies_dir}/{assembly_id}/{assembly_id}.gbff', 'genbank')
+    # records = SeqIO.parse(f'/data/{assemblies_dir}/{assembly_id}/{assembly_id}.gbff', 'genbank')
+    records = SeqIO.parse(f'/data/{assemblies_dir}/{assembly_id}.fasta', 'fasta')
     records = list(records)
     idx = [rec.id for rec in records].index(contig_id.split()[0])
     contig_len = [len(rec.seq) for rec in records][idx]
@@ -319,7 +320,7 @@ def main(args):
     dbs = get_db_type(args.db)
     print(f"Databases to run against: {dbs}")
     # ok now let's get our inputs.
-    inputs = get_input_files(input_path, 'fna')
+    inputs = get_input_files(input_path, 'fasta')
     print(f"Input files: {len(inputs)}")
     print('\n')
     
