@@ -26,3 +26,18 @@ from tqdm import tqdm
 from pathlib import Path
 from intervaltree import Interval, IntervalTree
 from concurrent.futures import ProcessPoolExecutor, as_completed
+
+## setup logging.
+## Get inputs
+## validate inputs
+## get databases
+## validate db versions
+## path setup/output path setup/ directory management.
+## docker awareness
+## parse hits
+## generate hits/evidence table
+## generate renaming table
+## modify bio object and rename headers
+## if multi: generate presence matrix
+## pickle up everything
+## final report generation and output creation.
