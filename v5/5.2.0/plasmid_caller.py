@@ -1,19 +1,17 @@
 # plasmid_caller.py
-# Version: 5.1.3
-# April 3, 2025
+# Version: 5.2.0
+# March 20, 2025
 # - Michael J. Foster
 # - Ben Kotzen
+# Modified to accept a single fasta file as input
 
 import os
 import re
-import csv
-import sys
 import subprocess
 import glob
 import pandas
 import pickle
 import argparse
-from math import floor
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.Blast import NCBIXML
@@ -24,28 +22,20 @@ from pathlib import Path
 from intervaltree import Interval, IntervalTree
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-def get_input_files(in_dir, ext):
-    print(f'looking in {in_dir} for input files with extension: {ext}')
-    files = glob.glob(f'{in_dir}/*.{ext}')
-    if len(files) == 0:
-        files = glob.glob(f'{in_dir}/**/*.{ext}', recursive=True)
-    print(f'Input files found: {len(files)}')
-    return files
-
 def get_output_path(results_dir):
     cwd = Path(os.getcwd())
     output_path = os.path.join(cwd, results_dir)
     if not os.path.exists(output_path):
         print(f"Creating output path: {output_path}")
-        os.makedirs(output_path, exist_ok=True) # too lazy to refactor this function rn i just need my calls 
+        os.makedirs(output_path, exist_ok=True)
     return output_path
 
-def get_blast_command(prog, input_file, output_path, database, job_threads):
+def get_blast_command(prog, input_file, output_path, database, threads):
     file_id = Path(input_file).stem
     output_file = f'{output_path}/{file_id}_blast_results.xml'
-    command = [prog, '-query', input_file, '-db', database, 
-               '-out', output_file, '-evalue', '1e-100', '-num_threads', job_threads, 
-               '-outfmt', '5', '-max_target_seqs', '5', '-max_hsps', '10'] # '-task', f'"{prog}"',
+    command = [prog, '-query', input_file, '-db', database,
+               '-out', output_file, '-evalue', '1e-100', '-num_threads', threads,
+               '-outfmt', '5', '-max_target_seqs', '5', '-max_hsps', '10']
     return command
 
 def make_blast_db(dbtype, input_file, db_output):
@@ -54,7 +44,7 @@ def make_blast_db(dbtype, input_file, db_output):
                '-parse_seqids', '-logfile', logfile, '-out', db_output]
     return command
 
-def get_db_type(db_dir):
+def get_db_type(db_dir, quiet=True):
     """ Get the individual database for blast and the database type """
     command = ['blastdbcmd', '-list', f'{db_dir}', '-recursive',]
     results = subprocess.run(command, capture_output=True, text=True)
@@ -63,7 +53,8 @@ def get_db_type(db_dir):
     output = results.stdout
     for line in output.split('\n')[:-1]: # last line is empty so don't iterate to it!
         db_info = line.split(' ')
-        print(db_info)
+        if not quiet:
+            print(db_info)
         db_name = db_info[0]
         db_type = db_info[1].lower()
         dbs.append(db_name)
@@ -73,13 +64,13 @@ def get_db_type(db_dir):
             progs.append('blastn')
     return list(zip(dbs, progs))
 
-def get_contig_len(args, assembly_id, contig_id):
-    assemblies_dir = args.input
-    records = SeqIO.parse(f'/data/{assemblies_dir}/{assembly_id}/{assembly_id}.gbff', 'genbank')
-    records = list(records)
-    idx = [rec.id for rec in records].index(contig_id.split()[0])
-    contig_len = [len(rec.seq) for rec in records][idx]
-    return contig_len
+def get_contig_len(args, contig_id):
+    """Get contig length directly from the input FASTA file"""
+    fasta_file = args.input
+    for record in SeqIO.parse(fasta_file, 'fasta'):
+        if record.id.split()[0] == contig_id.split()[0]:
+            return len(record.seq)
+    return 1 # TODO Raise exception.
 
 ################################################################################
 #:::::::::::::::::::::::::::::: RESULTS PARSING :::::::::::::::::::::::::::::::#
@@ -130,28 +121,21 @@ def parse_hit_id(hit_id):
     gene_id_list = hit_id.strip().split('_')
     if len(gene_id_list) == 2:
         strain = gene_id_list[0]
-    #     plasmid_id = gene_id_list[-1]
     elif len(gene_id_list) == 1: # this is the weird pdb case.
         strain = gene_id_list[0].split('|')[1]
-    #     plasmid_id = gene_id_list[0].split('|')[-1]
     elif gene_id_list[0] == 'NE': # this is the NE_1234 strains single case, hate this too.
         strain = '_'.join(gene_id_list[0:2])
-    #     plasmid_id = gene_id_list[2]
-    #elif gene_id_list.endswith('X') or gene_id_list.startswith('RS'):
-    #    strain = gene_id_list[1]
-    #     plasmid_id = gene_id_list[-2]        
     else:
         strain = gene_id_list[0]
-    #     plasmid_id = gene_id_list[1]
     pattern = r"chromosome|(?:lp|cp)\d{1,2}(?:[-+#](?:lp|cp)?\d{1,2})*"
     match = re.findall(pattern, hit_id.replace('_', '-'))
     plasmid_id = match[0] if match else 'HO14_NovelPFam32' if 'HO14_NovelPFam32_DatabaseShortContig' in hit_id else None
     return strain, plasmid_id
 
-def parse_blast_xml(xml_file, **kwargs):
+def parse_blast_xml(xml_file, args, **kwargs):
     """ This is the new and improved blast results parsing function.
     - it takes kwargs for parsing_type which is either 'wp' or 'pf32'"""
-    assembly_id = Path(xml_file).stem.replace('_blast_results', '')#.split('_')[0]
+    assembly_id = Path(xml_file).stem.replace('_blast_results', '')
     parsing_type = kwargs.get('parsing_type', 'general')
 
     with open(xml_file, 'r') as handle:
@@ -171,7 +155,6 @@ def parse_blast_xml(xml_file, **kwargs):
 
             contig_id = record.query
             contig_length = record.query_length
-            hsp_counter = 0
 
             if contig_id not in blast_hits:
                 blast_hits[contig_id] = []
@@ -183,19 +166,18 @@ def parse_blast_xml(xml_file, **kwargs):
                 plasmid_id = alignment.hit_id
                 ref_length = alignment.length
 
-
                 if parsing_type == 'wp':
                     strain, plasmid_name = get_name_from_acc(plasmid_id, parsing_dict)
                 elif parsing_type == 'pf32':
                     strain, plasmid_name = parse_hit_id(plasmid_id)
                 else:
-                    strain = 'unknown' # this needs work
+                    strain = 'unknown'
                     plasmid_name = alignment.hit_id
 
                 results = {
                     "assembly_id": assembly_id,
                     "contig_id": contig_id,
-                    "contig_len":get_contig_len(args, assembly_id, contig_id),
+                    "contig_len": get_contig_len(args, assembly_id, contig_id),
                     "plasmid_id": plasmid_id,
                     "plasmid_name": plasmid_name,
                     "strain": strain,
@@ -226,21 +208,20 @@ def get_best_match(matches, key):
 
 def get_hits_table(hits):
     rows = []
-    for contig, hits in hits.items():
+    for _, hits in hits.items():
         for hit in hits:
             rows.append(hit)
     df = pandas.DataFrame(rows)
     return df
 
-def join_and_write_tables(tables):
-    main_df = pandas.concat(tables, index=False)
-    main_df.to_csv(output_table_path, sep='\t')
-
-def parse_to_tsv(file, output_path, parsing_type):
-    hits = parse_blast_xml(file, parsing_type=parsing_type)
+def parse_to_tsv(file, output_path, args, parsing_type):
+    hits = parse_blast_xml(file, args, parsing_type=parsing_type)
     hits_df = get_hits_table(hits)
     hits_df.to_csv(str(output_path), sep='\t', index=False)
-    return f"{parsing_type} table for: {Path(file).stem.split('_')[0]} written to {output_path}"
+    message = f"{parsing_type} table for: {Path(file).stem.split('_')[0]} written to {output_path}"
+    if not args.quiet:
+        print(message)
+    return message
 
 ################################################################################
 #:::::::::::::::::::::::::::::: MULTIPROCESSING :::::::::::::::::::::::::::::::#
@@ -255,64 +236,32 @@ def run_command(command):
     except Exception as e:
         return f"An unexpected error occurred: {str(e)}"
 
-def progress_bar(futures):
-    with tqdm(total=len(futures)) as pbar:
-        for future in as_completed(futures):
-            try:
-                result = future.result()
-                tqdm.write(result)
-            except Exception as e:
-                tqdm.write(f"Error: {e}")
-            pbar.update(1)
+def run_blast(prog, database, input_file, results_dir, threads, quiet=False):
+    if not quiet:
+        print(f'Running {prog} for {input_file}!')
+    command = get_blast_command(prog, input_file, results_dir, database, threads)
+    return run_command(command)
 
-def parallel_blast(num_workers, job_threads, prog, database, input_files, results_dir):
-    print('Starting parallel_blast!')
-    with ProcessPoolExecutor(max_workers=num_workers) as executor:
-        futures = []
-        #output_path = get_output_path(results_dir) BAD?
-        for file in input_files:
-            command = get_blast_command(prog, file, results_dir, database, job_threads)
-            print(f'Queueing {prog} job for {file}!')
-            futures.append(executor.submit(run_command, command))
-        progress_bar(futures)
-
-def parallel_parse(cpus, results, db_name, output_dir):
-    print('Starting parallel_parse!')
-    with ProcessPoolExecutor(max_workers=cpus) as executor:
-        futures = []
-        #output_path = get_output_path(output_dir)
-        for file in results:
-            results_table  = f'{Path(file).stem}_table.tsv'
-            output_table = str(os.path.join(output_dir, results_table))
-            print(f'Queueing parse job for {file}!')
-            futures.append(executor.submit(parse_to_tsv, file, output_table, db_name))
-        progress_bar(futures)
-
-def get_results(results_dir):
-    print(os.listdir(results_dir))
+def get_results(results_dir, quiet=False):
+    if not quiet:
+        print(os.listdir(results_dir))
     return glob.glob(f'{results_dir}/**/*.xml', recursive=True)
-
 
 ## Define main function logic.
 def main(args):
-    # First things first, let's fix the input to path correctly within the container. 
-    # User should not have to worry about anything other than binding the working directory and specifying locations.
-    input_path = os.path.join('/data', args.input)
-    output_path = os.path.join('/data', args.output)
+    # Verify input file exists
+    if not os.path.exists(args.input):
+        parser.error("Input FASTA file does not exist!")
 
-    if not os.path.exists(input_path):
-        parser.error("Must specify a directory containing fasta files!")
+    # Get output paths
+    output_path = args.output
 
-    # determine how many parallel workers we're gonna spin up
-    num_workers = floor(args.cpus/args.job_threads)
-
-    print(f"Input directory: {args.input}")
-    print(f"Output directory: {args.output}")
-    print(f"CPUs: {args.cpus}")
-    print(f"Job threads: {args.job_threads}")
-    print(f"Databases: {args.db}")
-    print(f"Skip BLAST?: {args.skip_blast}")
-    print(f"Number of parallel workers: {num_workers}")
+    if not args.quiet:
+        print(f"Input file: {args.input}")
+        print(f"Output directory: {args.output}")
+        print(f"Job threads: {args.threads}")
+        print(f"Databases: {args.db}")
+        print(f"Skip BLAST?: {args.skip_blast}")
 
     # now lets get our dbs to run against
     dbs = get_db_type(args.db)
@@ -323,39 +272,48 @@ def main(args):
     print('\n')
 
     if not os.path.exists(output_path):
-        os.mkdir(output_path)
-        print('creating output directory!\n')
+        os.makedirs(output_path)
+        if not args.quiet:
+            print('Creating output directory!\n')
 
     for db in dbs:
         db_path = db[0]
         prog = db[1]
         db_name = Path(db_path).stem
-        results_dir = os.path.join(output_path, db_name,'xml_files')
-        tables_dir = os.path.join(output_path, db_name,'tables')
+        results_dir = os.path.join(output_path, db_name, 'xml_files')
+        tables_dir = os.path.join(output_path, db_name, 'tables')
         os.makedirs(results_dir, exist_ok=True)
         os.makedirs(tables_dir, exist_ok=True)
+
         if not args.skip_blast:
-            parallel_blast(num_workers, args.job_threads, prog, db_path, inputs, results_dir)
-        results = get_results(results_dir)
-        parallel_parse(args.cpus, results, db_name, tables_dir)
-    print("Finished!")
+            # Run BLAST without parallelization since there's only one input file
+            run_blast(prog, db_path, args.input, results_dir, args.threads, args.quiet)
+
+        # Parse results
+        results = get_results(results_dir, args.quiet)
+        for result_file in results:
+            results_table = f'{Path(result_file).stem}_table.tsv'
+            output_table = str(os.path.join(tables_dir, results_table))
+            parse_to_tsv(result_file, output_table, args, db_name)
+
+    if not args.quiet:
+        print("Finished!")
     return 0
 
 if __name__ == "__main__":
     # Create the parser
-    parser = argparse.ArgumentParser(prog = "PlasmidCaller_v5.1.2",
-                                     description = "Michael's handy dandy plasmid/replicon classifier")
+    parser = argparse.ArgumentParser(prog = "PlasmidCaller_v6.0.0",
+                                    description = "Plasmid/replicon classifier for a single FASTA file")
     # Add the arguments
-    parser.add_argument('--input',         required=True,  type=str, help='A directory containing the fasta files for the assemblies to parse')
-    #parser.add_argument('annotations_dir',required=True,  type=str, help='The directory containing the annotations (genbanks)') # Not yet!
-    parser.add_argument('--output',        required=True,  type=str, help='The directory for outputs')
-    parser.add_argument('--cpus',          required=True,  type=int, help='How many cores we rippin')
-    parser.add_argument('--job_threads',   required=False,  type=int, help='How many cores per job?', default=2)
-    parser.add_argument('--db',            required=False, type=str, help='path to directory containing *all* blast databases to use in analysis', default='/db',)
-    # parser.add_argument('--assemblies-dir',required=False, type=str, help='path to directory containing assemblies',\
-    #                                        default='/home/mf019/longread_pangenome/expanded_dataset_analysis/assemblies/dataset_v5/')
-    parser.add_argument('--skip_blast', action='store_true', required=False, help='Use this to run blast against all provided databases', default=False)
+    parser.add_argument('--input', required=True, type=str, help='Input FASTA file path')
+    parser.add_argument('--output', required=True, type=str, help='The directory for outputs')
+    parser.add_argument('--threads', required=False, type=int, help='How many cores to use?')
+    parser.add_argument('--db', required=False, type=str, help='Path to directory containing blast databases', default='/db')
+    parser.add_argument('--skip_blast', action='store_true', help='Skip running BLAST and only parse existing results', default=False)
+    parser.add_argument('--quiet', action='store_true', help='Run without terminal output for workflow integration', default=False)
+
     # Parse the arguments
     args = parser.parse_args()
-    print(args)
+    if not args.quiet:
+        print(args)
     main(args)
