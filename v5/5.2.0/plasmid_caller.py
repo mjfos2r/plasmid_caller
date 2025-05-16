@@ -5,17 +5,18 @@
 # - Ben Kotzen
 # Modified to accept a single fasta file as input
 
+import argparse
+import glob
 import os
+import pickle
 import re
 import subprocess
-import glob
-import pandas
-import pickle
-import argparse
-from Bio import SeqIO
-from Bio.Blast import NCBIXML
 from collections import defaultdict
 from pathlib import Path
+
+import pandas
+from Bio import SeqIO
+from Bio.Blast import NCBIXML
 from intervaltree import IntervalTree
 
 
