@@ -39,6 +39,7 @@ I'm currently re-writing the most recent version to greatly simplify execution a
 
 ### Upcoming
 
+- [ ] write `.wdl` for use in terra.
 - [ ] documentation/wiki creation
 - [ ] return input files with renamed headers ( very high priority )
 - [ ] generate renaming_table for use in Bakta annotation
