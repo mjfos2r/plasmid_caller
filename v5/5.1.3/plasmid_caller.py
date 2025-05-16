@@ -1,6 +1,6 @@
 # plasmid_caller.py
-# Version: 5.1.2
-# December 5, 2024
+# Version: 5.1.3
+# April 3, 2025
 # - Michael J. Foster
 # - Ben Kotzen
 
@@ -318,7 +318,7 @@ def main(args):
     dbs = get_db_type(args.db)
     print(f"Databases to run against: {dbs}")
     # ok now let's get our inputs.
-    inputs = get_input_files(input_path, 'fna')
+    inputs = get_input_files(input_path, 'fasta')
     print(f"Input files: {len(inputs)}")
     print('\n')
 
