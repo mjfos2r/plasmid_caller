@@ -12,6 +12,7 @@ I'm currently re-writing the most recent version to greatly simplify execution a
 - Organized repository
 - Reviewing and optimizing the core processing logic.
     >It was originally written for bulk processing of many genomes (using multiprocessing/multithreading) and given the switch to single genome processing, much of it is dead weight. I am extending current functionality to perform single input processing by default and multiple genome processing when specified.
+    >The switch to single-input processing was done to simplify parallel execution in pipelines but multi-input execution is still useful, especially when not in a pipeline.
 - Reviewing and optimizing output generation (matrix, evidence table, etc.)
 - Extending functionality to accomodate single/multi input
     >the shift from multi-input processing to single-input processing broke *many* things and while they are functional, the fixes are far from flexible.
