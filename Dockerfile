@@ -27,7 +27,7 @@ WORKDIR /app
 COPY [ "scripts", "src", "vendor", "pyproject.toml", "/app/plasmid_caller" ]
 WORKDIR /app/plasmid_caller
 
-RUN pip install -e /opt/plasmid_caller
+RUN pip install .
 
 #COPY [ "db", "/db/" ]
 #COPY [ "plasmid_caller.py", "/opt/" ]
