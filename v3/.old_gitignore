@@ -1,0 +1,8 @@
+# gitignore
+.DS_Store
+*.xml
+*.fasta
+*.gbff
+*.gff3
+*.pkl
+paired_only/*
