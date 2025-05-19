@@ -3,6 +3,7 @@
 !src
 !scripts
 !pyproject.toml
+!vendor
 !Dockerfile
 !plasmid_caller.py
 !requirements.txt
