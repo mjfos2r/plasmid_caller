@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir /tmp/blast /db /data /opt/src
+RUN mkdir /tmp/blast /db /data /opt/plasmid_caller
 WORKDIR /opt
 
 #RUN wget -P /tmp/blast https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.16.0+-x64-linux.tar.gz
@@ -23,9 +23,9 @@ WORKDIR /opt
 
 #RUN rm -rf /tmp/blast
 
-COPY [ "scripts/", "src/", "vendor/", "pyproject.toml", "/opt/" ]
+COPY [ "scripts", "src", "vendor", "pyproject.toml", "/opt/plasmid_caller" ]
 
-#RUN pip install --no-cache-dir -r /opt/requirements.txt
+RUN pip install /opt/plasmid_caller
 
 #COPY [ "db", "/db/" ]
 #COPY [ "plasmid_caller.py", "/opt/" ]
