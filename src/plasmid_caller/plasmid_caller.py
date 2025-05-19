@@ -16,13 +16,17 @@ from collections import defaultdict
 from pathlib import Path
 import importlib.util
 
-from . import __version__
+from plasmid_caller import __about__
+__version__ = __about__.__version__
+
 from .blast_manager import blast_manager
 
 import pandas
 from Bio import SeqIO
 from Bio.Blast import NCBIXML
 from intervaltree import IntervalTree
+
+
 
 def get_input_files(input_path, input_extension):
     """from an input path, return a list of filepaths to each input file"""
