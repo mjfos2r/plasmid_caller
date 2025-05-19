@@ -1,6 +1,6 @@
+from __future__ import annotations
 import subprocess
 from pathlib import Path
-from __future__ import annotations
 from importlib import resources
 import sys
 
