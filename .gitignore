@@ -6,3 +6,6 @@
 #v4_test/
 *.tar.gz
 *.tar.gz.md5
+.ipynb_checkpoints
+.vscode
+.snakemake
