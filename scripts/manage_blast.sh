@@ -172,7 +172,7 @@ get_blast_path() {
 
 # main execution
 
-if [[ $# == 1 ]]; then
+if [ $# -eq 0 ]; then
     usage
     exit 1
 fi
