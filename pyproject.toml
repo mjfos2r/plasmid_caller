@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "plasmid_caller"
-dynamic = ["version"]
+version = ["version"]
 description = "Python tool using BLAST to classify plasmids in B. burgdorferi genome assemblies"
 readme = "README.md"
 requires-python = ">=3.10"
