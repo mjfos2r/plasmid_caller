@@ -7,7 +7,7 @@ name = "plasmid-caller"
 dynamic = ["version"]
 description = "Python tool using BLAST to classify plasmids in B. burgdorferi genome assemblies"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
     {name = "Michael J. Foster", email = "TBD"},
