@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "plasmid-caller"
+dynamic = ["version"]
+description = "Python tool using BLAST to classify plasmids in B. burgdorferi genome assemblies"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Michael J. Foster", email = "TBD"},
+    {name = "Ben Kotzen", email = "TBD"},
+]
+dependencies = [
+    "biopython>=1.84",
+    "pandas>=2.0.0",
+    "tqdm>=4.66.1",
+    "intervaltree>=3.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=6.1.1",
+    "ruff>=0.10.0",
+]
+
+[project.scripts]
+plasmid-caller = "plasmid-caller.cli:main"
+blast-manager = "plasmid-caller.blast_cli:main"
+
+[tool.hatch.version]
+path = "src/plasmid-caller/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/plasmid-caller"]
+include = [
+    "vendor/blast/**/*",
+    "scripts/manage_blast.sh",
+    "src/plasmid_caller/db/**/*"
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/plasmid_caller/**/*",
+    "src/plasmid_caller/db/**/*",
+    "vendor/blast/**/*",
+    "scripts/manage_blast.sh"
+]
+
+[tool.hatch.build.hooks.custom]
+path = "scripts/build_hooks.py"
+
+# make these scripts executable during installation
+[tool.hatch.build.force-include]
+"scripts/manage_blash.sh" = "scripts/manage_blast.sh"
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
