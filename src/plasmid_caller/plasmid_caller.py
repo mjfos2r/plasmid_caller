@@ -374,6 +374,8 @@ if __name__ == "__main__":
     )
     # Add the arguments
     parser.add_argument(
+        "--version", required=False, action='version', version='%(prog)s ' + __version__)
+    parser.add_argument(
         "--input", required=True, type=str, help="Input FASTA file path"
     )
     parser.add_argument(
