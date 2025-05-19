@@ -9,13 +9,6 @@ class BlastManager:
 
     def __init__(self):
         self.module_dir = Path(__file__).parent
-        self.project_root = self._find_project_root()
-        self.vendor_dir = self.project_root / "vendor" / "blast"
-        self.scripts_dir = self.project_root / "scripts"
-        self.manage_script = self.scripts_dir / "manage_blast.sh"
-
-        self._blast_path = None
-        self._blast_source = None
         # locate manage_blast.sh packaged alongside the project
         with resources.as_file(
             resources.files(__package__).joinpath("..", "scripts", "manage_blast.sh")
