@@ -1,5 +1,8 @@
 import subprocess
 from pathlib import Path
+from __future__ import annotations
+from importlib import resources
+import sys
 
 class BlastManager:
     """Manages BLAST binary access and execution"""
@@ -13,55 +16,23 @@ class BlastManager:
 
         self._blast_path = None
         self._blast_source = None
+        # locate manage_blast.sh packaged alongside the project
+        with resources.as_file(
+            resources.files(__package__).joinpath("..", "scripts", "manage_blast.sh")
+        ) as script_path:
+            self.manage_script = script_path.resolve()
 
-    def _find_project_root(self):
-        """figure out the root directory containing vendor/scripts"""
-        module_parent = self.module_dir.parent
-        # are we running from src in dev mode?
-        if (module_parent.parent / "scripts").exists():
-            return module_parent.parent
+        self.vendor_dir = self.manage_script.parent.parent / "vendor" / "blast"
+        self.vendor_dir.mkdir(parents=True, exist_ok=True)
 
-        # are we running as an installed package?
-        if (module_parent / "scripts").exists():
-            return module_parent
-
-        # if we can't find it, just use the parent dir.
-        return module_parent
+        self._blast_path: Path | None = None
+        self._blast_source: str | None = None
 
     @property
-    def blast_path(self):
-        """Get path to BLAST binaries. Install if necessary"""
+    def blast_path(self) -> Path:
+        """Path object to the directory that holds BLAST binaries."""
         if self._blast_path is None:
-            # make sure we have the vendor dir.
-            self.vendor_dir.mkdir(parents=True, exist_ok=True)
-
-            # check for the management script
-            if not self.manage_script.exists():
-                raise FileNotFoundError(
-                    f"BLAST management script not found at {self.manage_script}."
-                    "Please reinstall the package :("
-                )
-
-            # run the script and get the path
-            try:
-                result = subprocess.run(
-                    [str(self.manage_script), "path"],
-                    check=True,
-                    text=True,
-                    capture_output=True
-                )
-                self._blast_path = Path(result.stdout.strip())
-
-                # read the source to determine if it's system or local.
-                source_file = self.vendor_dir / "BLAST_SOURCE"
-                if source_file.exists():
-                    with open(source_file, "r") as f:
-                        self._blast_source = f.read().strip()
-            except subprocess.CalledProcessError as e:
-                raise RuntimeError(
-                    f"Failed to run BLAST management script: {e}\n"
-                    f"stdout: {e.stdout}\nstderr: {e.stderr}"
-                )
+            self._initialise_blast()
         return self._blast_path
 
     @property
@@ -71,6 +42,30 @@ class BlastManager:
             _ = self.blast_path
         return self._blast_source
 
+    def _initialise_blast(self) -> None:
+        """Run the shell helper and record its answer."""
+        try:
+            proc = subprocess.run(
+                [str(self.manage_script), "path"],
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(
+                f"manage_blast.sh failed with exit-code {e.returncode}\n"
+                f"stdout:\n{e.stdout}\nstderr:\n{e.stderr}"
+            ) from e
+
+        # Use only the first line – manage_blast.sh may echo more later.
+        path_line = proc.stdout.splitlines()[0].strip()
+        self._blast_path = Path(path_line)
+
+        # Source info if available
+        src_file = self.vendor_dir / "BLAST_SOURCE"
+        if src_file.is_file():
+            self._blast_source = src_file.read_text().strip()
+
     def get_binary_path(self, binary_name):
         """get full path to a specified BLAST binary"""
         return self.blast_path / binary_name
@@ -78,8 +73,9 @@ class BlastManager:
     def run_blast_command(self, command, *args, **kwargs):
         """run any blast command using the managed binaries."""
         binary_path = self.get_binary_path(command)
-        cmd = [str(binary_path)]
-        cmd.extend(str(arg) for arg in args)
+        if not binary_path.exists():
+            raise FileNotFoundError(f"{binary_path} not found")
+        cmd = [str(binary_path), *map(str, args)]
         if kwargs:
             for key, value in kwargs.items():
                 if key.startswith("_"):
@@ -93,11 +89,6 @@ class BlastManager:
             return subprocess.run(cmd, check=True, text=True, capture_output=True)
         except subprocess.CalledProcessError as e:
             raise RuntimeError(
-                f"Error running {command}: {e}\nCommand: {' '.join(cmd)}\n"
-                f"stdout: {e.stdout}\nstderr: {e.stderr}"
-            )
-        except Exception as E:
-            raise RuntimeError(f"Unexpected error running {command}: {e}")
-
-
-blast_manager = BlastManager()
+                f"BLAST command failed ({' '.join(cmd)})\n"
+                f"stdout:\n{e.stdout}\nstderr:\n{e.stderr}"
+            ) from e
