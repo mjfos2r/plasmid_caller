@@ -23,8 +23,7 @@ WORKDIR /opt
 
 #RUN rm -rf /tmp/blast
 
-#COPY [ "scripts/", "src/", "vendor/", "pyproject.toml", "/opt/" ]
-COPY [ . , "/opt/" ]
+COPY [ "scripts/", "src/", "vendor/", "pyproject.toml", "/opt/" ]
 
 #RUN pip install --no-cache-dir -r /opt/requirements.txt
 
