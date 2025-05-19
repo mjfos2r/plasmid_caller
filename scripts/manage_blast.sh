@@ -40,7 +40,7 @@ check_system_blast() {
             echo -e "${GREEN}Found system BLAST version ${version}${NC}"
 
             # compare found version to required version.
-            if version_compare "$version" "$BLAST_VERSION"; then
+            if compare_versions "$version" "$BLAST_VERSION"; then
                 local all_exist=true
                 for binary in "${BLAST_BINARIES[@]}"; do
                     if ! command -v "$binary" &> /dev/null; then
