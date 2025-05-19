@@ -19,14 +19,15 @@ import importlib.util
 from plasmid_caller import __about__ as about
 __version__ = about.__version__
 
-from .blast_manager import blast_manager
+from .blast_manager import BlastManager
 
 import pandas
 from Bio import SeqIO
 from Bio.Blast import NCBIXML
 from intervaltree import IntervalTree
 
-
+blast_manager = BlastManager()
+os.environ["PATH"] = f"{blast_manager.blast_path}:os.environ['PATH']"
 
 def get_input_files(input_path, input_extension):
     """from an input path, return a list of filepaths to each input file"""
@@ -318,6 +319,7 @@ def parse_to_tsv(file, output_path, args, parsing_type, db_path):
 
 ## Define main function logic.
 def main(args=None):
+    blast_bin = ensure_blast()
     # get the default db we installed with the package
     default_db_path = get_default_db_path()
     # Create the parser
