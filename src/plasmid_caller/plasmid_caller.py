@@ -1,9 +1,9 @@
 # plasmid_caller.py
-# Version: 5.2.0 # to bump after changing!
+# Version: 6.0.0
 # March 20, 2025
 # - Michael J. Foster
 # - Ben Kotzen
-# Modified to accept a single fasta file as input OR a directory of fastas
+# Modified to accept a single fasta file as input
 
 import argparse
 import glob
@@ -11,16 +11,27 @@ import os
 import pickle
 import re
 import subprocess
+import sys
 from collections import defaultdict
 from pathlib import Path
+import importlib.util
+
+from . import __version__
+from .blast_manager import blast_manager
 
 import pandas
 from Bio import SeqIO
 from Bio.Blast import NCBIXML
 from intervaltree import IntervalTree
 
+def get_input_files(input_path, input_extension):
+    """from an input path, return a list of filepaths to each input file"""
+    files = []
+    files.extend(Path(input_path).glob(f"*.{input_extension}"))
+    return files
 
 def get_output_path(results_dir):
+    """ensure the output path exists and create it if absent."""
     cwd = Path(os.getcwd())
     output_path = os.path.join(cwd, results_dir)
     if not os.path.exists(output_path):
@@ -28,88 +39,145 @@ def get_output_path(results_dir):
         os.makedirs(output_path, exist_ok=True)
     return output_path
 
+def get_default_db_path():
+    """
+    Find the database directory within the package installation.
+
+    Returns:
+        Path: Path to the database directory.
+    """
+    try:
+        spec = importlib.util.find_spec("plasmid_caller")
+
+        if spec and spec.origin:
+            package_dir = Path(spec.origin).parent
+            db_path = package_dir / "db"
+
+            if db_path.exists():
+                return db_path
+
+    except (ImportError, AttributeError):
+        pass
+
+    # if package detection failed, check if running from src
+    current_dir = Path(__file__).parent.absolute()
+
+    # is db in the current source directory structure?
+    repo_db_path = current_dir.parent / "db"
+    if repo_db_path.exists():
+        return repo_db_path
+
+    return Path("/db") # if all else fails return the container path. (BAD)
+
+# this is when dbs exist and are of proper version.
+def get_db_type(db_dir, quiet=True):
+    """Get the database name and type for execution"""
+    try:
+        result =  blast_manager.run_blast_command(
+        "blastdbcmd",
+            list=f"{db_dir}",
+            recursive=True,
+        )
+
+        dbs = []
+        progs = []
+        output = result.stdout
+        for line in output.split("\n"): #[:-1]:  # last line is empty so don't iterate to it!
+            if not line.strip():
+                continue
+
+            db_info = line.split(" ")
+
+            if not quiet:
+                print(db_info)
+
+            db_name = db_info[0]
+            db_type = db_info[1].lower()
+            dbs.append(db_name)
+
+            if db_type == "protein":
+                progs.append("blastx")
+            elif db_type == "nucleotide":
+                progs.append("blastn")
+        return list(zip(dbs, progs))
+    except Exception as e:
+        print(f"Error running blastdbcmd: {e}")
+        return []
 
 def get_blast_command(prog, input_file, output_path, database, threads):
+    """Construct a params dict from the given input for use in run_blast()"""
     file_id = Path(input_file).stem
     output_file = f"{output_path}/{file_id}_blast_results.xml"
-    command = [
-        prog,
-        "-query",
-        input_file,
-        "-db",
-        database,
-        "-out",
-        output_file,
-        "-evalue",
-        "1e-100",
-        "-num_threads",
-        threads,
-        "-outfmt",
-        "5",
-        "-max_target_seqs",
-        "5",
-        "-max_hsps",
-        "10",
-    ]
-    return command
+    return {
+        "program": prog,
+        "query": input_file,
+        "db": database,
+        "out": output_file,
+        "evalue": "1e-100",
+        "num_threads": threads,
+        "outfmt": "5",
+        "max_target_seqs": "5",
+        "max_hsps": "10",
+    }
+
+def run_blast(params):
+    """Run a blast command using blast_manager"""
+    try:
+        if isinstance(params, dict):
+            program = params.pop("program", "blastn") #blastn if we don't have one.. FIX
+            return blast_manager.run_blast_command(program, **params)
+        return (
+            f"SUCCESS: {' '.join(command)}" if result.returncode == 0 else result.stderr
+        )
+    except subprocess.CalledProcessError as e:
+        return f"FAILURE: '{command}'\nerror: {e.stderr}"
+    except Exception as e:
+        return f"An unexpected error occurred: {str(e)}"
+
+def get_results(results_dir, quiet=False):
+    if not quiet:
+        print(os.listdir(results_dir))
+    return glob.glob(f"{results_dir}/**/*.xml", recursive=True)
+
+def get_name_from_acc(hit_id, parsing_dict):
+    """this is how strain and plasmid name are parsed using the previously assembled parsing dictionary"""
+    acc_id = hit_id.split("|")[1]
+    name = parsing_dict[acc_id]["name"]
+    strain = parsing_dict[acc_id]["strain"]
+    return strain, name
 
 
-def make_blast_db(dbtype, input_file, db_output):
-    logfile = f"{Path(input_file).stem}_blastdb_creation.log"
-    command = [
-        "makeblastdb",
-        "-in",
-        input_file,
-        "-dbtype",
-        dbtype,
-        "-parse_seqids",
-        "-logfile",
-        logfile,
-        "-out",
-        db_output,
-    ]
-    return command
+def parse_hit_id(hit_id):
+    """this is how strain and plasmid name are parsed using the hit_id for pf32 hits"""
+    gene_id_list = hit_id.strip().split("_")
+    if len(gene_id_list) == 2:
+        strain = gene_id_list[0]
+    elif len(gene_id_list) == 1:  # this is the weird pdb case.
+        strain = gene_id_list[0].split("|")[1]
+    elif (
+        gene_id_list[0] == "NE"
+    ):  # this is the NE_1234 strains single case, hate this too.
+        strain = "_".join(gene_id_list[0:2])
+    else:
+        strain = gene_id_list[0]
+    pattern = r"chromosome|(?:lp|cp)\d{1,2}(?:[-+#](?:lp|cp)?\d{1,2})*"
+    match = re.findall(pattern, hit_id.replace("_", "-"))
+    plasmid_id = (
+        match[0]
+        if match
+        else "HO14_NovelPFam32"
+        if "HO14_NovelPFam32_DatabaseShortContig" in hit_id
+        else None
+    ) # bad hardcode. needs to be dropped.
+    return strain, plasmid_id
 
-
-def get_db_type(db_dir, quiet=True):
-    """Get the individual database for blast and the database type"""
-    command = [
-        "blastdbcmd",
-        "-list",
-        f"{db_dir}",
-        "-recursive",
-    ]
-    results = subprocess.run(command, capture_output=True, text=True)
-    dbs = []
-    progs = []
-    output = results.stdout
-    for line in output.split("\n")[:-1]:  # last line is empty so don't iterate to it!
-        db_info = line.split(" ")
-        if not quiet:
-            print(db_info)
-        db_name = db_info[0]
-        db_type = db_info[1].lower()
-        dbs.append(db_name)
-        if db_type == "protein":
-            progs.append("blastx")
-        elif db_type == "nucleotide":
-            progs.append("blastn")
-    return list(zip(dbs, progs))
-
-
-def get_contig_len(args, contig_id):
+def get_contig_len(input_file, contig_id):
     """Get contig length directly from the input FASTA file"""
-    fasta_file = args.input
+    fasta_file = input_file
     for record in SeqIO.parse(fasta_file, "fasta"):
         if record.id.split()[0] == contig_id.split()[0]:
             return len(record.seq)
-    return 1  # TODO Raise exception.
-
-
-################################################################################
-#:::::::::::::::::::::::::::::: RESULTS PARSING :::::::::::::::::::::::::::::::#
-################################################################################
-
+    return 1  # TODO Raise exception. (y tho?)
 
 def calculate_percent_identity_and_coverage(alignment):
     total_identities = 0
@@ -154,50 +222,18 @@ def calculate_percent_identity_and_coverage(alignment):
         ],
     }
 
-
-def get_name_from_acc(hit_id, parsing_dict):
-    """this is how strain and plasmid name are parsed using the previously assembled parsing dictionary"""
-    acc_id = hit_id.split("|")[1]
-    name = parsing_dict[acc_id]["name"]
-    strain = parsing_dict[acc_id]["strain"]
-    return strain, name
-
-
-def parse_hit_id(hit_id):
-    """this is how strain and plasmid name are parsed using the hit_id for pf32 hits"""
-    gene_id_list = hit_id.strip().split("_")
-    if len(gene_id_list) == 2:
-        strain = gene_id_list[0]
-    elif len(gene_id_list) == 1:  # this is the weird pdb case.
-        strain = gene_id_list[0].split("|")[1]
-    elif (
-        gene_id_list[0] == "NE"
-    ):  # this is the NE_1234 strains single case, hate this too.
-        strain = "_".join(gene_id_list[0:2])
-    else:
-        strain = gene_id_list[0]
-    pattern = r"chromosome|(?:lp|cp)\d{1,2}(?:[-+#](?:lp|cp)?\d{1,2})*"
-    match = re.findall(pattern, hit_id.replace("_", "-"))
-    plasmid_id = (
-        match[0]
-        if match
-        else "HO14_NovelPFam32"
-        if "HO14_NovelPFam32_DatabaseShortContig" in hit_id
-        else None
-    )
-    return strain, plasmid_id
-
-
 def parse_blast_xml(xml_file, args, **kwargs):
     """This is the new and improved blast results parsing function.
     - it takes kwargs for parsing_type which is either 'wp' or 'pf32'"""
     assembly_id = Path(xml_file).stem.replace("_blast_results", "")
     parsing_type = kwargs.get("parsing_type", "general")
+    dbs_dir = kwargs.get("dbs_dir", "/app")
+    dbs_dir = Path(dbs_dir) if isinstance(dbs_dir, str) else dbs_dir
+    parsing_pkl = dbs_dir / "blast_parsing_dict.pkl"
+    parsing_dict = pickle.load(open(parsing_pkl, "rb"))
 
     with open(xml_file, "r") as handle:
         records = NCBIXML.parse(handle)
-        parsing_pkl = "/app/blast_parsing_dict.pkl"
-        parsing_dict = pickle.load(open(parsing_pkl, "rb"))
 
         # set up dict for intervals
         blast_hits = defaultdict(dict)
@@ -244,7 +280,7 @@ def parse_blast_xml(xml_file, args, **kwargs):
                 results = {
                     "assembly_id": assembly_id,
                     "contig_id": contig_id,
-                    "contig_len": get_contig_len(args, assembly_id, contig_id),
+                    "contig_len": get_contig_len(args,contig_id),
                     "plasmid_id": plasmid_id,
                     "plasmid_name": plasmid_name,
                     "strain": strain,
@@ -259,25 +295,6 @@ def parse_blast_xml(xml_file, args, **kwargs):
                 hits.append(results)
     return blast_hits
 
-
-# Function to determine the best match
-def get_best_match(matches, key):
-    """Highest percent identity takes the cake. specify which feature to compare.
-    ex: get_best_match(matches, "percent_identity")"""
-    best_match = None
-    best_score = -1
-    for match in matches:
-        if match[key] > best_score:
-            best_score = match[key]
-            best_match = match
-    return best_match
-
-
-################################################################################
-#:::::::::::::::::::::::::::::TABLE OUTPUT STUFF:::::::::::::::::::::::::::::::#
-################################################################################
-
-
 def get_hits_table(hits):
     rows = []
     for _, hits in hits.items():
@@ -286,45 +303,14 @@ def get_hits_table(hits):
     df = pandas.DataFrame(rows)
     return df
 
-
-def parse_to_tsv(file, output_path, args, parsing_type):
-    hits = parse_blast_xml(file, args, parsing_type=parsing_type)
+def parse_to_tsv(file, output_path, args, parsing_type, db_path):
+    hits = parse_blast_xml(file, args, parsing_type=parsing_type, dbs_dir=db_path)
     hits_df = get_hits_table(hits)
     hits_df.to_csv(str(output_path), sep="\t", index=False)
     message = f"{parsing_type} table for: {Path(file).stem.split('_')[0]} written to {output_path}"
     if not args.quiet:
         print(message)
     return message
-
-
-################################################################################
-#:::::::::::::::::::::::::::::: MULTIPROCESSING :::::::::::::::::::::::::::::::#
-################################################################################
-def run_command(command):
-    try:
-        command = [str(arg) for arg in command]
-        result = subprocess.run(command, check=True, capture_output=True, text=True)
-        return (
-            f"SUCCESS: {' '.join(command)}" if result.returncode == 0 else result.stderr
-        )
-    except subprocess.CalledProcessError as e:
-        return f"FAILURE: '{command}'\nerror: {e.stderr}"
-    except Exception as e:
-        return f"An unexpected error occurred: {str(e)}"
-
-
-def run_blast(prog, database, input_file, results_dir, threads, quiet=False):
-    if not quiet:
-        print(f"Running {prog} for {input_file}!")
-    command = get_blast_command(prog, input_file, results_dir, database, threads)
-    return run_command(command)
-
-
-def get_results(results_dir, quiet=False):
-    if not quiet:
-        print(os.listdir(results_dir))
-    return glob.glob(f"{results_dir}/**/*.xml", recursive=True)
-
 
 ## Define main function logic.
 def main(args):
@@ -333,7 +319,7 @@ def main(args):
         parser.error("Input FASTA file does not exist!")
 
     # Get output paths
-    output_path = args.output
+    output_path = Path(args.output)
 
     if not args.quiet:
         print(f"Input file: {args.input}")
@@ -343,37 +329,35 @@ def main(args):
         print(f"Skip BLAST?: {args.skip_blast}")
 
     # now lets get our dbs to run against
-    dbs = get_db_type(args.db)
+    dbs_dir = args.db
+    dbs = get_db_type(dbs_dir)
     print(f"Databases to run against: {dbs}")
-    # ok now let's get our inputs.
-    inputs = get_input_files(input_path, "fasta")
-    print(f"Input files: {len(inputs)}")
-    print("\n")
 
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    if not output_path.exists():
         if not args.quiet:
             print("Creating output directory!\n")
+        output_path.mkdir(exist_ok=True)
 
     for db in dbs:
         db_path = db[0]
         prog = db[1]
         db_name = Path(db_path).stem
-        results_dir = os.path.join(output_path, db_name, "xml_files")
-        tables_dir = os.path.join(output_path, db_name, "tables")
-        os.makedirs(results_dir, exist_ok=True)
-        os.makedirs(tables_dir, exist_ok=True)
+        results_dir = output_path / db_name / "xml_files"
+        tables_dir = output_path / db_name / "tables"
+        results_dir.mkdir(exist_ok=True)
+        tables_dir.mkdir(exist_ok=True)
 
         if not args.skip_blast:
+            blast_params = get_blast_command(prog, args.input, results_dir, db_path, args.threads)
             # Run BLAST without parallelization since there's only one input file
-            run_blast(prog, db_path, args.input, results_dir, args.threads, args.quiet)
+            run_blast(blast_params)
 
         # Parse results
         results = get_results(results_dir, args.quiet)
         for result_file in results:
             results_table = f"{Path(result_file).stem}_table.tsv"
-            output_table = str(os.path.join(tables_dir, results_table))
-            parse_to_tsv(result_file, output_table, args, db_name)
+            output_table = tables_dir / results_table
+            parse_to_tsv(result_file, output_table, args, db_name,  db_path = dbs_dir)
 
     if not args.quiet:
         print("Finished!")
@@ -381,6 +365,8 @@ def main(args):
 
 
 if __name__ == "__main__":
+    # get the default db we installed with the package
+    default_db_path = get_default_db_path()
     # Create the parser
     parser = argparse.ArgumentParser(
         prog="PlasmidCaller_v6.0.0",
@@ -401,7 +387,7 @@ if __name__ == "__main__":
         required=False,
         type=str,
         help="Path to directory containing blast databases",
-        default="/db",
+        default=default_db_path,
     )
     parser.add_argument(
         "--skip_blast",
@@ -418,6 +404,12 @@ if __name__ == "__main__":
 
     # Parse the arguments
     args = parser.parse_args()
+    # validate database location
+    db_path = Path(args.db)
+    if not db_path.exists():
+        parser.error(f"Database directory not found: {db_path}")
+
     if not args.quiet:
         print(args)
+
     main(args)
