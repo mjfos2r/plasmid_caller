@@ -23,9 +23,8 @@ class CustomBuildHook(BuildHookInterface):
 
     def finalize(self, version: str, build_data: Dict[str, Any], artifact_path: str) -> None:
         """run after building the package to ensure script permissions and DB setup."""
-        directory = Path(artifact_path).parent if artifact_path else Path.cwd()
-        print(f"Using directory: {directory}")
-        script_path = directory / "scripts" / "manage_blast.sh"
+        project_root = Path(self.root)
+        script_path = project_root / "scripts" / "manage_blast.sh"
         if script_path.exists():
             # make it executable in case it isn't
             current_mode = os.stat(script_path).st_mode
@@ -45,7 +44,6 @@ class CustomBuildHook(BuildHookInterface):
             )
             print("BLAST is available")
         except subprocess.CalledProcessError:
-            print("Failed to find BLAST. Installation required.")
-            subprocess.run([str(script_path), "install"], check=False)
+            print("Failed to find BLAST.")
         except Exception as e:
             print(f"Error checking BLAST: {e}")
