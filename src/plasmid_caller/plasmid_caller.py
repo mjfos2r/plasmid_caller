@@ -408,14 +408,17 @@ if __name__ == "__main__":
         default=False,
     )
 
-    # Parse the arguments
-    args = parser.parse_args()
-    # validate database location
-    db_path = Path(args.db)
-    if not db_path.exists():
-        parser.error(f"Database directory not found: {db_path}")
+    if len(sys.argv) == 1:
+        parser.print_help()
+    else:
+        # Parse the arguments
+        args = parser.parse_args()
+        # validate database location
+        db_path = Path(args.db)
+        if not db_path.exists():
+            parser.error(f"Database directory not found: {db_path}")
 
-    if not args.quiet:
-        print(args)
+        if not args.quiet:
+            print(args)
 
-    main(args)
+        main(args)
