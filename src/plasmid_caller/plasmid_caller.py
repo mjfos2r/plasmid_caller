@@ -327,7 +327,7 @@ def main(args=None):
     )
     # Add the arguments
     parser.add_argument(
-        "--version", required=False, action='version', version='%(prog)s ' + __version__)
+        "--version", action='version', version='%(prog)s ' + __version__)
     parser.add_argument(
         "--input", required=True, type=str, help="Input FASTA file path"
     )
