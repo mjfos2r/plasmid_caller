@@ -92,7 +92,7 @@ def get_db_type(db_dir, quiet=True):
 
     db_prog_pairs: list[tuple[str, str]] = []
 
-    for line in output = result.stdout.splitlines(): #[:-1]:  # last line is empty so don't iterate to it!
+    for line in result.stdout.splitlines(): #[:-1]:  # last line is empty so don't iterate to it!
         if not line.strip():
             continue
 
