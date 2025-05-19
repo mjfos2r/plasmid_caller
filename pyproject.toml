@@ -10,8 +10,8 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "Michael J. Foster", email = "TBD"},
-    {name = "Ben Kotzen", email = "TBD"},
+    {name = "Michael J. Foster", email = "TBD@no.co"},
+    {name = "Ben Kotzen", email = "TBD@no.co"},
 ]
 dependencies = [
     "biopython>=1.84",
