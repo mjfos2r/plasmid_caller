@@ -55,7 +55,7 @@ path = "scripts/build_hooks.py"
 
 # make these scripts executable during installation
 [tool.hatch.build.force-include]
-"scripts/manage_blash.sh" = "scripts/manage_blast.sh"
+"scripts/manage_blast.sh" = "scripts/manage_blast.sh"
 
 [tool.ruff]
 line-length = 88
