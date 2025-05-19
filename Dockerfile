@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     bash \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir /tmp/blast /db /data /app/plasmid_caller
+RUN mkdir -p /tmp/blast /db /data /app/plasmid_caller
 WORKDIR /app
 
 #RUN wget -P /tmp/blast https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.16.0+-x64-linux.tar.gz
