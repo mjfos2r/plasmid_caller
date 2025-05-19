@@ -9,9 +9,9 @@ class BlastManager:
 
     def __init__(self):
         self.module_dir = Path(__file__).parent
-        # locate manage_blast.sh packaged alongside the project
+        # locate manage_blast.sh as part of the package.
         with resources.as_file(
-            resources.files(__package__).joinpath("..", "scripts", "manage_blast.sh")
+            resources.files("plasmid_caller.scripts").joinpath("manage_blast.sh")
         ) as script_path:
             self.manage_script = script_path.resolve()
 
