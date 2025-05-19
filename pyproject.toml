@@ -36,7 +36,7 @@ path = "src/plasmid_caller/__about__.py"
 packages = ["src/plasmid_caller"]
 include = [
     "vendor/blast/**/*",
-    "scripts/manage_blast.sh",
+    "src/plasmid_caller/scripts/manage_blast.sh",
     "src/plasmid_caller/db/**/*"
 ]
 
