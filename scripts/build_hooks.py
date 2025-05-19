@@ -15,8 +15,11 @@ class CustomBuildHook(BuildHookInterface):
     custon build hook to handle blast installation and database setup.
     """
     def initialize(self, version: str, build_data: Dict[str, Any]) -> None:
-        """init hook"""
-        pass
+        """Initialize the build hook."""
+        print("Initialize hook called")
+        print(f"Version: {version}")
+        print(f"Build data keys: {list(build_data.keys() if build_data else [])}")
+        return None
 
     def finalize(self, version: str, build_data: Dict[str, Any], artifact_path: str) -> None:
         """run after building the package to ensure script permissions and DB setup."""
