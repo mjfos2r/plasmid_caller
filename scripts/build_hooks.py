@@ -47,5 +47,5 @@ class CustomBuildHook(BuildHookInterface):
         except subprocess.CalledProcessError:
             print("Failed to find BLAST. Installation required.")
             subprocess.run([str(script_path), "install"], check=False)
-        except Exception as E:
+        except Exception as e:
             print(f"Error checking BLAST: {e}")
