@@ -48,8 +48,5 @@ include = [
     "scripts/manage_blast.sh"
 ]
 
-[tool.hatch.build.hooks.custom]
-path = "scripts/build_hooks.py"
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
