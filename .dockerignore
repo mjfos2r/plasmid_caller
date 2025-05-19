@@ -1,6 +1,8 @@
 *
 !db
 !src
+!scripts
+!pyproject.toml
 !Dockerfile
 !plasmid_caller.py
 !requirements.txt

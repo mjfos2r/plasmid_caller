@@ -14,21 +14,22 @@ RUN apt-get update && apt-get install -y \
 RUN mkdir /tmp/blast /db /data /opt/src
 WORKDIR /opt
 
-RUN wget -P /tmp/blast https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.16.0+-x64-linux.tar.gz
-RUN wget -P /tmp/blast https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.16.0+-x64-linux.tar.gz.md5
-RUN cd /tmp/blast && md5sum -c /tmp/blast/ncbi-blast-2.16.0+-x64-linux.tar.gz.md5 || exit 1
+#RUN wget -P /tmp/blast https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.16.0+-x64-linux.tar.gz
+#RUN wget -P /tmp/blast https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.16.0+-x64-linux.tar.gz.md5
+#RUN cd /tmp/blast && md5sum -c /tmp/blast/ncbi-blast-2.16.0+-x64-linux.tar.gz.md5 || exit 1
 
-RUN tar -xzvf /tmp/blast/ncbi-blast-2.16.0+-x64-linux.tar.gz -C /tmp/blast/ --strip-components=1 --no-same-owner && \
-    mv /tmp/blast/bin/* /usr/local/bin/
+#RUN tar -xzvf /tmp/blast/ncbi-blast-2.16.0+-x64-linux.tar.gz -C /tmp/blast/ --strip-components=1 --no-same-owner && \
+#    mv /tmp/blast/bin/* /usr/local/bin/
 
-RUN rm -rf /tmp/blast
+#RUN rm -rf /tmp/blast
 
-COPY [ "requirements.txt", "wp_v2_info.pkl", "/opt/" ]
+#COPY [ "scripts/", "src/", "vendor/", "pyproject.toml", "/opt/" ]
+COPY [ . , "/opt/" ]
 
-RUN pip install --no-cache-dir -r /opt/requirements.txt
+#RUN pip install --no-cache-dir -r /opt/requirements.txt
 
-COPY [ "db", "/db/" ]
-COPY [ "plasmid_caller.py", "/opt/" ]
-COPY [ "src", "/opt/src/" ]
+#COPY [ "db", "/db/" ]
+#COPY [ "plasmid_caller.py", "/opt/" ]
+#COPY [ "src", "/opt/src/" ]
 
 ENTRYPOINT [ "python", "/opt/plasmid_caller.py" ]
