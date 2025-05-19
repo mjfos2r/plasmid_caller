@@ -1,9 +1,12 @@
 ## .gitignore
 
-.ipynb_checkpoints/
 .DS_Store
-#v3/
-#v4_test/
+v3/assemblies
+v3/assemblies.zip
+v3/containers/blast.simg
+v3/output/
+v4_test/bam
+v4_test/sam
 *.tar.gz
 *.tar.gz.md5
 .ipynb_checkpoints
