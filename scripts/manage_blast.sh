@@ -1,6 +1,6 @@
 #!/bin/bash
 # scripts/manage_blast.sh
-set -eux
+set -eu
 
 # config
 BLAST_VERSION="2.16.0"
