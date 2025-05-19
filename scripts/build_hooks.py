@@ -20,7 +20,8 @@ class CustomBuildHook(BuildHookInterface):
 
     def finalize(self, version: str, build_data: Dict[str, Any], artifact_path: str) -> None:
         """run after building the package to ensure script permissions and DB setup."""
-        directory = Path(build_data["directory"])
+        directory = Path(artifact_path).parent if artifact_path else Path.cwd()
+        print(f"Using directory: {directory}")
         script_path = directory / "scripts" / "manage_blast.sh"
         if script_path.exists():
             # make it executable in case it isn't
