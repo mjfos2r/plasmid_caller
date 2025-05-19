@@ -1,13 +1,14 @@
 #scripts/build_hooks.py
 
 import os
+import shutil
 import stat
 import subprocess
 from pathlib import Path
-import shutil
 from typing import Any, Dict
 
-from hatchling.builders.hooks.interface import BuildHookInterface
+from hatchling.builders.hooks.plugin.interface import BuildHookInterface
+
 
 class CustomBuildHook(BuildHookInterface):
     """
