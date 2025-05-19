@@ -395,8 +395,6 @@ def main(args=None):
         if not args.quiet:
             print("Creating output directory!\n")
         output_path.mkdir(exist_ok=True)
-    print("Checking for valid BLAST installation.")
-    blast_bin = blast_manager.ensure_blast()
     for db in dbs:
         db_path = db[0]
         prog = db[1]
