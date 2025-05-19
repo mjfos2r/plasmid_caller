@@ -323,8 +323,8 @@ def main(args=None):
     default_db_path = get_default_db_path()
     # Create the parser
     parser = argparse.ArgumentParser(
-        prog="PlasmidCaller_v6.0.0",
-        description="Plasmid/replicon classifier for a single FASTA file",
+        prog="plasmid_caller",
+        description="Plasmid/replicon classifier for a single FASTA file containing B.burgdorferi contigs.",
     )
     # Add the arguments
     parser.add_argument(
@@ -364,8 +364,6 @@ def main(args=None):
     else:
         # Parse the arguments
         args = parser.parse_args()
-        print("Checking for valid BLAST installation.")
-        blast_bin = blast_manager.ensure_blast()
         # validate database location
         db_path = Path(args.db)
         if not db_path.exists():
@@ -397,7 +395,8 @@ def main(args=None):
         if not args.quiet:
             print("Creating output directory!\n")
         output_path.mkdir(exist_ok=True)
-
+    print("Checking for valid BLAST installation.")
+    blast_bin = blast_manager.ensure_blast()
     for db in dbs:
         db_path = db[0]
         prog = db[1]
