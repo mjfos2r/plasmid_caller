@@ -317,58 +317,7 @@ def parse_to_tsv(file, output_path, args, parsing_type, db_path):
     return message
 
 ## Define main function logic.
-def main(args):
-    # Verify input file exists
-    if not os.path.exists(args.input):
-        parser.error("Input FASTA file does not exist!")
-
-    # Get output paths
-    output_path = Path(args.output)
-
-    if not args.quiet:
-        print(f"Input file: {args.input}")
-        print(f"Output directory: {args.output}")
-        print(f"Job threads: {args.threads}")
-        print(f"Databases: {args.db}")
-        print(f"Skip BLAST?: {args.skip_blast}")
-
-    # now lets get our dbs to run against
-    dbs_dir = args.db
-    dbs = get_db_type(dbs_dir)
-    print(f"Databases to run against: {dbs}")
-
-    if not output_path.exists():
-        if not args.quiet:
-            print("Creating output directory!\n")
-        output_path.mkdir(exist_ok=True)
-
-    for db in dbs:
-        db_path = db[0]
-        prog = db[1]
-        db_name = Path(db_path).stem
-        results_dir = output_path / db_name / "xml_files"
-        tables_dir = output_path / db_name / "tables"
-        results_dir.mkdir(exist_ok=True)
-        tables_dir.mkdir(exist_ok=True)
-
-        if not args.skip_blast:
-            blast_params = get_blast_command(prog, args.input, results_dir, db_path, args.threads)
-            # Run BLAST without parallelization since there's only one input file
-            run_blast(blast_params)
-
-        # Parse results
-        results = get_results(results_dir, args.quiet)
-        for result_file in results:
-            results_table = f"{Path(result_file).stem}_table.tsv"
-            output_table = tables_dir / results_table
-            parse_to_tsv(result_file, output_table, args, db_name,  db_path = dbs_dir)
-
-    if not args.quiet:
-        print("Finished!")
-    return 0
-
-
-if __name__ == "__main__":
+def main(args=None):
     # get the default db we installed with the package
     default_db_path = get_default_db_path()
     # Create the parser
@@ -421,4 +370,55 @@ if __name__ == "__main__":
         if not args.quiet:
             print(args)
 
-        main(args)
+    # Verify input file exists
+    if not os.path.exists(args.input):
+        parser.error("Input FASTA file does not exist!")
+
+    # Get output paths
+    output_path = Path(args.output)
+
+    if not args.quiet:
+        print(f"Input file: {args.input}")
+        print(f"Output directory: {args.output}")
+        print(f"Job threads: {args.threads}")
+        print(f"Databases: {args.db}")
+        print(f"Skip BLAST?: {args.skip_blast}")
+
+    # now lets get our dbs to run against
+    dbs_dir = args.db
+    dbs = get_db_type(dbs_dir)
+    print(f"Databases to run against: {dbs}")
+
+    if not output_path.exists():
+        if not args.quiet:
+            print("Creating output directory!\n")
+        output_path.mkdir(exist_ok=True)
+
+    for db in dbs:
+        db_path = db[0]
+        prog = db[1]
+        db_name = Path(db_path).stem
+        results_dir = output_path / db_name / "xml_files"
+        tables_dir = output_path / db_name / "tables"
+        results_dir.mkdir(exist_ok=True)
+        tables_dir.mkdir(exist_ok=True)
+
+        if not args.skip_blast:
+            blast_params = get_blast_command(prog, args.input, results_dir, db_path, args.threads)
+            # Run BLAST without parallelization since there's only one input file
+            run_blast(blast_params)
+
+        # Parse results
+        results = get_results(results_dir, args.quiet)
+        for result_file in results:
+            results_table = f"{Path(result_file).stem}_table.tsv"
+            output_table = tables_dir / results_table
+            parse_to_tsv(result_file, output_table, args, db_name,  db_path = dbs_dir)
+
+    if not args.quiet:
+        print("Finished!")
+    return 0
+
+
+if __name__ == "__main__":
+    main()
