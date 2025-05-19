@@ -359,6 +359,7 @@ def main(args=None):
 
     if len(sys.argv) == 1:
         parser.print_help()
+        parser.error("Please specify relevant arguments!")
     else:
         # Parse the arguments
         args = parser.parse_args()

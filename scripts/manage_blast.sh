@@ -171,8 +171,8 @@ get_blast_path() {
 }
 
 # main execution
-
-case "$1" in
+MODE=$1
+case $MODE in
     "check")
         if check_system_blast; then
             exit 0
