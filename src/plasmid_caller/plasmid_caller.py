@@ -16,8 +16,8 @@ from collections import defaultdict
 from pathlib import Path
 import importlib.util
 
-from plasmid_caller import __about__
-__version__ = __about__.version
+from plasmid_caller import __about__ as about
+__version__ = about.__version__
 
 from .blast_manager import blast_manager
 
