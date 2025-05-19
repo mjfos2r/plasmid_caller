@@ -77,37 +77,46 @@ def get_default_db_path():
 # this is when dbs exist and are of proper version.
 def get_db_type(db_dir, quiet=True):
     """Get the database name and type for execution"""
+    db_dir = Path(db_dir).expanduser().resolve()
+
     try:
         result =  blast_manager.run_blast_command(
         "blastdbcmd",
-            list=f"{db_dir}",
+            list=str(db_dir),
             recursive=True,
         )
-
-        dbs = []
-        progs = []
-        output = result.stdout
-        for line in output.split("\n"): #[:-1]:  # last line is empty so don't iterate to it!
-            if not line.strip():
-                continue
-
-            db_info = line.split(" ")
-
-            if not quiet:
-                print(db_info)
-
-            db_name = db_info[0]
-            db_type = db_info[1].lower()
-            dbs.append(db_name)
-
-            if db_type == "protein":
-                progs.append("blastx")
-            elif db_type == "nucleotide":
-                progs.append("blastn")
-        return list(zip(dbs, progs))
-    except Exception as e:
-        print(f"Error running blastdbcmd: {e}")
+    except Exception as exc:
+        if not quiet:
+            print(f"[get_db_type] blastdbcmd failed: {exc}")
         return []
+
+    db_prog_pairs: list[tuple[str, str]] = []
+
+    for line in output = result.stdout.splitlines(): #[:-1]:  # last line is empty so don't iterate to it!
+        if not line.strip():
+            continue
+
+        parts = line.split()
+        if len(parts) < 2:
+            if not quiet:
+                print(f"[get_db_type] Unrecognized line: {line!r}")
+            continue
+
+        name, db_type = parts[0], parts[1].lower()
+
+        if db_type == "protein":
+            program = "blastx"
+        elif db_type == "nucleotide":
+            program = "blastn"
+        else:
+            if not quiet:
+                print(f"[get_db_type] Unknown DB type {db_type!r} for {name}")
+            continue
+        db_prog_pairs.append((name,program))
+
+        if not quiet:
+            print(f"[get_db_type] {name:<40} -> {program}")
+    return db_prog_pairs
 
 def get_blast_command(prog, input_file, output_path, database, threads):
     """Construct a params dict from the given input for use in run_blast()"""
