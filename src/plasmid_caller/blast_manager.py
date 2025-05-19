@@ -38,6 +38,7 @@ class BlastManager:
     def _initialise_blast(self) -> None:
         """Run the shell helper and record its answer."""
         try:
+            print("Initializing BLAST installation. Please stand by...")
             proc = subprocess.run(
                 [str(self.manage_script), "path"],
                 check=True,
