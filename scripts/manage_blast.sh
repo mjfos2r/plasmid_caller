@@ -124,7 +124,7 @@ install_local_blast() {
         wget "$download_url" -O "$download_path"
         wget "$download_md5" -O "$download_md5_path"
     else
-        echo -e "${RED}ERROR: Need either curl or wget to proceed. ensure those are installed and try again!"
+        echo -e "${RED}ERROR: Need either curl or wget to proceed. ensure those are installed and try again!${NC}"
         exit 1
     fi
 
@@ -171,6 +171,12 @@ get_blast_path() {
 }
 
 # main execution
+
+if [[ $# == 1 ]]; then
+    usage
+    exit 1
+fi
+
 MODE=$1
 case $MODE in
     "check")
