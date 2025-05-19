@@ -129,7 +129,7 @@ install_local_blast() {
     fi
 
     echo -e "${YELLOW}Validating md5sum...${NC}"
-    MD5SUM_STATUS=$(md5sum -c "$download_md5_path" | cut -d" " -f2)
+    MD5SUM_STATUS=$(cd $(dirname "$download_md5_path") && md5sum -c "$download_md5_path" | cut -d" " -f2)
     if [[ "$MD5SUM_STATUS" != "OK" ]]; then
         echo -e "${RED}ERROR: Corrupted download. Attempting to redownload."
         exit 1
