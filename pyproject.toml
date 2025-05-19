@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "plasmid_caller"
-version = ["version"]
+dynamic = ["version"]
 description = "Python tool using BLAST to classify plasmids in B. burgdorferi genome assemblies"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -32,7 +32,7 @@ plasmid_caller = "plasmid_caller.cli:main"
 blast-manager = "plasmid_caller.blast_cli:main"
 
 [tool.hatch.version]
-path = "src/plasmid_caller/__init__.py"
+path = "src/plasmid_caller/__about__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/plasmid_caller"]
