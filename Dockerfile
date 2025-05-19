@@ -9,10 +9,11 @@ LABEL org.opencontainers.image.authors="mfoster11@mgh.harvard.edu" \
 RUN apt-get update && apt-get install -y \
     build-essential \
     wget \
+    bash \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir /tmp/blast /db /data /opt/plasmid_caller
-WORKDIR /opt
+RUN mkdir /tmp/blast /db /data /app/plasmid_caller
+WORKDIR /app
 
 #RUN wget -P /tmp/blast https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.16.0+-x64-linux.tar.gz
 #RUN wget -P /tmp/blast https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.16.0+-x64-linux.tar.gz.md5
@@ -23,9 +24,10 @@ WORKDIR /opt
 
 #RUN rm -rf /tmp/blast
 
-COPY [ "scripts", "src", "vendor", "pyproject.toml", "/opt/plasmid_caller" ]
+COPY [ "scripts", "src", "vendor", "pyproject.toml", "/app/plasmid_caller" ]
+WORKDIR /app/plasmid_caller
 
-RUN pip install /opt/plasmid_caller
+RUN pip install -e /opt/plasmid_caller
 
 #COPY [ "db", "/db/" ]
 #COPY [ "plasmid_caller.py", "/opt/" ]
