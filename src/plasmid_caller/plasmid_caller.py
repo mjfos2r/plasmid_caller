@@ -319,8 +319,7 @@ def parse_to_tsv(file, output_path, args, parsing_type, db_path):
 
 ## Define main function logic.
 def main(args=None):
-    blast_bin = ensure_blast()
-    # get the default db we installed with the package
+    # get this setup before argparse needs it.
     default_db_path = get_default_db_path()
     # Create the parser
     parser = argparse.ArgumentParser(
@@ -365,6 +364,8 @@ def main(args=None):
     else:
         # Parse the arguments
         args = parser.parse_args()
+        print("Checking for valid BLAST installation.")
+        blast_bin = blast_manager.ensure_blast()
         # validate database location
         db_path = Path(args.db)
         if not db_path.exists():
