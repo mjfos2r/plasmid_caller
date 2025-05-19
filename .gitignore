@@ -1,14 +1,15 @@
 ## .gitignore
 
 .DS_Store
-v3/assemblies
-v3/assemblies.zip
-v3/containers/blast.simg
-v3/output/
-v4_test/bam
-v4_test/sam
+old_code/v3/assemblies
+old_code/v3/assemblies.zip
+old_code/v3/containers/blast.simg
+old_code/v3/output/
+old_code/v4_test/bam
+old_code/v4_test/sam
 *.tar.gz
 *.tar.gz.md5
 .ipynb_checkpoints
 .vscode
 .snakemake
+old_code/v3/dbs/all_plasmids_bbss/Bbss.json
