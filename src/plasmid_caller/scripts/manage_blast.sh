@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # scripts/manage_blast.sh
-set -eu
+set -euo pipefail
 
 # config
 BLAST_VERSION="2.16.0"
@@ -8,10 +8,7 @@ VENDOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/vendor/blast"
 BLAST_BINARIES=("blastn" "blastp" "blastx" "tblastn" "tblastx" "makeblastdb" "blastdbcmd")
 
 # Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-NC='\033[0m' # No Color / line termination
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; NC='\033[0m'
 
 usage() {
     echo "Usage: $0 {check|install|path}"
@@ -23,10 +20,10 @@ usage() {
 # compare two version strings
 compare_versions() {
     # $1: current version $2: required version
-    if [ "$(printf '%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]; then
-        return 0 # 1 >= 2
+    if [[ "$(printf '%s\n' "$2" "$1" | sort -V | head -n1)" == "$2" ]]; then
+        return 0
     else
-        return 1 # 1 < 2
+        return 1
     fi
 }
 
@@ -35,138 +32,99 @@ check_system_blast() {
     echo -e "${YELLOW}Checking for system BLAST installation...${NC}"
     # check for the command and whether or not it's on path
     if command -v blastn &> /dev/null; then
-        local version=$(blastn -version | head -n 1 | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
-        if [[ -n "$version" ]]; then
-            echo -e "${GREEN}Found system BLAST version ${version}${NC}"
-
+        local v=$(blastn -version | head -n 1 | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+        if [[ -n "$v" ]]; then
+            echo -e "${GREEN}Found system BLAST version ${v}${NC}"
             # compare found version to required version.
-            if compare_versions "$version" "$BLAST_VERSION"; then
-                local all_exist=true
-                for binary in "${BLAST_BINARIES[@]}"; do
-                    if ! command -v "$binary" &> /dev/null; then
-                        all_exist=false
-                        echo -e "${YELLOW}Warning: '$binary' not found in PATH${NC}"
-                    fi
+            if compare_versions "$v" "$BLAST_VERSION"; then
+                for b in "${BLAST_BINARIES[@]}"; do
+                    command -v "$b" &>/dev/null || { echo -e "${YELLOW}Missing '$b' in PATH${NC}"}
                 done
-
-                if $all_exist; then
-                    echo -e "${GREEN}System BLAST meets requirements and will be used.${NC}"
-                    return 0
-                else
-                    echo -e "${YELLOW}Some BLAST binaries are missing from PATH.${NC}"
-                fi
-            else
-                echo -e "${YELLOW}System BLAST version: $version is older than required: $BLAST_VERSION.${NC}"
+                return 0
             fi
-        else
-            echo -e "${YELLOW}Could not determine system BLAST version.${NC}"
+            echo -e "${YELLOW}System BLAST version: $v is too old. (Need: $BLAST_VERSION)${NC}"
         fi
-    else
-        echo -e "${YELLOW}System BLAST not found in PATH${NC}"
     fi
-
     return 1
 }
 
 check_local_blast() {
-    if [[ -d "$VENDOR_DIR/bin" ]]; then
-        if [[ -f "$VENDOR_DIR/bin/blastn" ]]; then
-            echo -e "${GREEN}Local BLAST installation found in $VENDOR_DIR${NC}"
-            return 0
-        fi
-    fi
-    echo -e "${YELLOW}Local BLAST installation not found${NC}"
+    [[ -f "$VENDOR_DIR/bin/blastn" ]] && return 0
     return 1
 }
 
 get_download_url() {
-    local os=$(uname -s)
-    local arch=$(uname -m)
-    local url=""
+    local os=$(uname -s) arch=$(uname -m)
 
     case "$os" in
         "Linux")
-            if [[ "$arch" == "x86_64" ]]; then
-                url="https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/$BLAST_VERSION/ncbi-blast-$BLAST_VERSION+-x64-linux.tar.gz"
-            elif [[ "$arch" == "aarch64" ]] || [[ "$arch" == "arm64" ]]; then
-                url="https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/$BLAST_VERSION/ncbi-blast-$BLAST_VERSION+-arm64-linux.tar.gz"
-            else
-                echo -e "${RED}Unsupported architecture: $arch${NC}"
-            fi
+            [[ "$arch" == "x86_64" ]] \
+                && echo "https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/$BLAST_VERSION/ncbi-blast-$BLAST_VERSION+-x64-linux.tar.gz" \
+                || echo "https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/$BLAST_VERSION/ncbi-blast-$BLAST_VERSION+-arm64-linux.tar.gz"
             ;;
         "Darwin")
-            url="https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/$BLAST_VERSION/ncbi-blast-$BLAST_VERSION+-universal-macosx.tar.gz"
+            echo "https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/$BLAST_VERSION/ncbi-blast-$BLAST_VERSION+-universal-macosx.tar.gz"
             ;;
         *)
-            echo -e "${RED}Unsupported operating system: $os${NC}"
+            echo ""
             ;;
     esac
-    echo "$url"
+}
+
+verify_checksum() {
+    echo -e "${YELLOW}Validating md5 checksum${NC}"
+    local expected=$(cut -d' ' -f1 "$1") file=$2 actual=""
+    if command -v md5sum &>/dev/null; then actual=$(md5sum "$file" | awk '{print $1}')
+    elif command -v md5 &>/dev/null; then actual=$(md5 -q "$file")
+    else echo -e "${YELLOW}No md5 utility, skipping check. You should fix this!${NC}"; return 0;
+    fi
+
+    [[ $expected == "$actual" ]] \
+        && echo -e "${GREEN}Checksum OK!${NC}" \
+        || { echo -e "${RED}Checksum invalid!${NC}"; exit 1; }
 }
 
 install_local_blast() {
-    echo -e "${YELLOW}Installing BLAST version $BLAST_VERSION locally...${NC}"
+    echo -e "${YELLOW}Installing BLAST version $BLAST_VERSION locally to $VENDOR_DIR...${NC}"
     mkdir -p "$VENDOR_DIR"
 
-    local download_url=$(get_download_url)
-    local download_md5="${download_url}.md5"
-    local filename=$(basename "$download_url")
-    local download_path="$VENDOR_DIR/$filename"
-    local download_md5_path="$VENDOR_DIR/${filename}.md5"
+    local url=$(get_download_url) file="$VENDOR_DIR/$(basename "$url")" md5_url="${download_url}.md5" md5_file="$VENDOR_DIR/$(basename "$md5_url")"
 
-    echo -e "${YELLOW}Downloading from: $download_url${NC}"
-    echo -e "${YELLOW}Saving output to: $download_path${NC}"
+    [[ -z $url ]] && { echo -e "${RED}Unsupported platform ${NC}"; exit 1; }
 
     if command -v curl &>/dev/null; then
-        curl -L "$download_url" -o "$download_path"
-        curl -L "$download_md5" -o "$download_md5_path"
+        curl -L "$url" -o "$file"
+        curl -L "$md5_url" -o "$md5_file"
     elif command -v wget &>/dev/null; then
-        wget "$download_url" -O "$download_path"
-        wget "$download_md5" -O "$download_md5_path"
+        wget "$url" -O "$file"
+        wget "$md5_url" -O "$md5_file"
     else
         echo -e "${RED}ERROR: Need either curl or wget to proceed. ensure those are installed and try again!${NC}"
         exit 1
     fi
 
-    echo -e "${YELLOW}Validating md5sum...${NC}"
-    MD5SUM_STATUS=$(cd $(dirname "$download_md5_path") && md5sum -c "$download_md5_path" | cut -d" " -f2)
-    if [[ "$MD5SUM_STATUS" != "OK" ]]; then
-        echo -e "${RED}ERROR: Corrupted download. Attempting to redownload."
-        exit 1
-    else
-        echo -e "${GREEN}Checksum is Valid!${NC}"
-        local temp_dir="$VENDOR_DIR/temp"
-        mkdir -p "${temp_dir}"
-        echo -e "${YELLOW}Extracting tar.gz archive...${NC}"
-        tar -xzvf "$download_path" -C "$temp_dir" --strip-components=1
-    fi
+    verify_checksum "$md5_file" "$file"
 
-    echo -e "${YELLOW}Moving binaries from tmp to final directory.${NC}"
+    local temp_dir="$VENDOR_DIR/temp"
+    mkdir -p "${temp_dir}"
+
+    tar -xzvf "$file" -C "$temp_dir" --strip-components=1 #--no-same-owner
     cp -r "$temp_dir"/* "$VENDOR_DIR"/
-    echo -e "${YELLOW}Cleaning up temp files!${NC}"
-    rm -f "$download_path"
-    rm -f "$download_md5_path"
-    rm -rf "$temp_dir"
     chmod +x "$VENDOR_DIR/bin"/*
-    echo "NCBI BLAST+ $BLAST_VERSION" > "$VENDOR_DIR/VERSION"
+    rm -rf "$temp_dir" "$file" "$md5_file"
+    echo "NCBI BLAST+ $BLAST_VERSION" > "$VENDOR_DIR/BLAST_VERSION"
     echo -e "${GREEN}BLAST $BLAST_VERSION installed successfully in $VENDOR_DIR${NC}"
 }
 
+record_source() {
+    mkdir -p "$VENDOR_DIR"
+    echo "$1" >"$VENDOR_DIR/BLAST_SOURCE"
+}
+
 get_blast_path() {
-    if check_system_blast; then
-        local blastn_path=$(which blastn)
-        echo "$(dirname "$blastn_path")"
-        echo "system" > "$VENDOR_DIR/BLAST_SOURCE"
-        return 0
-    elif check_local_blast; then
-        echo "$VENDOR_DIR/bin"
-        echo "local" > "$VENDOR_DIR/BLAST_SOURCE"
-        return 0
-    else
-        install_local_blast
-        echo "$VENDOR_DIR/bin"
-        echo "local" > "$VENDOR_DIR/BLAST_SOURCE"
-        return 0
+    if check_system_blast; then record_source system; echo "$(dirname "$(command -v blastn)")"
+    elif check_local_blast; then record_source local; echo "$VENDOR_DIR/bin"
+    else install_local_blast; record_source local; echo "$VENDOR_DIR/bin"
     fi
 }
 
@@ -179,25 +137,10 @@ fi
 
 MODE=$1
 case $MODE in
-    "check")
-        if check_system_blast; then
-            exit 0
-        elif check_local_blast; then
-            exit 0
-        else
-            exit 1
-        fi
-        ;;
-    "install")
-        install_local_blast
-        ;;
-    "path")
-        get_blast_path
-        ;;
-    *)
-        usage
-        exit 1
-        ;;
+    check)   check_system_blast || check_local_blast ;;
+    install) install_local_blast ;;
+    "path")  get_blast_path ;;
+    *)       usage exit 1 ;;
 esac
 
 exit 0
