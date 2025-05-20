@@ -3,12 +3,12 @@ import pandas
 
 ### scoring parameters ###
 PF32_MIN_BP         = 200
-WP_MIN_COV_PCT      = 10
+WP_MIN_COV_PCT      = 50
 WP_MIN_COV_BP       = 1000
 WP_OVERRIDE_COV_PCT = 90
-WP_OVERRIDE_PID_PCT = 95
+WP_OVERRIDE_PID_PCT = 98
 ##########################
-
+# TODO: Catch divergent cases.(where pf32's best hit has stats below the min thresholds)
 
 def best_pf32_hit(df: pandas.DataFrame) -> pandas.DataFrame:
     """Make sure the covered length is over 200, then sort by percent identity and choose the highest."""
