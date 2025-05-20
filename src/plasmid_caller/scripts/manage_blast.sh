@@ -50,8 +50,13 @@ check_system_blast() {
 }
 
 check_local_blast() {
-    [[ -f "$VENDOR_DIR/bin/blastn" ]] && return 0
-    return 1
+    if [[ -f "$VENDOR_DIR/bin/blastn" ]]; then
+        echo -e "${GREEN}Local BLAST found in $VENDOR_DIR${NC}"
+        return 0
+    else
+        echo -e "${GREEN}Unable to locate local BLAST installation${NC}"
+        return 1
+    fi
 }
 
 get_download_url() {
