@@ -28,7 +28,7 @@ dev = [
 ]
 
 [project.scripts]
-plasmid_caller = "plasmid_caller.plasmid_caller:main"
+plasmid_caller = "plasmid_caller.main:main"
 
 [tool.hatch.version]
 path = "src/plasmid_caller/__about__.py"
