@@ -380,7 +380,7 @@ def parse_to_tsv(xml_file, full_table_path, args, parsing_type, db_path, best_ta
 
     if not args.quiet:
         print(f"[{parsing_type}] wrote: "
-              f"{full_table_path.name} ({len(full_hits_df)} rows)" | "
+              f"{full_table_path.name} ({len(full_hits_df)} rows) | "
               f"{best_table_path.name} ({len(best_hits_df)} rows)"
         )
 
