@@ -113,5 +113,5 @@ class BlastManager:
         for binary in self.binaries:
             path = self.get_binary_path(binary)
             proc = subprocess.run( [str(path), "-version"], check=True, text=True, capture_output=True)
-            lines.append(f"{path}\t{proc.stdout.splitlines()[0].split(': ')[1]}")
+            lines.append(f"{binary}\t{proc.stdout.splitlines()[0].split(': ')[1]}")
         self._versions = "\n".join(lines)
