@@ -18,11 +18,10 @@ RUN apt-get update && apt-get install -y \
 ADD https://astral.sh/uv/install.sh /uv-installer.sh
 RUN sh /uv-installer.sh && rm /uv-installer.sh
 ENV PATH="/root/.local/bin/:$PATH"
-
 RUN mkdir -p /app/plasmid_caller
-WORKDIR /app
+WORKDIR /app/plasmid_caller
 COPY . .
-
+WORKDIR /app
 RUN uv venv
 ENV PATH="/app/.venv/bin:$PATH"
 RUN uv pip install .
