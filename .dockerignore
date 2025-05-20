@@ -1,4 +1,5 @@
 *
+.venv
 !README.md
 !db
 !src

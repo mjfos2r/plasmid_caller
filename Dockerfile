@@ -1,5 +1,4 @@
 FROM python:3.13-slim
-# love uv
 
 LABEL org.opencontainers.image.authors="mfoster11@mgh.harvard.edu" \
     org.opencontainers.image.source="https://github.com/mjfos2r/plasmid_caller" \
@@ -15,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # add UV
-ADD https://astral.sh/uv/install.sh /uv-installer.sh
+ADD https://astral.sh/uv/0.7.6/install.sh /uv-installer.sh
 RUN sh /uv-installer.sh && rm /uv-installer.sh
 ENV PATH="/root/.local/bin/:$PATH"
 RUN mkdir -p /app/plasmid_caller
