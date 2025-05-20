@@ -271,8 +271,9 @@ def calculate_percent_identity_and_coverage(alignment):
 def parse_blast_xml(xml_file, args, **kwargs):
     """This is the new and improved blast results parsing function.
     - it takes kwargs for parsing_type which is either 'wp' or 'pf32'"""
+    # TODO: CLEAN THIS FUNCTION UP, ADD INPUT CHECKING
     assembly_id = Path(xml_file).stem.replace("_blast_results", "")
-    parsing_type = kwargs.get("parsing_type", "general")
+    parsing_type = kwargs.get("parsing_type", "")
     dbs_dir = kwargs.get("dbs_dir", "/app")
     dbs_dir = Path(dbs_dir) if isinstance(dbs_dir, str) else dbs_dir
     parsing_pkl = dbs_dir / "blast_parsing_dict.pkl"
