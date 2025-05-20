@@ -56,18 +56,18 @@ def get_default_db_path():
         Path: Path to the database directory.
     """
     try:
-        print("Looking for bundled databases: [ 'wp', 'pf32' ]")
+        #print("Looking for bundled databases: [ 'wp', 'pf32' ]")
         spec = importlib.util.find_spec("plasmid_caller")
 
         if spec and spec.origin:
             package_dir = Path(spec.origin).parent
             db_path = package_dir / "db"
-            print(f"Looking in: {package_dir}")
+            #print(f"Looking in: {package_dir}")
 
             if db_path.exists():
-                print(f"Found DB directory: {db_path}")
+                #print(f"Found DB directory: {db_path}")
                 db_path_contents = os.listdir(db_path)
-                print(f"Contents: {db_path_contents}")
+                #print(f"Contents: {db_path_contents}")
                 return db_path
 
     except (ImportError, AttributeError):
@@ -489,7 +489,7 @@ def main(args=None):
         # Parse the arguments
         args = parser.parse_args()
         # validate database location
-        db_path = Path(args.db)
+        db_path = Path(args.database)
         if not db_path.exists():
             parser.error(f"Database directory not found: {db_path}")
 
@@ -507,11 +507,11 @@ def main(args=None):
         print(f"Input file: {args.input}")
         print(f"Output directory: {args.output}")
         print(f"Job threads: {args.threads}")
-        print(f"Databases: {args.db}")
+        print(f"Databases: {args.database}")
         print(f"Skip BLAST?: {args.skip_blast}")
 
     # now lets get our dbs to run against
-    dbs_dir = args.db
+    dbs_dir = args.database
     dbs = get_db_type(dbs_dir)
     print(f"Databases to run against: {dbs}")
 
