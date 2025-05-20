@@ -265,79 +265,80 @@ def calculate_percent_identity_and_coverage(alignment):
     }
 
 
-def parse_blast_xml(xml_file, args, **kwargs):
-    """This is the new and improved blast results parsing function.
-    - it takes kwargs for parsing_type which is either 'wp' or 'pf32'"""
-    # TODO: CLEAN THIS FUNCTION UP, ADD INPUT CHECKING
+def parse_blast_xml(xml_file, args, *, parsing_type: str, dbs_dir: Path) -> dict:
+    """
+    rewritten XML parsing function.
+    """
+    # ---------------- prep ----------------
     assembly_id = Path(xml_file).stem.replace("_blast_results", "")
-    parsing_type = kwargs.get("parsing_type", "")
-    dbs_dir = kwargs.get("dbs_dir", "/app")
-    dbs_dir = Path(dbs_dir) if isinstance(dbs_dir, str) else dbs_dir
-    parsing_pkl = dbs_dir / "blast_parsing_dict.pkl"
-    parsing_dict = pickle.load(open(parsing_pkl, "rb"))
+    dbs_dir     = Path(dbs_dir)
+    parsing_dict = pickle.load(open(dbs_dir / "blast_parsing_dict.pkl", "rb"))
 
-    with open(xml_file, "r") as handle:
-        records = NCBIXML.parse(handle)
+    # master field list ( += contig_len which was missing in the old list)
+    KEYS = [
+        "assembly_id", "contig_id", "contig_len",
+        "plasmid_id",  "plasmid_name", "strain",
+        "query_length", "ref_length",
+        "overall_percent_identity",
+        "query_coverage_percent",      # renamed to match later code
+        "query_covered_length", "ref_covered_length",
+        "covered_intervals", "query_intervals", "subject_hit_coords",
+    ]
+    NA = pd.NA   # convenient alias
 
-        # set up dict for intervals
-        blast_hits = defaultdict(dict)
+    # ---------------- parse ----------------
+    blast_hits: dict[str, list[dict]] = defaultdict(list)
 
-        for record in records:
-            keys = [
-                "assembly_id",
-                "contig_id",
-                "plasmid_id",
-                "plasmid_name",
-                "strain",
-                "query_length",
-                "ref_length",
-                "overall_percent_identity",
-                "query_coverage_percentage",
-                "query_covered_length",
-                "ref_covered_length",
-                "covered_intervals",
-                "query_intervals",
-                "subject_hit_coords",
-            ]
+    with open(xml_file) as handle:
+        for record in NCBIXML.parse(handle):
+            contig_id      = record.query
+            contig_length  = record.query_length
+            contig_len     = get_contig_len(args.input, contig_id)
 
-            contig_id = record.query
-            contig_length = record.query_length
+            if not record.alignments:
+                blast_hits[contig_id].append(
+                    {k: NA for k in KEYS} | {"assembly_id": assembly_id,
+                                            "contig_id": contig_id,
+                                            "contig_len": contig_len,
+                                            "query_length": contig_length}
+                )
+                continue
 
-            if contig_id not in blast_hits:
-                blast_hits[contig_id] = []
-            hits = blast_hits[contig_id]
-
-            if len(record.alignments) == 0:
-                hits = dict(zip(keys, "NaN" * len(keys)))
-            for alignment in record.alignments:
-                plasmid_id = alignment.hit_id
-                ref_length = alignment.length
+            for aln in record.alignments:
+                plasmid_id = aln.hit_id
+                ref_length = aln.length
 
                 if parsing_type == "wp":
                     strain, plasmid_name = get_name_from_acc(plasmid_id, parsing_dict)
                 elif parsing_type == "pf32":
                     strain, plasmid_name = parse_hit_id(plasmid_id)
                 else:
-                    strain = "unknown"
-                    plasmid_name = alignment.hit_id
+                    strain, plasmid_name = "unknown", plasmid_id
 
-                results = {
-                    "assembly_id": assembly_id,
-                    "contig_id": contig_id,
-                    "contig_len": get_contig_len(args.input, contig_id),
-                    "plasmid_id": plasmid_id,
-                    "plasmid_name": plasmid_name,
-                    "strain": strain,
-                    "query_length": contig_length,
-                    "ref_length": ref_length,
-                }
-                alignment_results = calculate_percent_identity_and_coverage(alignment)
-                alignment_results["query_coverage_percent"] = (
-                    alignment_results["query_covered_length"] / contig_length * 100
+                # metrics derived from HSPs
+                aln_stats = calculate_percent_identity_and_coverage(aln)
+                aln_stats["query_coverage_percent"] = (
+                    aln_stats["query_covered_length"] / contig_length * 100
+                    if contig_length else NA
                 )
-                results.update(alignment_results)
-                hits.append(results)
+
+                row = {
+                    "assembly_id": assembly_id,
+                    "contig_id":   contig_id,
+                    "contig_len":  contig_len,
+                    "plasmid_id":  plasmid_id,
+                    "plasmid_name": plasmid_name,
+                    "strain":       strain,
+                    "query_length": contig_length,
+                    "ref_length":   ref_length,
+                } | aln_stats
+
+                # ensure *all* KEYS exist
+                complete_row = {k: row.get(k, NA) for k in KEYS}
+                blast_hits[contig_id].append(complete_row)
+
     return blast_hits
+
 
 
 def get_results(results_dir, quiet=False):
