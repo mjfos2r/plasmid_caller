@@ -3,11 +3,11 @@
 # March 20, 2025
 # - Michael J. Foster
 # - Ben Kotzen
-# Modified to accept a single fasta file as input
 
 import argparse
 import glob
 import importlib.util
+import json
 import os
 import pickle
 import re
@@ -15,7 +15,6 @@ import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
-import json
 
 from plasmid_caller import __about__ as about
 
@@ -343,6 +342,7 @@ def get_results(results_dir, quiet=False):
         print(os.listdir(results_dir))
     return glob.glob(f"{results_dir}/**/*.xml", recursive=True)
 
+
 def best_hits_by_contig(df: pandas.DataFrame) -> pandas.DataFrame:
     """
     return a dataframe where each row is a single contig with columns for the best hit.
@@ -351,25 +351,25 @@ def best_hits_by_contig(df: pandas.DataFrame) -> pandas.DataFrame:
         2. higher overall_percent_identity
         3. lower e_value
     """
-    sort_cols = [ "query_coverage_percent", "overall_percent_identity" ]
+    sort_cols = ["query_coverage_percent", "overall_percent_identity"]
     if "e_value" in df.columns:
         sort_cols.append("e_value")
-        asc = [ False, False, True ]
+        asc = [False, False, True]
     else:
-        asc = [ False, False ]
+        asc = [False, False]
 
     ranked = df.sort_values(sort_cols, ascending=asc)
     return ranked.groupby("contig_id", as_index=False).first()
 
 
-def build_annotation_dict(summary_df, db_preference) -> Dict[str, str]:
+def build_annotation_dict(summary_df, db_preference) -> dict[str, str]:
     """
     Using the summary table, decide the final annotation for each contig.
     Feed it the summary dataframe, and a sequence of preferred database order. ('pf32', 'wp')
 
     Returns: {contig_id: plasmid_call}
     """
-    annot_cols = { db: f"plasmid_name_{db}" for db in db_preference }
+    annot_cols = {db: f"plasmid_name_{db}" for db in db_preference}
     mapping = {}
     for _, row in summary_df.iterrows():
         for db in db_preference:
@@ -381,6 +381,7 @@ def build_annotation_dict(summary_df, db_preference) -> Dict[str, str]:
                 mapping[row["contig_id"]] = "unclassified"
     return mapping
 
+
 def get_hits_table(hits):
     rows = []
     for _, hits in hits.items():
@@ -390,22 +391,26 @@ def get_hits_table(hits):
     return df
 
 
-def parse_to_tsv(xml_file, full_table_path, args, parsing_type, db_path, best_table_path):
+def parse_to_tsv(
+    xml_file, full_table_path, args, parsing_type, db_path, best_table_path
+):
     hits = parse_blast_xml(xml_file, args, parsing_type=parsing_type, dbs_dir=db_path)
     full_hits_df = get_hits_table(hits)
     full_hits_df.to_csv(full_table_path, sep="\t", index=False)
 
     # build our best hits table.
     best_hits_df = best_hits_by_contig(full_df)
-    best_hits_df.to_csv(best_table_path, sep='\t', index=False)
+    best_hits_df.to_csv(best_table_path, sep="\t", index=False)
 
     if not args.quiet:
-        print(f"[{parsing_type}] wrote: "
-              f"{full_table_path.name} ({len(full_hits_df)} rows) | "
-              f"{best_table_path.name} ({len(best_hits_df)} rows)"
+        print(
+            f"[{parsing_type}] wrote: "
+            f"{full_table_path.name} ({len(full_hits_df)} rows) | "
+            f"{best_table_path.name} ({len(best_hits_df)} rows)"
         )
 
     return best_hits_df
+
 
 def rename_fasta_headers(input_fa, output_fa, mapping):
     """
@@ -419,6 +424,7 @@ def rename_fasta_headers(input_fa, output_fa, mapping):
             old_id = rec.id.split()[0]
             rec.id = rec.name = rec.description = mapping.get(old_id, old_id)
             SeqIO.write(rec, handle_out, "fasta")
+
 
 class FullVersion(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -446,25 +452,13 @@ def main(args=None):
         help="Show program and BLAST versions, then exit.",
     )
     parser.add_argument(
-        "-i",
-        "--input",
-        required=True,
-        type=str,
-        help="Input FASTA file path"
+        "-i", "--input", required=True, type=str, help="Input FASTA file path"
     )
     parser.add_argument(
-        "-o",
-        "--output",
-        required=True,
-        type=str,
-        help="The directory for outputs"
+        "-o", "--output", required=True, type=str, help="The directory for outputs"
     )
     parser.add_argument(
-        "-t",
-        "--threads",
-        required=False,
-        type=int,
-        help="How many cores to use?"
+        "-t", "--threads", required=False, type=int, help="How many cores to use?"
     )
     parser.add_argument(
         "-db",
@@ -554,17 +548,19 @@ def main(args=None):
             args=args,
             parsing_type=db_name,
             db_path=dbs_dir,
-            best_table_path=best_table
+            best_table_path=best_table,
         )
         tag = f"_{db_name}"
-        tagged_best_df = best_df.add_suffix(tag).rename(columns={f"contig_id{tag}": "contig_id"})
+        tagged_best_df = best_df.add_suffix(tag).rename(
+            columns={f"contig_id{tag}": "contig_id"}
+        )
 
         combined_summary_parts.append(tagged_best_df)
 
-    frames = [ df.set_index("contig_id") for df in combined_summary_parts ]
-    summary_df = ( pandas.concat(frames, axis=1, join="outer").reset_index() )
+    frames = [df.set_index("contig_id") for df in combined_summary_parts]
+    summary_df = pandas.concat(frames, axis=1, join="outer").reset_index()
     summary_path = output_path / "summary_best_hits.tsv"
-    summary_df.to_csv(summary_path, sep='\t', index=False)
+    summary_df.to_csv(summary_path, sep="\t", index=False)
 
     best_map = build_annotation_dict(summary_df)
     json_path = output_path / "summary_best_hits.json"
