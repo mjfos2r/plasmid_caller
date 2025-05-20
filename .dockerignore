@@ -5,7 +5,3 @@
 !pyproject.toml
 !vendor
 !Dockerfile
-!plasmid_caller.py
-!requirements.txt
-!blast_parsing_dict.pkl
-!wp_v2_info.pkl

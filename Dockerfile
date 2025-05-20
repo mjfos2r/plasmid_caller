@@ -1,4 +1,5 @@
-FROM python:3.11-slim
+FROM python:3.13-slim
+# love uv
 
 LABEL org.opencontainers.image.authors="mfoster11@mgh.harvard.edu" \
     org.opencontainers.image.source="https://github.com/mjfos2r/plasmid_caller" \
@@ -6,31 +7,21 @@ LABEL org.opencontainers.image.authors="mfoster11@mgh.harvard.edu" \
     org.opencontainers.image.version="1.0.0" \
     maintainer="mfoster11@mgh.harvard.edu"
 
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    wget \
+RUN apt-get update && apt-get install -y
+    --no-install-recommends \
+    curl \
+    ca-certificates \
     bash \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /tmp/blast /db /data /app/plasmid_caller
+# add UV
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
+RUN sh /uv-installer.sh && rm /uv-installer.sh
+ENV PATH="/root/.local/bin/:$PATH"
+
+RUN mkdir -p /app/plasmid_caller
 WORKDIR /app
+COPY . .
 
-#RUN wget -P /tmp/blast https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.16.0+-x64-linux.tar.gz
-#RUN wget -P /tmp/blast https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.16.0+-x64-linux.tar.gz.md5
-#RUN cd /tmp/blast && md5sum -c /tmp/blast/ncbi-blast-2.16.0+-x64-linux.tar.gz.md5 || exit 1
-
-#RUN tar -xzvf /tmp/blast/ncbi-blast-2.16.0+-x64-linux.tar.gz -C /tmp/blast/ --strip-components=1 --no-same-owner && \
-#    mv /tmp/blast/bin/* /usr/local/bin/
-
-#RUN rm -rf /tmp/blast
-
-COPY [ "scripts", "src", "vendor", "pyproject.toml", "/app/plasmid_caller" ]
-WORKDIR /app/plasmid_caller
-
-RUN /bin/bash "pip install ."
-
-#COPY [ "db", "/db/" ]
-#COPY [ "plasmid_caller.py", "/opt/" ]
-#COPY [ "src", "/opt/src/" ]
-
-ENTRYPOINT [ "python", "/opt/plasmid_caller.py" ]
+RUN /bin/bash "uv pip install ."
+RUN /bin/bash "plasmid_caller --version"
