@@ -564,7 +564,7 @@ def main(args=None):
     summary_path = output_path / "summary_best_hits.tsv"
     summary_df.to_csv(summary_path, sep="\t", index=False)
 
-    best_map = build_annotation_dict(summary_df)
+    best_map = build_annotation_dict(summary_df, ('pf32', 'wp'))
     json_path = output_path / "summary_best_hits.json"
     json_path.write_text(json.dumps(best_map, indent=4))
 
