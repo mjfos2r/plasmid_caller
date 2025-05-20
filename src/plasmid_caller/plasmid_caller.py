@@ -176,12 +176,6 @@ def run_blast(params):
         return f"An unexpected error occurred: {str(e)}"
 
 
-def get_results(results_dir, quiet=False):
-    if not quiet:
-        print(os.listdir(results_dir))
-    return glob.glob(f"{results_dir}/**/*.xml", recursive=True)
-
-
 def get_name_from_acc(hit_id, parsing_dict):
     """this is how strain and plasmid name are parsed using the previously assembled parsing dictionary"""
     acc_id = hit_id.split("|")[1]
@@ -343,6 +337,29 @@ def parse_blast_xml(xml_file, args, **kwargs):
     return blast_hits
 
 
+def get_results(results_dir, quiet=False):
+    if not quiet:
+        print(os.listdir(results_dir))
+    return glob.glob(f"{results_dir}/**/*.xml", recursive=True)
+
+def best_hits_by_contig(df: pandas.DataFrame) -> pandas.DataFrame:
+    """
+    return a dataframe where each row is a single contig with columns for the best hit.
+    The single best hit is chosen by:
+        1. higher query_coverage
+        2. higher overall_percent_identity
+        3. lower e_value
+    """
+    sort_cols = [ "query_coverage_percent", "overall_percent_identity" ]
+    if "e_value" in df.columns:
+        sort_cols.append("e_value")
+        asc = [ False, False, True ]
+    else:
+        asc = [ False, False ]
+
+    ranked = df.sort_values(sort_cols, ascending=asc)
+    return ranked.groupby("contig_id", as_index=False).first()
+
 def get_hits_table(hits):
     rows = []
     for _, hits in hits.items():
@@ -352,14 +369,22 @@ def get_hits_table(hits):
     return df
 
 
-def parse_to_tsv(file, output_path, args, parsing_type, db_path):
-    hits = parse_blast_xml(file, args, parsing_type=parsing_type, dbs_dir=db_path)
-    hits_df = get_hits_table(hits)
-    hits_df.to_csv(str(output_path), sep="\t", index=False)
-    message = f"{parsing_type} table for: {Path(file).stem.split('_')[0]} written to {output_path}"
+def parse_to_tsv(xml_file, full_table_path, args, parsing_type, db_path, best_table_path):
+    hits = parse_blast_xml(xml_file, args, parsing_type=parsing_type, dbs_dir=db_path)
+    full_hits_df = get_hits_table(hits)
+    full_hits_df.to_csv(full_table_path, sep="\t", index=False)
+
+    # build our best hits table.
+    best_hits_df = best_hits_by_contig(full_df)
+    best_hits_df.to_csv(best_table_path, sep='\t', index=False)
+
     if not args.quiet:
-        print(message)
-    return message
+        print(f"[{parsing_type}] wrote: "
+              f"{full_table_path.name} ({len(full_hits_df)} rows)" | "
+              f"{best_table_path.name} ({len(best_hits_df)} rows)"
+        )
+
+    return best_hits_df
 
 
 class FullVersion(argparse.Action):
@@ -468,6 +493,9 @@ def main(args=None):
             print("Creating output directory!\n")
         output_path.mkdir(exist_ok=True)
 
+    file_id = Path(args.input).stem
+    combined_summary_parts = []
+
     for db in dbs:
         db_path = db[0]
         prog = db[1]
@@ -484,15 +512,30 @@ def main(args=None):
             # Run BLAST without parallelization since there's only one input file
             run_blast(blast_params)
 
-        # Parse results
-        results = get_results(results_dir, args.quiet)
-        for result_file in results:
-            results_table = f"{Path(result_file).stem}_table.tsv"
-            output_table = tables_dir / results_table
-            parse_to_tsv(result_file, output_table, args, db_name, db_path=dbs_dir)
+        xml_file = results_dir / f"{file_id}_blast_results.xml"
+        full_table = tables_dir / f"{file_id}_all.tsv"
+        best_table = tables_dir / f"{file_id}_best.tsv"
+        best_df = parse_to_tsv(
+            xml_file=xml_file,
+            full_table_path=full_table,
+            args=args,
+            parsing_type=db_name,
+            db_path=dbs_dir,
+            best_table_path=best_table
+        )
+        tag = f"_{db_name}"
+        tagged_best_df = best_df.add_suffix(tag).rename(columns={f"contig_id{tag}": "contig_id"})
+
+        combined_summary_parts.append(tagged_best_df)
+
+    frames = [ df.set_index("contig_id") for df in combined_summary_parts ]
+    summary_df = ( pandas.concat(frames, axis=1, join="outer").reset_index() )
+    summary_path = output_path / "summary_best_hits.tsv"
+    summary_df.to_csv(summary_path, sep='\t', index=False)
 
     if not args.quiet:
-        print("Finished!")
+        print(f"Wrote combined summary -> {summary_path}")
+
     return 0
 
 

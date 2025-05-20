@@ -1,4 +1,7 @@
-## hit selection logic!
+## get_results.py
+import os
+import pandas
+
 
 # Function to determine the best match
 def get_best_match(matches, key):
@@ -11,3 +14,5 @@ def get_best_match(matches, key):
             best_score = match[key]
             best_match = match
     return best_match
+
+# take in a dataframe of results, choose the best one.
