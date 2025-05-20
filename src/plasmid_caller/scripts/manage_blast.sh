@@ -97,7 +97,7 @@ install_local_blast() {
 
     local url="$(get_download_url)"
     local file="$VENDOR_DIR/$(basename "$url")"
-    local md5_url="${download_url}.md5"
+    local md5_url="${url}.md5"
     local md5_file="$VENDOR_DIR/$(basename "$md5_url")"
 
     [[ -z $url ]] && { echo -e "${RED}Unsupported platform ${NC}"; exit 1; }
