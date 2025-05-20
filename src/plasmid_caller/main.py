@@ -424,13 +424,23 @@ def main(args=None):
         help="Show program and BLAST versions, then exit.",
     )
     parser.add_argument(
-        "-i", "--input", required=True, type=str, help="Input FASTA file path"
+        "-i",
+        "--input",
+        type=str,
+        help="Input FASTA file path"
     )
     parser.add_argument(
-        "-o", "--output", required=True, type=str, help="The directory for outputs"
+        "-o",
+        "--output",
+        type=str,
+        help="The directory for outputs"
     )
     parser.add_argument(
-        "-t", "--threads", required=False, type=int, help="How many cores to use?"
+        "-t",
+        "--threads",
+        required=False,
+        type=int,
+        help="How many cores to use?"
     )
     parser.add_argument(
         "-db",
@@ -458,6 +468,9 @@ def main(args=None):
         parser.print_help()
         parser.error("Please specify relevant arguments!")
     else:
+        if not args.version:
+            if not args.input or not args.output:
+                parser.error("ERROR: Please specify input and output arguments!")
         # Parse the arguments
         args = parser.parse_args()
         # validate database location
