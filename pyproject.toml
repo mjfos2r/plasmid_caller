@@ -36,7 +36,6 @@ path = "src/plasmid_caller/__about__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["src/plasmid_caller"]
 include = [
-    "vendor/blast/**/*",
     "src/plasmid_caller/scripts/manage_blast.sh",
     "src/plasmid_caller/db/**/*"
 ]
@@ -45,8 +44,6 @@ include = [
 include = [
     "src/plasmid_caller/**/*",
     "src/plasmid_caller/db/**/*",
-    "vendor/blast/**/*",
-    "scripts/manage_blast.sh"
 ]
 
 [tool.pytest.ini_options]
