@@ -96,8 +96,8 @@ class BlastManager:
                 if isinstance(value, bool):
                     if value:
                         cmd.append(f"-{key}")
-            else:
-                cmd.extend([f"-{key}", str(value)])
+                else:
+                    cmd.extend([f"-{key}", str(value)])
         try:
             print(f"Executing command: '{' '.join(cmd)}'")
             return subprocess.run(cmd, check=True, text=True, capture_output=True)
