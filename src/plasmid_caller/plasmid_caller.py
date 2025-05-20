@@ -7,6 +7,7 @@
 
 import argparse
 import glob
+import importlib.util
 import os
 import pickle
 import re
@@ -14,26 +15,28 @@ import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
-import importlib.util
 
 from plasmid_caller import __about__ as about
-__version__ = about.__version__
 
-from .blast_manager import BlastManager
+__version__ = about.__version__
 
 import pandas
 from Bio import SeqIO
 from Bio.Blast import NCBIXML
 from intervaltree import IntervalTree
 
+from .blast_manager import BlastManager
+
 blast_manager = BlastManager()
 os.environ["PATH"] = f"{blast_manager.blast_path}:os.environ['PATH']"
+
 
 def get_input_files(input_path, input_extension):
     """from an input path, return a list of filepaths to each input file"""
     files = []
     files.extend(Path(input_path).glob(f"*.{input_extension}"))
     return files
+
 
 def get_output_path(results_dir):
     """ensure the output path exists and create it if absent."""
@@ -43,6 +46,7 @@ def get_output_path(results_dir):
         print(f"Creating output path: {output_path}")
         os.makedirs(output_path, exist_ok=True)
     return output_path
+
 
 def get_default_db_path():
     """
@@ -62,7 +66,7 @@ def get_default_db_path():
 
             if db_path.exists():
                 print(f"Found DB directory: {db_path}")
-                db_path_contents=os.listdir(db_path)
+                db_path_contents = os.listdir(db_path)
                 print(f"Contents: {db_path_contents}")
                 return db_path
 
@@ -70,7 +74,9 @@ def get_default_db_path():
         pass
 
     # if package detection failed, check if running from src
-    print("Could not detect package location. We're going to look relative to the location of this file.")
+    print(
+        "Could not detect package location. We're going to look relative to the location of this file."
+    )
     current_dir = Path(__file__).parent.absolute()
     print(f"Current directory: {current_dir}")
     # is db in the current source directory structure?
@@ -81,8 +87,11 @@ def get_default_db_path():
         print(f"Path: {repo_db_path}")
         print(f"Contents: {repo_db_contents}")
         return repo_db_path
-    print("Could not find db relative to package location or relative to this file. Defaulting to the container path: '/db'")
-    return Path("/db") # if all else fails return the container path. (BAD)
+    print(
+        "Could not find db relative to package location or relative to this file. Defaulting to the container path: '/db'"
+    )
+    return Path("/db")  # if all else fails return the container path. (BAD)
+
 
 # this is when dbs exist and are of proper version.
 def get_db_type(db_dir, quiet=True):
@@ -92,8 +101,8 @@ def get_db_type(db_dir, quiet=True):
     try:
         print(f"Getting database information from databases contained in: {db_dir}")
         print(f"Contents: {db_dir_contents}")
-        result =  blast_manager.run_blast_command(
-        "blastdbcmd",
+        result = blast_manager.run_blast_command(
+            "blastdbcmd",
             list=str(db_dir),
             recursive=True,
         )
@@ -104,7 +113,9 @@ def get_db_type(db_dir, quiet=True):
 
     db_prog_pairs: list[tuple[str, str]] = []
 
-    for line in result.stdout.splitlines(): #[:-1]:  # last line is empty so don't iterate to it!
+    for line in (
+        result.stdout.splitlines()
+    ):  # [:-1]:  # last line is empty so don't iterate to it!
         if not line.strip():
             continue
 
@@ -124,11 +135,12 @@ def get_db_type(db_dir, quiet=True):
             if not quiet:
                 print(f"[get_db_type] Unknown DB type {db_type!r} for {name}")
             continue
-        db_prog_pairs.append((name,program))
+        db_prog_pairs.append((name, program))
 
         if not quiet:
             print(f"[get_db_type] {name:<40} -> {program}")
     return db_prog_pairs
+
 
 def get_blast_command(prog, input_file, output_path, database, threads):
     """Construct a params dict from the given input for use in run_blast()"""
@@ -146,11 +158,14 @@ def get_blast_command(prog, input_file, output_path, database, threads):
         "max_hsps": "10",
     }
 
+
 def run_blast(params):
     """Run a blast command using blast_manager"""
     try:
         if isinstance(params, dict):
-            program = params.pop("program", "blastn") #blastn if we don't have one.. FIX
+            program = params.pop(
+                "program", "blastn"
+            )  # blastn if we don't have one.. FIX
             return blast_manager.run_blast_command(program, **params)
         return (
             f"SUCCESS: {' '.join(command)}" if result.returncode == 0 else result.stderr
@@ -160,10 +175,12 @@ def run_blast(params):
     except Exception as e:
         return f"An unexpected error occurred: {str(e)}"
 
+
 def get_results(results_dir, quiet=False):
     if not quiet:
         print(os.listdir(results_dir))
     return glob.glob(f"{results_dir}/**/*.xml", recursive=True)
+
 
 def get_name_from_acc(hit_id, parsing_dict):
     """this is how strain and plasmid name are parsed using the previously assembled parsing dictionary"""
@@ -194,8 +211,9 @@ def parse_hit_id(hit_id):
         else "HO14_NovelPFam32"
         if "HO14_NovelPFam32_DatabaseShortContig" in hit_id
         else None
-    ) # bad hardcode. needs to be dropped.
+    )  # bad hardcode. needs to be dropped.
     return strain, plasmid_id
+
 
 def get_contig_len(input_file, contig_id):
     """Get contig length directly from the input FASTA file"""
@@ -204,6 +222,7 @@ def get_contig_len(input_file, contig_id):
         if record.id.split()[0] == contig_id.split()[0]:
             return len(record.seq)
     return 1  # TODO Raise exception. (y tho?)
+
 
 def calculate_percent_identity_and_coverage(alignment):
     total_identities = 0
@@ -247,6 +266,7 @@ def calculate_percent_identity_and_coverage(alignment):
             (hsp.sbjct_start, hsp.sbjct_end) for hsp in alignment.hsps
         ],
     }
+
 
 def parse_blast_xml(xml_file, args, **kwargs):
     """This is the new and improved blast results parsing function.
@@ -306,7 +326,7 @@ def parse_blast_xml(xml_file, args, **kwargs):
                 results = {
                     "assembly_id": assembly_id,
                     "contig_id": contig_id,
-                    "contig_len": get_contig_len(args,contig_id),
+                    "contig_len": get_contig_len(args, contig_id),
                     "plasmid_id": plasmid_id,
                     "plasmid_name": plasmid_name,
                     "strain": strain,
@@ -321,6 +341,7 @@ def parse_blast_xml(xml_file, args, **kwargs):
                 hits.append(results)
     return blast_hits
 
+
 def get_hits_table(hits):
     rows = []
     for _, hits in hits.items():
@@ -328,6 +349,7 @@ def get_hits_table(hits):
             rows.append(hit)
     df = pandas.DataFrame(rows)
     return df
+
 
 def parse_to_tsv(file, output_path, args, parsing_type, db_path):
     hits = parse_blast_xml(file, args, parsing_type=parsing_type, dbs_dir=db_path)
@@ -338,12 +360,14 @@ def parse_to_tsv(file, output_path, args, parsing_type, db_path):
         print(message)
     return message
 
+
 class FullVersion(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        print(f"{parser.prog} { __version__}")
+        print(f"{parser.prog} {__version__}")
         print("###BLAST VERSIONS###")
         print(blast_manager.versions)
         print("###---###")
+
 
 ## Define main function logic.
 def main(args=None):
@@ -356,7 +380,10 @@ def main(args=None):
     )
     # Add the arguments
     parser.add_argument(
-        "--version", action='version', version=???
+        "--version",
+        nargs=0,
+        action=FullVersion,
+        help="Show program and BLAST versions, then exit.",
     )
     parser.add_argument(
         "--input", required=True, type=str, help="Input FASTA file path"
@@ -435,7 +462,9 @@ def main(args=None):
         tables_dir.mkdir(exist_ok=True)
 
         if not args.skip_blast:
-            blast_params = get_blast_command(prog, args.input, results_dir, db_path, args.threads)
+            blast_params = get_blast_command(
+                prog, args.input, results_dir, db_path, args.threads
+            )
             # Run BLAST without parallelization since there's only one input file
             run_blast(blast_params)
 
@@ -444,7 +473,7 @@ def main(args=None):
         for result_file in results:
             results_table = f"{Path(result_file).stem}_table.tsv"
             output_table = tables_dir / results_table
-            parse_to_tsv(result_file, output_table, args, db_name,  db_path = dbs_dir)
+            parse_to_tsv(result_file, output_table, args, db_name, db_path=dbs_dir)
 
     if not args.quiet:
         print("Finished!")
