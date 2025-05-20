@@ -105,8 +105,8 @@ def get_db_type(db_dir, quiet=True):
         print(f"Contents: {db_dir_contents}")
         result = blast_manager.run_blast_command(
             "blastdbcmd",
-            list=db_dir,
-            recursive=True,
+            {f'list':db_dir,
+            'recursive':True},
         )
     except Exception as exc:
         if not quiet:
