@@ -45,6 +45,7 @@ check_system_blast() {
             echo -e "${YELLOW}System BLAST version: $v is too old. (Need: $BLAST_VERSION)${NC}"
         fi
     fi
+    echo -e "${YELLOW}Could not locate system BLAST installation.${NC}"
     return 1
 }
 
