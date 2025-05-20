@@ -298,6 +298,7 @@ def parse_blast_xml(xml_file, args, **kwargs):
                 "covered_intervals",
                 "query_intervals",
                 "subject_hit_coords",
+                "e_score",
             ]
 
             contig_id = record.query
@@ -312,6 +313,7 @@ def parse_blast_xml(xml_file, args, **kwargs):
             for alignment in record.alignments:
                 plasmid_id = alignment.hit_id
                 ref_length = alignment.length
+                e_score = alignment.expect
 
                 if parsing_type == "wp":
                     strain, plasmid_name = get_name_from_acc(plasmid_id, parsing_dict)
@@ -330,6 +332,7 @@ def parse_blast_xml(xml_file, args, **kwargs):
                     "strain": strain,
                     "query_length": contig_length,
                     "ref_length": ref_length,
+                    "e_score": e_score,
                 }
                 alignment_results = calculate_percent_identity_and_coverage(alignment)
                 alignment_results["query_coverage_percent"] = (

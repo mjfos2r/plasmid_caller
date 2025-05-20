@@ -16,7 +16,7 @@ def best_pf32_hit(df: pandas.DataFrame) -> pandas.DataFrame:
     if df.empty:
         return df
     return (
-        df.sort_values(["overall_percent_identity", "e_value"], ascending=[False, True]).groupby("contig_id", as_index=False).first()
+        df.sort_values(["overall_percent_identity"], ascending=False).groupby("contig_id", as_index=False).first()
     )
 
 def best_wp_hit(df: pandas.DataFrame) -> pandas.DataFrame:
@@ -29,7 +29,7 @@ def best_wp_hit(df: pandas.DataFrame) -> pandas.DataFrame:
         return df
     df["_score"] = (df["query_coverage_percent"] *
                     df["overall_percent_identity"])
-    best = (df.sort_values(["_score", "e_value"], ascending=[False, True]).groupby("contig_id", as_index=False).first())
+    best = (df.sort_values(["_score"], ascending=False).groupby("contig_id", as_index=False).first())
     return best
 
 
