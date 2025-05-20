@@ -53,9 +53,8 @@ class BlastManager:
                 f"stdout:\n{e.stdout}\nstderr:\n{e.stderr}"
             ) from e
 
-        # Use only the first line – manage_blast.sh may echo more later.
-        # this is dubious. likely incorrect.
-        path_line = proc.stdout.splitlines()[0].strip()
+        # Use only the LAST line – manage_blast.sh DOES echo many messages throughout execution.
+        path_line = proc.stdout.splitlines()[-1].strip()
         self._blast_path = Path(path_line)
 
         # Source info if available

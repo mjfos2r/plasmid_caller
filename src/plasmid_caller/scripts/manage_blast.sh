@@ -2,7 +2,10 @@
 # scripts/manage_blast.sh
 set -euo pipefail
 
-# config
+##########
+# config #
+##########
+
 BLAST_VERSION="2.16.0"
 VENDOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/vendor/blast"
 BLAST_BINARIES=("blastn" "blastp" "blastx" "tblastn" "tblastx" "makeblastdb" "blastdbcmd")
@@ -11,10 +14,10 @@ BLAST_BINARIES=("blastn" "blastp" "blastx" "tblastn" "tblastx" "makeblastdb" "bl
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; NC='\033[0m'
 
 usage() {
-    echo "Usage: $0 {check|install|path}"
-    echo "  check   - Check if BLAST is installed (system or local)"
-    echo "  install - Install BLAST locally"
-    echo "  path    - Get path to BLAST binaries (installs if necessary)"
+    echo "${GREEN}Usage: $0 {check|install|path}${NC}"
+    echo "  ${YELLOW}check${NC}   - Check if BLAST is installed (system or local)"
+    echo "  ${YELLOW}install${NC} - Install BLAST locally"
+    echo "  ${YELLOW}path${NC}    - Get path to BLAST binaries (installs if necessary)"
 }
 
 # compare two version strings
@@ -138,8 +141,9 @@ get_blast_path() {
     fi
 }
 
-# main execution
-
+##################
+# main execution #
+##################
 if [ $# -eq 0 ]; then
     usage
     exit 1
