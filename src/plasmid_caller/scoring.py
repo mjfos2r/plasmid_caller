@@ -10,7 +10,7 @@ WP_OVERRIDE_PID_PCT = 95
 ##########################
 
 
-def best_pf32_hit(df: pandas.DataFrame) -> pandas.Dataframe:
+def best_pf32_hit(df: pandas.DataFrame) -> pandas.DataFrame:
     """Make sure the covered length is over 200, then sort by percent identity and choose the highest."""
     df = df[df["query_covered_length"] >= PF32_MIN_BP]
     if df.empty:
@@ -19,7 +19,7 @@ def best_pf32_hit(df: pandas.DataFrame) -> pandas.Dataframe:
         df.sort_values(["overall_percent_identity", "e_value"], ascending=[False, True]).groupby("contig_id", as_index=False).first()
     )
 
-def best_wp_hit(df: pandas.DataFrame) -> pandas.Dataframe:
+def best_wp_hit(df: pandas.DataFrame) -> pandas.DataFrame:
     """score each wp hit by the product of the percent coverage and the percent identity. (as long as coverage is either over 10% or greater than 1000bp) """
     # todo add modular params to tweak these cutoffs # done
     df = df[df
