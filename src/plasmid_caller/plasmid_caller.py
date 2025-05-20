@@ -16,7 +16,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-from plasmid_caller import __about__ as about
+from . import __about__ as about
 
 __version__ = about.__version__
 
