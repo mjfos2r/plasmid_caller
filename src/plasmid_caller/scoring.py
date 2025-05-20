@@ -22,7 +22,7 @@ def best_pf32_hit(df: pandas.DataFrame) -> pandas.DataFrame:
 def best_wp_hit(df: pandas.DataFrame) -> pandas.DataFrame:
     """score each wp hit by the product of the percent coverage and the percent identity. (as long as coverage is either over 10% or greater than 1000bp) """
     # todo add modular params to tweak these cutoffs # done
-    df = df[df
+    df = df[
             (df["query_coverage_percent"] >= WP_MIN_COV_PCT) |
             (df["query_covered_length"] >= WP_MIN_COV_BP) ]
     if df.empty:
