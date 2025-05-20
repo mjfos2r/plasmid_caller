@@ -96,14 +96,16 @@ def get_default_db_path():
 # this is when dbs exist and are of proper version.
 def get_db_type(db_dir, quiet=True):
     """Get the database name and type for execution"""
-    db_dir = Path(db_dir).expanduser().resolve()
+    db_dir = Path(db_dir).resolve()
+    print(db_dir)
     db_dir_contents = os.listdir(db_dir)
+    print(db_dir_contents)
     try:
         print(f"Getting database information from databases contained in: {db_dir}")
         print(f"Contents: {db_dir_contents}")
         result = blast_manager.run_blast_command(
             "blastdbcmd",
-            list=str(db_dir),
+            list=db_dir,
             recursive=True,
         )
     except Exception as exc:
