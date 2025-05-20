@@ -23,5 +23,9 @@ RUN mkdir -p /app/plasmid_caller
 WORKDIR /app
 COPY . .
 
+RUN uv venv
+ENV PATH="/app/.venv/bin:$PATH"
 RUN uv pip install .
 RUN plasmid_caller --version
+
+ENTRYPOINT [ "/bin/bash" ]
