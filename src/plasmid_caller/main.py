@@ -323,7 +323,7 @@ def parse_blast_xml(xml_file, args, **kwargs):
                 results = {
                     "assembly_id": assembly_id,
                     "contig_id": contig_id,
-                    "contig_len": get_contig_len(args, contig_id),
+                    "contig_len": get_contig_len(args.input, contig_id),
                     "plasmid_id": plasmid_id,
                     "plasmid_name": plasmid_name,
                     "strain": strain,
