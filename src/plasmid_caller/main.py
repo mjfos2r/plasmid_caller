@@ -238,7 +238,11 @@ def calculate_percent_identity_and_coverage(alignment):
         query_intervals.addi(query_start, query_end)
         subject_intervals.addi(subject_start, subject_end)
 
-    # Merge overlapping intervals to calculate the covered length
+    # Merge overlapping intervals
+    query_intervals.merge_overlaps()
+    subject_intervals.merge_overlaps()
+
+    # get total length now!
     ref_covered_length = sum(interval.length() for interval in subject_intervals)
     contig_covered_length = sum(interval.length() for interval in query_intervals)
 
