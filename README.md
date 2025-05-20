@@ -13,6 +13,11 @@ uv pip install plasmid_caller
 ## Usage
 
 ```bash
+# always work under this venv
+source activate .venv/bin/activate
+```
+
+```bash
 # first usage to make sure bash is groovy
 plasmid_caller --version
 # to use from then on:
