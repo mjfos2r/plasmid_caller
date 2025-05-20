@@ -13,3 +13,4 @@ old_code/v4_test/sam
 .vscode
 .snakemake
 old_code/v3/dbs/all_plasmids_bbss/Bbss.json
+__pycache__
