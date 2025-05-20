@@ -60,7 +60,8 @@ check_local_blast() {
 }
 
 get_download_url() {
-    local os=$(uname -s) arch=$(uname -m)
+    local os=$(uname -s)
+    local arch=$(uname -m)
 
     case "$os" in
         "Linux")
@@ -94,7 +95,10 @@ install_local_blast() {
     echo -e "${YELLOW}Installing BLAST version $BLAST_VERSION locally to $VENDOR_DIR...${NC}"
     mkdir -p "$VENDOR_DIR"
 
-    local url=$(get_download_url) file="$VENDOR_DIR/$(basename "$url")" md5_url="${download_url}.md5" md5_file="$VENDOR_DIR/$(basename "$md5_url")"
+    local url="$(get_download_url)"
+    local file="$VENDOR_DIR/$(basename "$url")"
+    local md5_url="${download_url}.md5"
+    local md5_file="$VENDOR_DIR/$(basename "$md5_url")"
 
     [[ -z $url ]] && { echo -e "${RED}Unsupported platform ${NC}"; exit 1; }
 
