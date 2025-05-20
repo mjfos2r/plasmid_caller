@@ -468,11 +468,13 @@ def main(args=None):
         parser.print_help()
         parser.error("Please specify relevant arguments!")
     else:
-        if not args.v:
-            if not args.input or not args.output:
-                parser.error("ERROR: Please specify input and output arguments!")
         # Parse the arguments
         args = parser.parse_args()
+
+        if not args.version:
+            if not args.input or not args.output:
+                parser.error("ERROR: Please specify input and output arguments!")
+
         # validate database location
         db_path = Path(args.database)
         if not db_path.exists():
