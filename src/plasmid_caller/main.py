@@ -401,7 +401,7 @@ def parse_to_tsv(
     full_hits_df.to_csv(full_table_path, sep="\t", index=False)
 
     # build our best hits table.
-    best_hits_df = best_hits_by_contig(full_df)
+    best_hits_df = best_hits_by_contig(full_hits_df)
     best_hits_df.to_csv(best_table_path, sep="\t", index=False)
 
     if not args.quiet:
