@@ -380,22 +380,36 @@ def main(args=None):
     )
     # Add the arguments
     parser.add_argument(
+        "-v",
         "--version",
         nargs=0,
         action=FullVersion,
         help="Show program and BLAST versions, then exit.",
     )
     parser.add_argument(
-        "--input", required=True, type=str, help="Input FASTA file path"
+        "-i",
+        "--input",
+        required=True,
+        type=str,
+        help="Input FASTA file path"
     )
     parser.add_argument(
-        "--output", required=True, type=str, help="The directory for outputs"
+        "-o",
+        "--output",
+        required=True,
+        type=str,
+        help="The directory for outputs"
     )
     parser.add_argument(
-        "--threads", required=False, type=int, help="How many cores to use?"
+        "-t",
+        "--threads",
+        required=False,
+        type=int,
+        help="How many cores to use?"
     )
     parser.add_argument(
-        "--db",
+        "-db",
+        "--database",
         required=False,
         type=str,
         help="Path to directory containing blast databases",
@@ -408,6 +422,7 @@ def main(args=None):
         default=False,
     )
     parser.add_argument(
+        "-q",
         "--quiet",
         action="store_true",
         help="Run without terminal output for workflow integration",
