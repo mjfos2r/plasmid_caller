@@ -58,10 +58,13 @@ def choose_final_call(row):
     if wp_ok and not pf32_ok:
         return row["plasmid_name_wp"]
 
+    # identity is primarily based on pf32, I don't feel like dealing with the nuance of this right now.
     if pf32_ok and wp_ok:
-        if (row["query_coverage_percent_wp"] >= WP_OVERRIDE_COV_PCT and row["overall_percent_identity_wp"] >= WP_OVERRIDE_COV_PCT):
-            return row["plasmid_name_wp"]
         return row["plasmid_name_pf32"]
+    #if pf32_ok and wp_ok:
+    #    if (row["query_coverage_percent_wp"] >= WP_OVERRIDE_COV_PCT and row["overall_percent_identity_wp"] >= WP_OVERRIDE_COV_PCT):
+    #        return row["plasmid_name_wp"]
+    #    return row["plasmid_name_pf32"]
 
     return "unclassified"
 
