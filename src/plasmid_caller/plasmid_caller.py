@@ -338,6 +338,13 @@ def parse_to_tsv(file, output_path, args, parsing_type, db_path):
         print(message)
     return message
 
+class FullVersion(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        print(f"{parser.prog} { __version__}")
+        print("###BLAST VERSIONS###")
+        print(blast_manager.versions)
+        print("###---###")
+
 ## Define main function logic.
 def main(args=None):
     # get this setup before argparse needs it.
@@ -349,7 +356,8 @@ def main(args=None):
     )
     # Add the arguments
     parser.add_argument(
-        "--version", action='version', version='%(prog)s ' + __version__)
+        "--version", action='version', version=???
+    )
     parser.add_argument(
         "--input", required=True, type=str, help="Input FASTA file path"
     )
@@ -406,9 +414,6 @@ def main(args=None):
         print(f"Job threads: {args.threads}")
         print(f"Databases: {args.db}")
         print(f"Skip BLAST?: {args.skip_blast}")
-        print("###BLAST VERSIONS###")
-        blast_manager.get_versions()
-        print("###---###")
 
     # now lets get our dbs to run against
     dbs_dir = args.db

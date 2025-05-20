@@ -8,7 +8,6 @@ class BlastManager:
     """Manages BLAST binary access and execution"""
 
     def __init__(self) -> None:
-        print("Initializing BlastManager instance. Please stand by...")
         self.module_dir = Path(__file__).parent
         # locate manage_blast.sh as part of the package.
         with resources.as_file(
@@ -21,12 +20,12 @@ class BlastManager:
         self.binaries: list[str] = ["blastn", "blastp", "blastx", "tblastn", "tblastx", "makeblastdb", "blastdbcmd"]
         self._blast_path: Path | None = None
         self._blast_source: str | None = None
+        self._versions: str | None = None
 
     @property
     def blast_path(self) -> Path:
         """Path object to the directory that holds BLAST binaries."""
         if self._blast_path is None:
-            print("Getting path to blast installation")
             self._initialise_blast()
         return self._blast_path
 
@@ -37,25 +36,41 @@ class BlastManager:
             _ = self.blast_path
         return self._blast_source
 
+    @property
+    def versions(self) -> str:
+        """return a string where each line is a binary and its version"""
+        if self._versions is None:
+            _ = self._get_versions()
+        return self._versions
+
     def _initialise_blast(self) -> None:
         """Run the shell helper and record its answer."""
-        try:
-            print("Initializing BLAST installation. Please stand by...")
-            proc = subprocess.run(
-                [str(self.manage_script), "path"],
-                check=True,
-                text=True,
-                capture_output=True,
-            )
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(
-                f"manage_blast.sh failed with exit-code {e.returncode}\n"
-                f"stdout:\n{e.stdout}\nstderr:\n{e.stderr}"
-            ) from e
+        # capture via pipe and merge stderr to stdout for live display.
+        proc = subprocess.Popen(
+            [str(self.manage_script), "path"],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
+        )
+        last_line = ""
+        assert proc.stdout is not None
 
-        # Use only the LAST line – manage_blast.sh DOES echo many messages throughout execution.
-        path_line = proc.stdout.splitlines()[-1].strip()
-        self._blast_path = Path(path_line)
+        for line in proc.stdout:
+            print(line, end="")
+            last_line = line
+        proc.wait()
+
+        if proc.returncode != 0:
+            raise RuntimeError(f"manage_blast.sh failed with exit-code {proc.returncode}")
+
+        if not last_line.strip():
+            raise RuntimeError("manage_blast.sh produced no path on stdout")
+
+        installation_path = Path(last_line.strip())
+        if not (installation_path.is_dir() and (installation_path / "blastn").exists()):
+            raise RuntimeError(f"Invalid BLAST path reported: {path}")
+
+        self._blast_path = installation_path
 
         # Source info if available
         src_file = self.vendor_dir / "BLAST_SOURCE"
@@ -92,8 +107,11 @@ class BlastManager:
                 f"stdout:\n{e.stdout}\nstderr:\n{e.stderr}"
             ) from e
 
-    def get_versions(self) -> None:
+    def _get_versions(self) -> None:
+        """set self.version to a string where each line is composed of the blast binary path and its version"""
+        lines = []
         for binary in self.binaries:
-            binary_path = self.get_binary_path(binary)
-            proc = subprocess.run( [str(binary_path), "-version"], check=True, text=True, capture_output=True)
-            print(f"{binary_path}\t{proc.stdout.splitlines()[0].split(': ')[1]}")
+            path = self.get_binary_path(binary)
+            proc = subprocess.run( [str(path), "-version"], check=True, text=True, capture_output=True)
+            lines.append(f"{path}\t{proc.stdout.splitlines()[0].split(': ')[1]}")
+        self._versions = "\n".join(lines)
