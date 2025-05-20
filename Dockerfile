@@ -7,7 +7,7 @@ LABEL org.opencontainers.image.authors="mfoster11@mgh.harvard.edu" \
     org.opencontainers.image.version="1.0.0" \
     maintainer="mfoster11@mgh.harvard.edu"
 
-RUN apt-get update && apt-get install -y
+RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     curl \
     ca-certificates \
