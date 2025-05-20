@@ -1,3 +1,4 @@
+# unused functions for now.
 
 def create_blast_db(dbtype, input_file, db_output):
     """Create a blast db of specified type from input_file, and saved to db_output"""
