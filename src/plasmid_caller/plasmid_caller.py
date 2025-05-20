@@ -15,6 +15,7 @@ import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
+import json
 
 from plasmid_caller import __about__ as about
 
@@ -360,6 +361,26 @@ def best_hits_by_contig(df: pandas.DataFrame) -> pandas.DataFrame:
     ranked = df.sort_values(sort_cols, ascending=asc)
     return ranked.groupby("contig_id", as_index=False).first()
 
+
+def build_annotation_dict(summary_df, db_preference) -> Dict[str, str]:
+    """
+    Using the summary table, decide the final annotation for each contig.
+    Feed it the summary dataframe, and a sequence of preferred database order. ('pf32', 'wp')
+
+    Returns: {contig_id: plasmid_call}
+    """
+    annot_cols = { db: f"plasmid_name_{db}" for db in db_preference }
+    mapping = {}
+    for _, row in summary_df.iterrows():
+        for db in db_preference:
+            col = annot_cols[db]
+            if col in row and pandas.notna(row[col]):
+                mapping[row["contig_id"]] = row[col]
+                break
+            else:
+                mapping[row["contig_id"]] = "unclassified"
+    return mapping
+
 def get_hits_table(hits):
     rows = []
     for _, hits in hits.items():
@@ -386,6 +407,18 @@ def parse_to_tsv(xml_file, full_table_path, args, parsing_type, db_path, best_ta
 
     return best_hits_df
 
+def rename_fasta_headers(input_fa, output_fa, mapping):
+    """
+    Rewrite fasta headers of the input file using the newly determined classifications.
+    header becomes:
+        >mapping[old_id]
+        NNNNNNNNNNNNNNNNNNNNN....
+    """
+    with open(output_fa, "w") as handle_out:
+        for rec in SeqIO.parse(input_fa, "fasta"):
+            old_id = rec.id.split()[0]
+            rec.id = rec.name = rec.description = mapping.get(old_id, old_id)
+            SeqIO.write(rec, handle_out, "fasta")
 
 class FullVersion(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -533,8 +566,17 @@ def main(args=None):
     summary_path = output_path / "summary_best_hits.tsv"
     summary_df.to_csv(summary_path, sep='\t', index=False)
 
+    best_map = build_annotation_dict(summary_df)
+    json_path = output_path / "summary_best_hits.json"
+    json_path.write_text(json.dumps(best_map, indent=4))
+
+    renamed_fa = output_path / f"{file_id}_renamed.fasta"
+    rename_fasta_headers(Path(args.input), renamed_fa, best_map)
+
     if not args.quiet:
         print(f"Wrote combined summary -> {summary_path}")
+        print(f"Wrote dictionary of final calls -> {json_path}")
+        print(f"Wrote renamed fasta file -> {renamed_fa}")
 
     return 0
 
