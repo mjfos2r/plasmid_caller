@@ -93,9 +93,9 @@ class BlastManager:
             for key, value in kwargs.items():
                 if key.startswith("_"):
                     continue
-            if isinstance(value, bool):
-                if value:
-                    cmd.append(f"-{key}")
+                if isinstance(value, bool):
+                    if value:
+                        cmd.append(f"-{key}")
             else:
                 cmd.extend([f"-{key}", str(value)])
         try:
