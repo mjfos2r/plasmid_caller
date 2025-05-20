@@ -403,7 +403,7 @@ class FullVersion(argparse.Action):
         print(f"{parser.prog} {__version__}")
         print("###BLAST VERSIONS###")
         print(blast_manager.versions)
-        print("###---###")
+        print("####################")
 
 
 ## Define main function logic.
@@ -473,8 +473,9 @@ def main(args=None):
 
         if not args.version:
             if not args.input or not args.output:
-                parser.error("ERROR: Please specify input and output arguments!")
-
+                parser.error("Please specify input and output arguments!")
+        else:
+            return 0
         # validate database location
         db_path = Path(args.database)
         if not db_path.exists():
