@@ -7,7 +7,7 @@ import sys
 class BlastManager:
     """Manages BLAST binary access and execution"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         print("Initializing BlastManager instance. Please stand by...")
         self.module_dir = Path(__file__).parent
         # locate manage_blast.sh as part of the package.
@@ -18,7 +18,7 @@ class BlastManager:
 
         self.vendor_dir = self.manage_script.parent.parent / "vendor" / "blast"
         self.vendor_dir.mkdir(parents=True, exist_ok=True)
-
+        self.binaries: list[str] = ["blastn", "blastp", "blastx", "tblastn", "tblastx", "makeblastdb", "blastdbcmd"]
         self._blast_path: Path | None = None
         self._blast_source: str | None = None
 
@@ -31,7 +31,7 @@ class BlastManager:
         return self._blast_path
 
     @property
-    def blast_source(self):
+    def blast_source(self) -> None | str:
         """get the source of the blast (system or local). This needs to use the check from the bash script. TODO"""
         if self._blast_source is None:
             _ = self.blast_path
@@ -62,7 +62,7 @@ class BlastManager:
         if src_file.is_file():
             self._blast_source = src_file.read_text().strip()
 
-    def get_binary_path(self, binary_name):
+    def get_binary_path(self, binary_name) -> Path:
         """get full path to a specified BLAST binary"""
         return self.blast_path / binary_name
 
@@ -77,7 +77,7 @@ class BlastManager:
         if kwargs:
             for key, value in kwargs.items():
                 if key.startswith("_"):
-                    continue #skip private params
+                    continue
             if isinstance(value, bool):
                 if value:
                     cmd.append(f"-{key}")
@@ -91,3 +91,9 @@ class BlastManager:
                 f"BLAST command failed ({' '.join(cmd)})\n"
                 f"stdout:\n{e.stdout}\nstderr:\n{e.stderr}"
             ) from e
+
+    def get_versions(self) -> None:
+        for binary in self.binaries:
+            binary_path = self.get_binary_path(binary)
+            proc = subprocess.run( [str(binary_path), "-version"], check=True, text=True, capture_output=True)
+            print(f"{binary_path}\t{proc.stdout.splitlines()[0].split(': ')[1]}")

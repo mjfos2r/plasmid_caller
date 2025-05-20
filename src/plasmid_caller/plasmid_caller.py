@@ -406,6 +406,9 @@ def main(args=None):
         print(f"Job threads: {args.threads}")
         print(f"Databases: {args.db}")
         print(f"Skip BLAST?: {args.skip_blast}")
+        print("###BLAST VERSIONS###")
+        blast_manager.get_versions()
+        print("###---###")
 
     # now lets get our dbs to run against
     dbs_dir = args.db
@@ -416,6 +419,7 @@ def main(args=None):
         if not args.quiet:
             print("Creating output directory!\n")
         output_path.mkdir(exist_ok=True)
+
     for db in dbs:
         db_path = db[0]
         prog = db[1]
