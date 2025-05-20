@@ -23,5 +23,5 @@ RUN mkdir -p /app/plasmid_caller
 WORKDIR /app
 COPY . .
 
-RUN /bin/bash "uv pip install ."
-RUN /bin/bash "plasmid_caller --version"
+RUN uv pip install .
+RUN plasmid_caller --version
