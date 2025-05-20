@@ -24,7 +24,7 @@ COPY . .
 WORKDIR /app
 RUN uv venv
 ENV PATH="/app/.venv/bin:$PATH"
-RUN uv pip install plasmid_caller
+RUN uv pip install plasmid_caller/
 RUN plasmid_caller --version
 
 ENTRYPOINT [ "/bin/bash" ]
