@@ -30,8 +30,8 @@ class BlastManager:
         return self._blast_path
 
     @property
-    def blast_source(self) -> None | str:
-        """get the source of the blast (system or local). This needs to use the check from the bash script. TODO"""
+    def blast_source(self) -> str | None:
+        """get the source of the blast (system or local). This needs to use the check from the bash script."""
         if self._blast_source is None:
             _ = self.blast_path
         return self._blast_source
@@ -68,7 +68,7 @@ class BlastManager:
 
         installation_path = Path(last_line.strip())
         if not (installation_path.is_dir() and (installation_path / "blastn").exists()):
-            raise RuntimeError(f"Invalid BLAST path reported: {path}")
+            raise RuntimeError(f"Invalid BLAST path reported: {installation_path}")
 
         self._blast_path = installation_path
 
