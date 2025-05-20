@@ -26,6 +26,7 @@ from Bio.Blast import NCBIXML
 from intervaltree import IntervalTree
 
 from .blast_manager import BlastManager
+from .scoring import best_pf32_hit, best_wp_hit, choose_final_call
 
 blast_manager = BlastManager()
 os.environ["PATH"] = f"{blast_manager.blast_path}:os.environ['PATH']"
@@ -56,18 +57,18 @@ def get_default_db_path():
         Path: Path to the database directory.
     """
     try:
-        #print("Looking for bundled databases: [ 'wp', 'pf32' ]")
+        # print("Looking for bundled databases: [ 'wp', 'pf32' ]")
         spec = importlib.util.find_spec("plasmid_caller")
 
         if spec and spec.origin:
             package_dir = Path(spec.origin).parent
             db_path = package_dir / "db"
-            #print(f"Looking in: {package_dir}")
+            # print(f"Looking in: {package_dir}")
 
             if db_path.exists():
-                #print(f"Found DB directory: {db_path}")
+                # print(f"Found DB directory: {db_path}")
                 db_path_contents = os.listdir(db_path)
-                #print(f"Contents: {db_path_contents}")
+                # print(f"Contents: {db_path_contents}")
                 return db_path
 
     except (ImportError, AttributeError):
@@ -345,45 +346,6 @@ def get_results(results_dir, quiet=False):
     return glob.glob(f"{results_dir}/**/*.xml", recursive=True)
 
 
-def best_hits_by_contig(df: pandas.DataFrame) -> pandas.DataFrame:
-    """
-    return a dataframe where each row is a single contig with columns for the best hit.
-    The single best hit is chosen by:
-        1. higher query_coverage
-        2. higher overall_percent_identity
-        3. lower e_value
-    """
-    sort_cols = ["query_coverage_percent", "overall_percent_identity"]
-    if "e_value" in df.columns:
-        sort_cols.append("e_value")
-        asc = [False, False, True]
-    else:
-        asc = [False, False]
-
-    ranked = df.sort_values(sort_cols, ascending=asc)
-    return ranked.groupby("contig_id", as_index=False).first()
-
-
-def build_annotation_dict(summary_df, db_preference) -> dict[str, str]:
-    """
-    Using the summary table, decide the final annotation for each contig.
-    Feed it the summary dataframe, and a sequence of preferred database order. ('pf32', 'wp')
-
-    Returns: {contig_id: plasmid_call}
-    """
-    annot_cols = {db: f"plasmid_name_{db}" for db in db_preference}
-    mapping = {}
-    for _, row in summary_df.iterrows():
-        for db in db_preference:
-            col = annot_cols[db]
-            if col in row and pandas.notna(row[col]):
-                mapping[row["contig_id"]] = row[col]
-                break
-            else:
-                mapping[row["contig_id"]] = "unclassified"
-    return mapping
-
-
 def get_hits_table(hits):
     rows = []
     for _, hits in hits.items():
@@ -400,8 +362,11 @@ def parse_to_tsv(
     full_hits_df = get_hits_table(hits)
     full_hits_df.to_csv(full_table_path, sep="\t", index=False)
 
-    # build our best hits table.
-    best_hits_df = best_hits_by_contig(full_hits_df)
+    if parsing_type == "pf32":
+        best_hits_df = best_pf32_hit(full_hits_df)
+    elif parsing_type == "wp":
+        best_hits_df = best_wp_hit(full_hits_df)
+
     best_hits_df.to_csv(best_table_path, sep="\t", index=False)
 
     if not args.quiet:
@@ -424,7 +389,7 @@ def rename_fasta_headers(input_fa, output_fa, mapping):
     with open(output_fa, "w") as handle_out:
         for rec in SeqIO.parse(input_fa, "fasta"):
             old_id = rec.id.split()[0]
-            rec.id = rec.name = rec.description = mapping.get(old_id, old_id)
+            rec.id = mapping.get(old_id, old_id)
             SeqIO.write(rec, handle_out, "fasta")
 
 
@@ -523,6 +488,7 @@ def main(args=None):
         output_path.mkdir(exist_ok=True)
 
     file_id = Path(args.input).stem
+
     combined_summary_parts = []
 
     for db in dbs:
@@ -559,12 +525,14 @@ def main(args=None):
 
         combined_summary_parts.append(tagged_best_df)
 
+    summary_path = output_path / "summary_best_hits.tsv"
+
     frames = [df.set_index("contig_id") for df in combined_summary_parts]
     summary_df = pandas.concat(frames, axis=1, join="outer").reset_index()
-    summary_path = output_path / "summary_best_hits.tsv"
+    summary_df["final_call"] = summary_df.apply(choose_final_call, axis=1)
     summary_df.to_csv(summary_path, sep="\t", index=False)
 
-    best_map = build_annotation_dict(summary_df, ('pf32', 'wp'))
+    best_map = summary_df.set_index("contig_id")["final_call"].to_dict()
     json_path = output_path / "summary_best_hits.json"
     json_path.write_text(json.dumps(best_map, indent=4))
 
