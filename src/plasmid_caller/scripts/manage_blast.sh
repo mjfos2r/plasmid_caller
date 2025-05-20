@@ -42,10 +42,10 @@ check_system_blast() {
                 done
                 return 0
             fi
-            echo -e "${YELLOW}System BLAST version: $v is too old. (Need: $BLAST_VERSION)${NC}"
+            echo -e "${RED}System BLAST version: $v is too old. (Need: $BLAST_VERSION)${NC}"
         fi
     fi
-    echo -e "${YELLOW}Could not locate system BLAST installation.${NC}"
+    echo -e "${RED}Could not locate system BLAST installation.${NC}"
     return 1
 }
 
@@ -54,7 +54,7 @@ check_local_blast() {
         echo -e "${GREEN}Local BLAST found in $VENDOR_DIR${NC}"
         return 0
     else
-        echo -e "${GREEN}Unable to locate local BLAST installation${NC}"
+        echo -e "${RED}Unable to locate local BLAST installation${NC}"
         return 1
     fi
 }
