@@ -139,7 +139,7 @@ MODE=$1
 case $MODE in
     check)   check_system_blast || check_local_blast ;;
     install) install_local_blast ;;
-    "path")  get_blast_path ;;
+    path)  get_blast_path ;;
     *)       usage exit 1 ;;
 esac
 

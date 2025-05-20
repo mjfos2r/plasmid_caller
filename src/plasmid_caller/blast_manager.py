@@ -54,6 +54,7 @@ class BlastManager:
             ) from e
 
         # Use only the first line – manage_blast.sh may echo more later.
+        # this is dubious. likely incorrect.
         path_line = proc.stdout.splitlines()[0].strip()
         self._blast_path = Path(path_line)
 
@@ -70,9 +71,9 @@ class BlastManager:
         """run any blast command using the managed binaries."""
         print(f"Executing blast command using: {binary}")
         binary_path = self.get_binary_path(binary)
-        print(f"Binary Path: {binary_path}")
         if not binary_path.exists():
-            raise FileNotFoundError(f"{binary_path} not found")
+            raise FileNotFoundError(binary_path)
+
         cmd = [str(binary_path), *map(str, args)]
         if kwargs:
             for key, value in kwargs.items():
@@ -84,7 +85,7 @@ class BlastManager:
             else:
                 cmd.extend([f"-{key}", str(value)])
         try:
-            print(f"Executing command: {cmd}")
+            print(f"Executing command: '{' '.join(cmd)}'")
             return subprocess.run(cmd, check=True, text=True, capture_output=True)
         except subprocess.CalledProcessError as e:
             raise RuntimeError(
