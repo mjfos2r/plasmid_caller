@@ -8,6 +8,7 @@ class BlastManager:
     """Manages BLAST binary access and execution"""
 
     def __init__(self):
+        print("Initializing BlastManager instance. Please stand by...")
         self.module_dir = Path(__file__).parent
         # locate manage_blast.sh as part of the package.
         with resources.as_file(
@@ -25,12 +26,13 @@ class BlastManager:
     def blast_path(self) -> Path:
         """Path object to the directory that holds BLAST binaries."""
         if self._blast_path is None:
+            print("Getting path to blast installation")
             self._initialise_blast()
         return self._blast_path
 
     @property
     def blast_source(self):
-        """get the source of the blast (system or local)."""
+        """get the source of the blast (system or local). This needs to use the check from the bash script. TODO"""
         if self._blast_source is None:
             _ = self.blast_path
         return self._blast_source
@@ -64,9 +66,11 @@ class BlastManager:
         """get full path to a specified BLAST binary"""
         return self.blast_path / binary_name
 
-    def run_blast_command(self, command, *args, **kwargs):
+    def run_blast_command(self, binary, *args, **kwargs):
         """run any blast command using the managed binaries."""
-        binary_path = self.get_binary_path(command)
+        print(f"Executing blast command using: {binary}")
+        binary_path = self.get_binary_path(binary)
+        print(f"Binary Path: {binary_path}")
         if not binary_path.exists():
             raise FileNotFoundError(f"{binary_path} not found")
         cmd = [str(binary_path), *map(str, args)]
@@ -80,6 +84,7 @@ class BlastManager:
             else:
                 cmd.extend([f"-{key}", str(value)])
         try:
+            print(f"Executing command: {cmd}")
             return subprocess.run(cmd, check=True, text=True, capture_output=True)
         except subprocess.CalledProcessError as e:
             raise RuntimeError(

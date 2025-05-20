@@ -52,34 +52,46 @@ def get_default_db_path():
         Path: Path to the database directory.
     """
     try:
+        print("Looking for bundled databases: [ 'wp', 'pf32' ]")
         spec = importlib.util.find_spec("plasmid_caller")
 
         if spec and spec.origin:
             package_dir = Path(spec.origin).parent
             db_path = package_dir / "db"
+            print(f"Looking in: {package_dir}")
 
             if db_path.exists():
+                print(f"Found DB directory: {db_path}")
+                db_path_contents=os.listdir(db_path)
+                print(f"Contents: {db_path_contents}")
                 return db_path
 
     except (ImportError, AttributeError):
         pass
 
     # if package detection failed, check if running from src
+    print("Could not detect package location. We're going to look relative to the location of this file.")
     current_dir = Path(__file__).parent.absolute()
-
+    print(f"Current directory: {current_dir}")
     # is db in the current source directory structure?
     repo_db_path = current_dir.parent / "db"
     if repo_db_path.exists():
+        repo_db_contents = os.listdir(repo_db_path)
+        print("Found db directory relative to this file!")
+        print(f"Path: {repo_db_path}")
+        print(f"Contents: {repo_db_contents}")
         return repo_db_path
-
+    print("Could not find db relative to package location or relative to this file. Defaulting to the container path: '/db'")
     return Path("/db") # if all else fails return the container path. (BAD)
 
 # this is when dbs exist and are of proper version.
 def get_db_type(db_dir, quiet=True):
     """Get the database name and type for execution"""
     db_dir = Path(db_dir).expanduser().resolve()
-
+    db_dir_contents = os.listdir(db_dir)
     try:
+        print(f"Getting database information from databases contained in: {db_dir}")
+        print(f"Contents: {db_dir_contents}")
         result =  blast_manager.run_blast_command(
         "blastdbcmd",
             list=str(db_dir),
