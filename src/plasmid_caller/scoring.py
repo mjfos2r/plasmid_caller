@@ -39,7 +39,7 @@ def _valid_pf32(row):
 
 def _valid_wp(row):
     return (
-        row["query_covered_percent_wp"] >= WP_MIN_COV_PCT
+        row["query_coverage_percent_wp"] >= WP_MIN_COV_PCT
         or row["query_covered_length_wp"] >= WP_MIN_COV_BP
     )
 
