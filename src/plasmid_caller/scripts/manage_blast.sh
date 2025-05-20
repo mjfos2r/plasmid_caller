@@ -38,7 +38,7 @@ check_system_blast() {
             # compare found version to required version.
             if compare_versions "$v" "$BLAST_VERSION"; then
                 for b in "${BLAST_BINARIES[@]}"; do
-                    command -v "$b" &>/dev/null || { echo -e "${YELLOW}Missing '$b' in PATH${NC}"}
+                    command -v "$b" &>/dev/null || { echo -e "${YELLOW}Missing '$b' in PATH${NC}"; }
                 done
                 return 0
             fi
