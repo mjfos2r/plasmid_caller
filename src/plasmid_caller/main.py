@@ -531,7 +531,7 @@ def main(args=None):
         db_name = Path(db_path).stem
         results_dir = output_path / db_name / "xml_files"
         tables_dir = output_path / db_name / "tables"
-        results_dir.mkdirs(parents=True, exist_ok=True)
+        results_dir.mkdir(parents=True, exist_ok=True)
         tables_dir.mkdir(parents=True, exist_ok=True)
 
         if not args.skip_blast:
