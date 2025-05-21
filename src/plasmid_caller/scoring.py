@@ -56,10 +56,6 @@ def choose_final_call(row):
     if row["contig_length"] < MIN_CALL_BP:
         return "unclassified"
 
-    # if the contig_length is greater than 100,000, it's probably a chromosome. The existence of multiple pf32 in the chromosome complicates this. in such cases, refer to the wp hit.
-    if row["contig_length"] > 100000:
-        # if the pf32 hit is for chromosome, that's great. we can return it. otherwise we need to check the wp hit.
-
     pf32_ok = not pandas.isna(row.get("plasmid_name_pf32")) and _valid_pf32(row)
     wp_ok = not pandas.isna(row.get("plasmid_name_wp")) and _valid_wp(row)
 
