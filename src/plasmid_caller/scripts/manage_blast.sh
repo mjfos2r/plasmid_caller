@@ -106,11 +106,11 @@ install_local_blast() {
     [[ -z $url ]] && { echo -e "${RED}Unsupported platform ${NC}"; exit 1; }
 
     if command -v curl &>/dev/null; then
-        curl -L "$url" -o "$file"
-        curl -L "$md5_url" -o "$md5_file"
+        curl -s -L "$url" -o "$file"
+        curl -s -L "$md5_url" -o "$md5_file"
     elif command -v wget &>/dev/null; then
-        wget "$url" -O "$file"
-        wget "$md5_url" -O "$md5_file"
+        wget -q "$url" -O "$file"
+        wget -q "$md5_url" -O "$md5_file"
     else
         echo -e "${RED}ERROR: Need either curl or wget to proceed. ensure those are installed and try again!${NC}"
         exit 1
