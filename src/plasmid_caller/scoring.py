@@ -1,13 +1,16 @@
 # scoring.py
 import pandas
 
-### scoring parameters ###
+#### scoring parameters #####
 PF32_MIN_BP         = 200
 WP_MIN_COV_PCT      = 50
-WP_MIN_COV_BP       = 1000
-WP_OVERRIDE_COV_PCT = 90
+WP_MIN_COV_BP       = 1_000
+WP_OVERRIDE_COV_PCT = 95
 WP_OVERRIDE_PID_PCT = 98
-##########################
+#### Chromosomal Params #####
+MIN_CALL_BP         = 1_000
+CHROMOSOME_MIN_BP   = 100_000
+#############################
 # TODO: Catch divergent cases.(where pf32's best hit has stats below the min thresholds)
 
 def best_pf32_hit(df: pandas.DataFrame) -> pandas.DataFrame:
@@ -49,8 +52,33 @@ def choose_final_call(row):
     if pandas.isna(row.get("plasmid_name_pf32")) and pandas.isna(row.get("plasmid_name_wp")):
         return "unclassified"
 
+    # if contig_length is less than 1000bp, we don't want to call it since it's obviously a fragment.
+    if row["contig_length"] < MIN_CALL_BP:
+        return "unclassified"
+
+    # if the contig_length is greater than 100,000, it's probably a chromosome. The existence of multiple pf32 in the chromosome complicates this. in such cases, refer to the wp hit.
+    if row["contig_length"] > 100000:
+        # if the pf32 hit is for chromosome, that's great. we can return it. otherwise we need to check the wp hit.
+
     pf32_ok = not pandas.isna(row.get("plasmid_name_pf32")) and _valid_pf32(row)
     wp_ok = not pandas.isna(row.get("plasmid_name_wp")) and _valid_wp(row)
+
+    # check for really long contigs, likely chromosomal fragments.
+    # in prior versions, anything over 100,000 was automatically classified as chromosome.
+    # let's flesh out this logic a bit more.
+    if row["contig_length"] >= CHROMOSOME_MIN_BP:
+        # if we have a chromosome call, return that.
+        if (pf32_ok and row["plasmid_name_pf32"].lower() == "chromosome") or \
+            (wp_ok and row["plasmid_name_wp"].lower() == "chromosome"):
+                return "chromosome"
+
+        # allow a really good wp_hit to override. (this probably won't happen.)
+        if wp_ok and (row["query_coverage_percent_wp"] >= WP_OVERRIDE_COV_PCT and
+                      row["overall_percent_identity_wp"] >= WP_OVERRIDE_PID_PCT):
+            return row["plasmid_name_wp"]
+
+        # else, default to "chromosome_putative"
+        return "chromosome_putative"
 
     if pf32_ok and not wp_ok:
         return row["plasmid_name_pf32"]
