@@ -380,7 +380,7 @@ def parse_to_tsv(file_id, xml_file, full_table_path, args, parsing_type, db_path
         best_hits_df = (
             best_hits_df.set_index("contig_id")
                         .join(concat_series, how="left")
-                        .assign(multiple_pf32_loci=lambda df: df["concat_call"].notna())
+                        .assign(multiple_loci=lambda df: df["concat_call"].notna())
                         .reset_index()
         )
 
