@@ -53,7 +53,7 @@ def choose_final_call(row):
         return "unclassified"
 
     # if contig_len is less than MIN_CALL_BP, we don't want to call it since it's obviously a fragment.
-    if row["query_length"] < MIN_CALL_BP:
+    if row["contig_len"] < MIN_CALL_BP:
         return "unclassified"
 
     pf32_ok = not pandas.isna(row.get("plasmid_name_pf32")) and _valid_pf32(row)
@@ -62,7 +62,7 @@ def choose_final_call(row):
     # check for really long contigs, likely chromosomal fragments.
     # in prior versions, anything over 100,000 was automatically classified as chromosome.
     # let's flesh out this logic a bit more.
-    if row["query_length"] >= CHROMOSOME_MIN_BP:
+    if row["contig_len"] >= CHROMOSOME_MIN_BP:
         # if we have a chromosome call, return that.
         if (pf32_ok and row["plasmid_name_pf32"].lower() == "chromosome") or \
             (wp_ok and row["plasmid_name_wp"].lower() == "chromosome"):
