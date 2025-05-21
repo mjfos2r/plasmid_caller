@@ -151,7 +151,6 @@ def summarise_multiple_pf32(full_pf32_df: pandas.DataFrame, min_cov_bp: int = PF
         concat = pandas.Series(dtype="object", name="pf32_concat_call")
 
     return multi_best_df, concat
-multi_hit_df, concat = summarise_multiple_pf32(all_hits_df)
 
 def choose_final_call(row):
     """after determining the best pf32 and wp hits, choose the pf32 hit first (if present) and only use the wp hit if it's very convincing. (set params above)"""
