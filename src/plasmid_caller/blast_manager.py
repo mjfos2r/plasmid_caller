@@ -21,6 +21,8 @@ class BlastManager:
         self._blast_path: Path | None = None
         self._blast_source: str | None = None
         self._versions: str | None = None
+        # todo: convert to dict: zip - binaries | versions
+        # todo: add logging
 
     @property
     def blast_path(self) -> Path:
