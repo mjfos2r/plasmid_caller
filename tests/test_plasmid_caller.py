@@ -4,7 +4,7 @@ pytest test-suite for plasmid_caller 6.0.0
 These unit-tests exercise the public helper functions that do **not** require an active
 BLAST installation or large reference databases.  External side-effects (filesystem,
 sub-processes, network) are isolated with monkey-patching so that the suite runs fast
-and deterministically and still achieves high (>90 %) statement coverage when
+and deterministically and still achieves high (>90 %) statement coverage when
 executed with `pytest --cov=plasmid_caller`.
 
 Directory layout that pytest expects:
@@ -35,7 +35,7 @@ import pytest
 # Import the module under test **once** so that monkeypatching works reliably.
 # -----------------------------------------------------------------------------
 
-import plasmid_caller.plasmid_caller as pc
+import plasmid_caller.main as pc
 from plasmid_caller.scoring import (
     best_pf32_hit,
     best_wp_hit,
