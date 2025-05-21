@@ -35,7 +35,7 @@ import pytest
 # Import the module under test **once** so that monkeypatching works reliably.
 # -----------------------------------------------------------------------------
 
-import plasmid_caller.plasmid_caller as pc
+import plasmid_caller.main as pc
 from plasmid_caller.scoring import (
     best_pf32_hit,
     best_wp_hit,
