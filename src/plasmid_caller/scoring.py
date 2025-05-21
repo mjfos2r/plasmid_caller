@@ -52,7 +52,7 @@ def choose_final_call(row):
     if pandas.isna(row.get("plasmid_name_pf32")) and pandas.isna(row.get("plasmid_name_wp")):
         return "unclassified"
 
-    # if contig_length is less than 1000bp, we don't want to call it since it's obviously a fragment.
+    # if contig_length is less than MIN_CALL_BP, we don't want to call it since it's obviously a fragment.
     if row["contig_length"] < MIN_CALL_BP:
         return "unclassified"
 
