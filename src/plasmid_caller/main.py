@@ -26,14 +26,14 @@ from Bio.Blast import NCBIXML
 from intervaltree import IntervalTree
 
 from .blast_manager import BlastManager
-from .scoring import best_pf32_hit, best_wp_hit, choose_final_call
+from .scoring import best_pf32_hit, best_wp_hit, choose_final_call, summarise_multiple_pf32
 
 blast_manager = BlastManager()
 os.environ["PATH"] = f"{blast_manager.blast_path}:os.environ['PATH']"
 
 #todo: convert to logging, optimize visually
-# convert paths to pathlib.Path()s 
-# write better tests for the scoring. 
+# convert paths to pathlib.Path()s
+# write better tests for the scoring.
 # also finish HMM integration
 # also split code into submodules and tidy things up
 
@@ -348,8 +348,6 @@ def parse_blast_xml(xml_file, args, *, parsing_type: str, dbs_dir: Path) -> dict
 
     return blast_hits
 
-
-
 def get_results(results_dir, quiet=False):
     if not quiet:
         print(os.listdir(results_dir))
@@ -365,13 +363,27 @@ def get_hits_table(hits):
     return df
 
 
-def parse_to_tsv(xml_file, full_table_path, args, parsing_type, db_path, best_table_path):
+def parse_to_tsv(file_id, xml_file, full_table_path, args, parsing_type, db_path, best_table_path, tables_dir):
     hits = parse_blast_xml(xml_file, args, parsing_type=parsing_type, dbs_dir=db_path)
     full_hits_df = get_hits_table(hits)
     full_hits_df.to_csv(full_table_path, sep="\t", index=False)
 
     if parsing_type == "pf32":
         best_hits_df = best_pf32_hit(full_hits_df)
+        multi_best_df, concat_series = summarise_multiple_pf32(full_hits_df)
+        multi_table = tables_dir / f"{file_id}_pf32_multi.tsv"
+        if not multi_best_df.empty:
+            multi_best_df.to_csv(multi_table, sep='\t', index=False)
+            if not args.quiet:
+                print(f"[pf32] wrote multi-PF32 loci table → {multi_table.name}")
+        # attach concatenated name with all loci + loci flag to best_hits_df
+        best_hits_df = (
+            best_hits_df.set_index("contig_id")
+                        .join(concat_series, how="left")
+                        .assign(multiple_pf32_loci=lambda df: df["pf32_concat_call"].notna())
+                        .reset_index()
+        )
+
     elif parsing_type == "wp":
         best_hits_df = best_wp_hit(full_hits_df)
 
@@ -537,12 +549,14 @@ def main(args=None):
         full_table = tables_dir / f"{file_id}_all.tsv"
         best_table = tables_dir / f"{file_id}_best.tsv"
         best_df = parse_to_tsv(
+            file_id=file_id,
             xml_file=xml_file,
             full_table_path=full_table,
             args=args,
             parsing_type=db_name,
             db_path=dbs_dir,
             best_table_path=best_table,
+            tables_dir=tables_dir,
         )
         tag = f"_{db_name}"
         tagged_best_df = best_df.add_suffix(tag).rename(

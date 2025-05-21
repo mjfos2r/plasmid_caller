@@ -1,4 +1,6 @@
 # scoring.py
+from ctypes.macholib import dyld
+from typing import Any
 import pandas
 
 #### scoring parameters #####
@@ -46,6 +48,110 @@ def _valid_wp(row):
         or row["query_covered_length_wp"] >= WP_MIN_COV_BP
     )
 
+def _parse_intervals(raw):
+    """
+    this accepts in whatever value is stored at row["query_intervals"] and
+    evaluates it to the type we need for intervaltree using ast.literal_eval
+    """
+    if pandas.isna(raw):
+        return []
+    if isinstance(raw, (list, tuple)):
+        return raw
+    if isinstance(raw, str):
+        try:
+            val = ast.literal_eval(raw)
+            if isinstance(val, (list, tuple)):
+                return val
+        except Exception:
+            pass
+    return []
+
+from intervaltree import Interval, IntervalTree
+import pandas as pd
+from .scoring import best_pf32_hit, PF32_MIN_BP
+
+
+def summarise_multiple_pf32(full_pf32_df: pandas.DataFrame, min_cov_bp: int = PF32_MIN_BP):
+    """
+    For each contig:
+      • filter for PF32 hits passing min_cov_bp
+      • build an IntervalTree of its query_intervals
+      • merge overlaps → distinct loci
+      • for each locus, pick the best hit via best_pf32_hit()
+      • collect that best-hit row + locus_idx/start/end
+
+    Returns:
+      - multi_best_df: DataFrame with one row per locus,
+                       original columns + locus_idx, locus_start, locus_end
+      - concat_series: per-contig concatenation of those locus' plasmid_names in descending PID order
+    """
+    records = []
+
+    # 1 QC filter up front
+    qual = full_pf32_df[
+        (full_pf32_df["query_covered_length"] >= min_cov_bp) &
+        full_pf32_df["query_intervals"].notna()
+    ]
+
+    # 2 process contig by contig
+    for contig_id, contig_df in qual.groupby("contig_id"):
+        contig_df = contig_df.reset_index(drop=True)
+        tree = IntervalTree()
+        # add each hit's intervals carrying its row-index
+        for ix, val in enumerate(contig_df["query_intervals"]):
+            ivals = _parse_intervals(val)
+            for start, end in ivals:
+                tree.add(Interval(int(start), int(end), {ix}))
+        # merge overlaps for this contig only
+        tree.merge_overlaps(data_reducer=lambda a, b: a.union(b))
+
+        if len(tree) < 2:
+            locus_idx = 1
+            continue
+
+        # 3 pick best hit per locus
+        for locus_idx, iv in enumerate(sorted(tree), start=1):
+            hit_idxs = iv.data
+            locus_subset = contig_df.loc[list(hit_idxs)]
+            best = best_pf32_hit(locus_subset)
+            if best.empty:
+                continue
+            row = best.iloc[0].to_dict()
+            # attach locus metadata
+            row.update({
+                "locus_idx":    locus_idx,
+                "locus_start":  iv.begin,
+                "locus_end":    iv.end
+            })
+            records.append(row)
+
+    # assemble the per-locus DataFrame
+    if records:
+        multi_best_df = pandas.DataFrame.from_records(records)
+    else:
+        cols = list(full_pf32_df.columns) + ["locus_idx", "locus_start", "locus_end"]
+        multi_best_df = pandas.DataFrame(columns=cols)
+
+    def _concat_pf32(names):
+        uniq = pandas.unique(names)
+        if len(uniq) > 1:
+            return ":::".join(uniq)
+        return f"{uniq[0]}*"
+
+    # 4 concatenated call series
+    if not multi_best_df.empty:
+        concat = (
+            multi_best_df
+            .sort_values(["contig_id", "overall_percent_identity"], ascending=[True, False])
+            .groupby("contig_id")["plasmid_name"]
+            .apply(_concat_pf32)
+            .rename("pf32_concat_call")
+        )
+    else:
+        concat = pandas.Series(dtype="object", name="pf32_concat_call")
+
+    return multi_best_df, concat
+multi_hit_df, concat = summarise_multiple_pf32(all_hits_df)
 
 def choose_final_call(row):
     """after determining the best pf32 and wp hits, choose the pf32 hit first (if present) and only use the wp hit if it's very convincing. (set params above)"""
@@ -73,6 +179,9 @@ def choose_final_call(row):
         #if wp_ok and (row["query_coverage_percent_wp"] >= WP_OVERRIDE_COV_PCT and
         #              row["overall_percent_identity_wp"] >= WP_OVERRIDE_PID_PCT):
         #    return row["plasmid_name_wp"]
+
+    if pf32_ok and row.get("multiple_pf32_loci", False):
+        return row["pf32_concat_call"]
 
     if pf32_ok and not wp_ok:
         return row["plasmid_name_pf32"]
