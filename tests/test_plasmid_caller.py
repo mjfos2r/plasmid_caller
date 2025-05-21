@@ -1,9 +1,9 @@
 '''
-pytest test‑suite for plasmid_caller 6.0.0
+pytest test-suite for plasmid_caller 6.0.0
 ================================================
-These unit‑tests exercise the public helper functions that do **not** require an active
-BLAST installation or large reference databases.  External side‑effects (filesystem,
-sub‑processes, network) are isolated with monkey‑patching so that the suite runs fast
+These unit-tests exercise the public helper functions that do **not** require an active
+BLAST installation or large reference databases.  External side-effects (filesystem,
+sub-processes, network) are isolated with monkey-patching so that the suite runs fast
 and deterministically and still achieves high (>90 %) statement coverage when
 executed with `pytest --cov=plasmid_caller`.
 
@@ -11,11 +11,11 @@ Directory layout that pytest expects:
 
 project/
 ├── plasmid_caller/               # the package under test
-│   ├── __init__.py
-│   ├── plasmid_caller.py         # (contains the code from user prompt)
-│   └── ...
+│   ├── __init__.py
+│   ├── plasmid_caller.py         # (contains the code from user prompt)
+│   └── ...
 └── tests/
-    └── test_plasmid_caller.py    # <‑‑ this file
+    └── test_plasmid_caller.py    # <-- this file
 '''
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ import pytest
 # Import the module under test **once** so that monkeypatching works reliably.
 # -----------------------------------------------------------------------------
 
-import plasmid_caller.main as pc
+import plasmid_caller.plasmid_caller as pc
 from plasmid_caller.scoring import (
     best_pf32_hit,
     best_wp_hit,
@@ -48,7 +48,7 @@ from plasmid_caller.scoring import (
 
 @pytest.fixture
 def fasta_file(tmp_path: Path) -> Path:
-    """Create a simple single‑contig FASTA (>contig1, 1 000 bp of A)."""
+    """Create a simple single-contig FASTA (>contig1, 1000 bp of A)."""
     fa = tmp_path / "test.fasta"
     fa.write_text(">contig1\n" + "A" * 1000 + "\n")
     return fa
@@ -168,11 +168,11 @@ def test_parse_hit_id_various_cases():
     s, p = pc.parse_hit_id("B31_lp28-1")
     assert s == "B31" and p == "lp28-1"
 
-    # single token (PDB‑like) → strain is token after pipe, plasmid None
+    # single token (PDB-like) → strain is token after pipe, plasmid None
     s, p = pc.parse_hit_id("pdb|ACC|stuff")
     assert p is None
 
-    # NE_xxxx edge‑case
+    # NE_xxxx edge-case
     s, p = pc.parse_hit_id("NE_1234_cp26")
     assert s.startswith("NE_1234") and p == "cp26"
 
@@ -189,25 +189,25 @@ def test_get_contig_len(fasta_file: Path):
 def test_calculate_identity_and_coverage(fake_alignment):
     stats = pc.calculate_percent_identity_and_coverage(fake_alignment)
 
-    # identities 95+90 = 185 over 200 bp alignment
+    # identities 95+90 = 185 over200 bp alignment
     assert pytest.approx(stats["overall_percent_identity"]) == 92.5
 
-    # coverage on query: two HSPs 10–190 merged gives 180 bp
+    # coverage on query: two HSPs 10–190 merged gives 180 bp
     assert stats["query_covered_length"] == 180
 
-    # reference (subject) intervals 1–180 gives 179 bp (end‑exclusive)
+    # reference (subject) intervals 1–180 gives 179 bp (end-exclusive)
     assert stats["ref_covered_length"] == 179
 
 
 # ––– parse_blast_xml() ––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
 def test_parse_blast_xml_no_hits(monkeypatch, tmp_path: Path, fasta_file: Path):
-    """Minimal integration‑test: NCBIXML.parse is mocked so that the real XML
-    structure is not required."""
+    """Minimal integration-test: NCBIXML.parse is mocked so that the real XML
+    file content is not needed; however, the function still attempts to *open*
+    the file, so we create an empty placeholder on disk."""
 
     # Fake record with *no* alignments
     rec = SimpleNamespace(query="contig1", query_length=1000, alignments=[])
-
     monkeypatch.setattr(pc.NCBIXML, "parse", lambda handle: [rec])
 
     # the parsing_dict pickle expected by parse_blast_xml
@@ -216,8 +216,12 @@ def test_parse_blast_xml_no_hits(monkeypatch, tmp_path: Path, fasta_file: Path):
     pickle_path = db_dir / "blast_parsing_dict.pkl"
     pickle_path.write_bytes(pickle.dumps({"dummy": {"name": "lp54", "strain": "B31"}}))
 
+    # Empty XML placeholder – contents irrelevant because parse() is mocked
+    xml_path = tmp_path / "dummy.xml"
+    xml_path.write_text("")
+
     hits = pc.parse_blast_xml(
-        xml_file="dummy.xml",  # not read because NCBIXML.parse is mocked
+        xml_file=str(xml_path),
         args=SimpleNamespace(input=fasta_file, quiet=True),
         parsing_type="wp",
         dbs_dir=db_dir,
@@ -226,8 +230,9 @@ def test_parse_blast_xml_no_hits(monkeypatch, tmp_path: Path, fasta_file: Path):
     # Should contain a single contig with NA values
     assert list(hits.keys()) == ["contig1"]
     row = hits["contig1"][0]
-    assert row["assembly_id"].startswith("dummy")  # derived from xml_file stem
+    assert row["assembly_id"].startswith("dummy")
     assert pd.isna(row["plasmid_id"])
+
 
 
 # ––– get_db_type() ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -281,7 +286,7 @@ def test_best_pf32_hit():
     df = _sample_df("pf32")
     best = best_pf32_hit(df)
 
-    # contig c1 survives (>=200 bp) and retains highest PID row
+    # contig c1 survives (>200 bp) and retains highest PID row
     assert list(best["contig_id"]) == ["c1"]
     assert best.iloc[0]["overall_percent_identity"] == 99.0
 
@@ -290,7 +295,7 @@ def test_best_wp_hit():
     df = _sample_df("wp")
     best = best_wp_hit(df)
 
-    # row with 60 % × 99 % should win the score race
+    # row wit 60 %  99 % should win the score race
     assert best.iloc[0]["contig_id"] == "c1"
     assert "_score" in best.columns
 
