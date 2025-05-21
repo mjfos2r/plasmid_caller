@@ -31,6 +31,11 @@ from .scoring import best_pf32_hit, best_wp_hit, choose_final_call
 blast_manager = BlastManager()
 os.environ["PATH"] = f"{blast_manager.blast_path}:os.environ['PATH']"
 
+#todo: convert to logging, optimize visually
+# convert paths to pathlib.Path()s 
+# write better tests for the scoring. 
+# also finish HMM integration
+# also split code into submodules and tidy things up
 
 def get_input_files(input_path, input_extension):
     """from an input path, return a list of filepaths to each input file"""
@@ -218,8 +223,8 @@ def get_contig_len(input_file, contig_id):
     for record in SeqIO.parse(fasta_file, "fasta"):
         if record.id.split()[0] == contig_id.split()[0]:
             return len(record.seq)
-    return 1  # TODO Raise exception. (y tho?)
-
+        else:
+            return 1  # TODO Raise exception.
 
 def calculate_percent_identity_and_coverage(alignment):
     total_identities = 0
@@ -360,9 +365,7 @@ def get_hits_table(hits):
     return df
 
 
-def parse_to_tsv(
-    xml_file, full_table_path, args, parsing_type, db_path, best_table_path
-):
+def parse_to_tsv(xml_file, full_table_path, args, parsing_type, db_path, best_table_path):
     hits = parse_blast_xml(xml_file, args, parsing_type=parsing_type, dbs_dir=db_path)
     full_hits_df = get_hits_table(hits)
     full_hits_df.to_csv(full_table_path, sep="\t", index=False)
@@ -389,7 +392,7 @@ def rename_fasta_headers(input_fa, output_fa, mapping):
     Rewrite fasta headers of the input file using the newly determined classifications.
     header becomes:
         >mapping[old_id]
-        NNNNNNNNNNNNNNNNNNNNN....
+        NNNNNNHiNNNNNNNNNNNNNNN....
     """
     with open(output_fa, "w") as handle_out:
         for rec in SeqIO.parse(input_fa, "fasta"):
