@@ -224,7 +224,7 @@ def get_contig_len(input_file, contig_id):
         if record.id.split()[0] == contig_id.split()[0]:
             return len(record.seq)
         else:
-            return 1  # TODO Raise exception.
+            continue
 
 def calculate_percent_identity_and_coverage(alignment):
     total_identities = 0
@@ -546,7 +546,7 @@ def main(args=None):
         )
         tag = f"_{db_name}"
         tagged_best_df = best_df.add_suffix(tag).rename(
-            columns={f"contig_id{tag}": "contig_id"}
+                columns={f"contig_id{tag}": "contig_id", f"contig_len{tag}": "contig_len", f"assembly_id{tag}": "assembly_id"}
         )
 
         combined_summary_parts.append(tagged_best_df)
@@ -555,7 +555,9 @@ def main(args=None):
 
     frames = [df.set_index("contig_id") for df in combined_summary_parts]
     summary_df = pandas.concat(frames, axis=1, join="outer").reset_index()
+    summary_df = summary_df.loc[:, ~summary_df.columns.duplicated(keep="first")]
     summary_df["final_call"] = summary_df.apply(choose_final_call, axis=1)
+
     summary_df.to_csv(summary_path, sep="\t", index=False)
 
     best_map = summary_df.set_index("contig_id")["final_call"].to_dict()
