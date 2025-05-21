@@ -5,5 +5,9 @@
 !src
 !scripts
 !pyproject.toml
-!vendor
+vendor
+old_code
+notes
+docs
+.venv
 !Dockerfile
