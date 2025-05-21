@@ -143,10 +143,10 @@ def summarise_multiple_pf32(full_pf32_df: pandas.DataFrame, min_cov_bp: int = PF
             .sort_values(["contig_id", "overall_percent_identity"], ascending=[True, False])
             .groupby("contig_id")["plasmid_name"]
             .apply(_concat_pf32)
-            .rename("pf32_concat_call")
+            .rename("concat_call")
         )
     else:
-        concat = pandas.Series(dtype="object", name="pf32_concat_call")
+        concat = pandas.Series(dtype="object", name="concat_call")
 
     return multi_best_df, concat
 
@@ -177,8 +177,8 @@ def choose_final_call(row):
         #              row["overall_percent_identity_wp"] >= WP_OVERRIDE_PID_PCT):
         #    return row["plasmid_name_wp"]
 
-    if row["multiple_pf32_loci"] is True:
-        return row["pf32_concat_call"]
+    if row.get("multiple_loci_pf32", False):
+        return row["concat_call_pf32"]
 
     if pf32_ok and not wp_ok:
         return row["plasmid_name_pf32"]
