@@ -14,3 +14,4 @@ old_code/v4_test/sam
 .snakemake
 old_code/v3/dbs/all_plasmids_bbss/Bbss.json
 __pycache__
+src/plasmid_caller/vendor
