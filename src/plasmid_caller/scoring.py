@@ -53,8 +53,6 @@ def _parse_intervals(raw):
     this accepts in whatever value is stored at row["query_intervals"] and
     evaluates it to the type we need for intervaltree using ast.literal_eval
     """
-    if pandas.isna(raw):
-        return []
     if isinstance(raw, (list, tuple)):
         return raw
     if isinstance(raw, str):
