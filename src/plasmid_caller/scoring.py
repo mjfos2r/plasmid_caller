@@ -177,7 +177,7 @@ def choose_final_call(row):
         #              row["overall_percent_identity_wp"] >= WP_OVERRIDE_PID_PCT):
         #    return row["plasmid_name_wp"]
 
-    if row.get("multiple_pf32_loci", False):
+    if row["multiple_pf32_loci"] is True:
         return row["pf32_concat_call"]
 
     if pf32_ok and not wp_ok:
