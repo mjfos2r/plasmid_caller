@@ -371,7 +371,7 @@ def parse_to_tsv(file_id, xml_file, full_table_path, args, parsing_type, db_path
     if parsing_type == "pf32":
         best_hits_df = best_pf32_hit(full_hits_df)
         multi_best_df, concat_series = summarise_multiple_pf32(full_hits_df)
-        multi_table = tables_dir / f"{file_id}_pf32_multi.tsv"
+        multi_table = tables_dir / f"{file_id}_multi_loci.tsv"
         if not multi_best_df.empty:
             multi_best_df.to_csv(multi_table, sep='\t', index=False)
             if not args.quiet:
@@ -380,7 +380,7 @@ def parse_to_tsv(file_id, xml_file, full_table_path, args, parsing_type, db_path
         best_hits_df = (
             best_hits_df.set_index("contig_id")
                         .join(concat_series, how="left")
-                        .assign(multiple_pf32_loci=lambda df: df["pf32_concat_call"].notna())
+                        .assign(multiple_pf32_loci=lambda df: df["concat_call_pf32"].notna())
                         .reset_index()
         )
 
