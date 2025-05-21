@@ -441,7 +441,8 @@ def main(args=None):
         "--threads",
         required=False,
         type=int,
-        help="How many cores to use?"
+        help="How many cores to use?",
+        default=4
     )
     parser.add_argument(
         "-db",

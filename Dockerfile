@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
 ADD https://astral.sh/uv/0.7.6/install.sh /uv-installer.sh
 RUN sh /uv-installer.sh && rm /uv-installer.sh
 ENV PATH="/root/.local/bin/:$PATH"
-RUN mkdir -p /app/plasmid_caller
+RUN mkdir -p /app/plasmid_caller /data
 WORKDIR /app/plasmid_caller
 COPY . .
 WORKDIR /app
