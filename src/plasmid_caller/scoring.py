@@ -71,14 +71,12 @@ def choose_final_call(row):
         if (pf32_ok and row["plasmid_name_pf32"].lower() == "chromosome") or \
             (wp_ok and row["plasmid_name_wp"].lower() == "chromosome"):
                 return "chromosome"
-
-        # allow a really good wp_hit to override. (this probably won't happen.)
-        if wp_ok and (row["query_coverage_percent_wp"] >= WP_OVERRIDE_COV_PCT and
-                      row["overall_percent_identity_wp"] >= WP_OVERRIDE_PID_PCT):
+        else:
             return row["plasmid_name_wp"]
-
-        # else, default to "chromosome_putative"
-        return "chromosome_putative"
+        ## allow a really good wp_hit to override. (this probably won't happen. but could in cases of tremendous misassembly)
+        #if wp_ok and (row["query_coverage_percent_wp"] >= WP_OVERRIDE_COV_PCT and
+        #              row["overall_percent_identity_wp"] >= WP_OVERRIDE_PID_PCT):
+        #    return row["plasmid_name_wp"]
 
     if pf32_ok and not wp_ok:
         return row["plasmid_name_pf32"]
