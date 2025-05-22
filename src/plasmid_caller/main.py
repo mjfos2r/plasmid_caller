@@ -65,7 +65,7 @@ def _db_path(path_str: str = None) -> Path:
     Returns:
         Path: Path to the database directory.
     """
-    if path_str is not None:
+    if path_str is not None or path_str == "def_db":
         return Path(path_str)
 
     try:
@@ -469,7 +469,7 @@ def main(args=None):
         required=False,
         type=_db_path,
         help="Path to directory containing blast databases (default: built-in dbs)",
-        default=None
+        default="def_db"
     )
     parser.add_argument(
         "--skip_blast",
