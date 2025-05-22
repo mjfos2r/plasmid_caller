@@ -18,7 +18,7 @@ CHROMOSOME_MIN_BP   = 100_000
 # TODO: Catch divergent cases.(where pf32's best hit has stats below the min thresholds)
 
 def _pick_best_or_empty(group):
-    best = group.nlargest("overall_percent_identity", keep="first")
+    best = group.nlargest(1, "overall_percent_identity", keep="first")
     if best.empty:
         return group.iloc[0]
 
