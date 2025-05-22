@@ -56,7 +56,7 @@ def get_output_path(results_dir):
     return output_path
 
 
-def get_default_db_path():
+def default_db_path():
     """
     Find the database directory within the package installation.
 
@@ -465,9 +465,8 @@ def main(args=None):
         "-db",
         "--database",
         required=False,
-        type=str,
+        type=default_db_path,
         help="Path to directory containing blast databases (default: built-in dbs)",
-        default=default_db_path,
     )
     parser.add_argument(
         "--skip_blast",
@@ -491,7 +490,7 @@ def main(args=None):
     os.environ["PATH"] = f"{blast_manager.blast_path}:os.environ['PATH']"
 
     # validate database location
-    if not get_default_db_path().exists():
+    if not args.database.exists():
         parser.error(f"Database directory not found!")
 
         # now lets get our dbs to run against
