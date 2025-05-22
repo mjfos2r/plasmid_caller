@@ -27,6 +27,8 @@ def _pick_best_or_empty(group):
 def best_pf32_hit(df: pandas.DataFrame) -> pandas.DataFrame:
     if df.empty:
         return df
+    df = df.copy()
+    df["overall_percent_identity"] = pandas.to_numeric(df["overall_percent_identity"], errors = "coerce")
     best_hits_df = df.groupby("contig_id", group_keys=False).apply(_pick_best_or_empty).reset_index(drop=True)
     return best_hits_df
 
