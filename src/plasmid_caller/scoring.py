@@ -1,7 +1,10 @@
 # scoring.py
-from ctypes.macholib import dyld
-from typing import Any
 import pandas
+import math
+
+from intervaltree import Interval, IntervalTree
+import pandas as pd
+from .scoring import best_pf32_hit, PF32_MIN_BP
 
 #### scoring parameters #####
 PF32_MIN_BP         = 200
@@ -15,14 +18,27 @@ CHROMOSOME_MIN_BP   = 100_000
 #############################
 # TODO: Catch divergent cases.(where pf32's best hit has stats below the min thresholds)
 
+def _pick_best_or_empty(group):
+    print("group:", group)
+    valid = group["overall_percent_identity"]
+    print(valid)
+    if valid.empty:
+        print("empty!:",group)
+        return group.iloc[0]
+    else:
+        idx = valid.idxmax()
+        print(idx)
+
+        if math.isnan(idx):
+            return group.iloc[0]
+
+        return group.loc[idx]
+
 def best_pf32_hit(df: pandas.DataFrame) -> pandas.DataFrame:
-    """Make sure the covered length is over 200, then sort by percent identity and choose the highest."""
-    df = df[df["query_covered_length"] >= PF32_MIN_BP]
     if df.empty:
         return df
-    return (
-        df.sort_values(["overall_percent_identity"], ascending=False).groupby("contig_id", as_index=False).first()
-    )
+    best_hits_df = df.groupby("contig_id", group_keys=False).apply(_pick_best_or_empty).reset_index(drop=True)
+    return best_hits_df
 
 def best_wp_hit(df: pandas.DataFrame) -> pandas.DataFrame:
     """score each wp hit by the product of the percent coverage and the percent identity. (as long as coverage is either over 10% or greater than 1000bp) """
@@ -63,11 +79,6 @@ def _parse_intervals(raw):
         except Exception:
             pass
     return []
-
-from intervaltree import Interval, IntervalTree
-import pandas as pd
-from .scoring import best_pf32_hit, PF32_MIN_BP
-
 
 def summarise_multiple_pf32(full_pf32_df: pandas.DataFrame, min_cov_bp: int = PF32_MIN_BP):
     """
