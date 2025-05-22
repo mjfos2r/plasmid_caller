@@ -437,7 +437,7 @@ def rename_fasta_headers(input_fa, output_fa, mapping, header_prefix):
 class FullVersion(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         print(f"{parser.prog} {__version__}")
-        print(BlastManager().versions)
+        print(blast_manager.versions)
         parser.exit(0)
 
 
