@@ -469,7 +469,7 @@ def main(args=None):
         required=False,
         type=_db_path,
         help="Path to directory containing blast databases (default: built-in dbs)",
-        default=_db_path
+        default=None
     )
     parser.add_argument(
         "--skip_blast",
