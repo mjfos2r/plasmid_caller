@@ -416,9 +416,7 @@ def rename_fasta_headers(input_fa, output_fa, mapping):
 class FullVersion(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         print(f"{parser.prog} {__version__}")
-        print("###BLAST VERSIONS###")
         print(blast_manager.versions)
-        print("####################")
         sys.exit(0)
 
 
