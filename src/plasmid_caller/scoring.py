@@ -18,19 +18,13 @@ CHROMOSOME_MIN_BP   = 100_000
 # TODO: Catch divergent cases.(where pf32's best hit has stats below the min thresholds)
 
 def _pick_best_or_empty(group):
-    print("group:", group)
     valid = group["overall_percent_identity"]
-    print(valid)
     if valid.empty:
-        print("empty!:",group)
         return group.iloc[0]
     else:
         idx = valid.idxmax()
-        print(idx)
-
         if math.isnan(idx):
             return group.iloc[0]
-
         return group.loc[idx]
 
 def best_pf32_hit(df: pandas.DataFrame) -> pandas.DataFrame:
