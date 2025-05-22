@@ -40,7 +40,7 @@ def get_input_files(input_path, input_extension):
     files.extend(Path(input_path).glob(f"*.{input_extension}"))
     return files
 
-def existing_file(path_str: str) -> Path:
+def _existing_file(path_str: str) -> Path:
     p = Path(path_str)
     if not p.is_file():
         raise argparse.ArgumentTypeError(f"Input FASTA not found: {p}")
@@ -56,7 +56,7 @@ def get_output_path(results_dir):
     return output_path
 
 
-def db_path(path_str: str = None) -> Path:
+def _db_path(path_str: str = None) -> Path:
     """
     Find the database directory within the package installation.
     *OR*
@@ -444,7 +444,7 @@ def main(args=None):
     parser.add_argument(
         "-i",
         "--input",
-        type=existing_file,
+        type=_existing_file,
         required=True,
         help="Input FASTA file path"
     )
@@ -467,7 +467,7 @@ def main(args=None):
         "-db",
         "--database",
         required=False,
-        type=db_path,
+        type=_db_path,
         help="Path to directory containing blast databases (default: built-in dbs)",
     )
     parser.add_argument(
