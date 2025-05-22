@@ -4,7 +4,6 @@ import math
 
 from intervaltree import Interval, IntervalTree
 import pandas as pd
-from .scoring import best_pf32_hit, PF32_MIN_BP
 
 #### scoring parameters #####
 PF32_MIN_BP         = 200
