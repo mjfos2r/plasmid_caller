@@ -424,9 +424,6 @@ class FullVersion(argparse.Action):
 
 ## Define main function logic.
 def main(args=None):
-    # get this setup before argparse needs it.
-    default_db_path = get_default_db_path()
-    # Create the parser
     parser = argparse.ArgumentParser(
         prog="plasmid_caller",
         description="Plasmid/replicon classifier for a single FASTA file containing B.burgdorferi contigs.",
