@@ -449,7 +449,7 @@ def main(args=None):
     parser.add_argument(
         "-o",
         "--output",
-        type=str,
+        type=Path,
         required=True,
         help="Output directory"
     )
