@@ -571,7 +571,7 @@ def main(args=None):
     json_path.write_text(json.dumps(best_map, indent=4))
 
     renamed_fa = args.output / f"{file_id}_renamed.fasta"
-    rename_fasta_headers(Path(args.input), renamed_fa, best_map)
+    rename_fasta_headers(sanitized_fa, renamed_fa, best_map)
 
     if not args.quiet:
         print(f"Wrote combined summary -> {summary_path}")
