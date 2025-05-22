@@ -65,7 +65,7 @@ def _db_path(path_str: str = None) -> Path:
     Returns:
         Path: Path to the database directory.
     """
-    if path_str is None or path_str == "def_db":
+    if path_str is not None or path_str == "def_db":
         return Path(path_str)
 
     try:
