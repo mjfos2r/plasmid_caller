@@ -420,7 +420,7 @@ def parse_to_tsv(file_id, xml_file, full_table_path, args, parsing_type, db_path
 
     return best_hits_df
 
-def rename_fasta_headers(input_fa, output_fa, mapping):
+def rename_fasta_headers(input_fa, output_fa, mapping, header_prefix):
     """
     Rewrite fasta headers of the input file using the newly determined classifications.
     header becomes:
@@ -430,7 +430,7 @@ def rename_fasta_headers(input_fa, output_fa, mapping):
     with open(output_fa, "w") as handle_out:
         for rec in SeqIO.parse(input_fa, "fasta"):
             old_id = rec.description
-            rec.id = mapping.get(old_id, old_id)
+            rec.id = f"{header_prefix} {mapping.get(old_id, old_id)}"
             SeqIO.write(rec, handle_out, "fasta")
 
 
@@ -571,7 +571,7 @@ def main(args=None):
     json_path.write_text(json.dumps(best_map, indent=4))
 
     renamed_fa = args.output / f"{file_id}_renamed.fasta"
-    rename_fasta_headers(sanitized_fa, renamed_fa, best_map)
+    rename_fasta_headers(sanitized_fa, renamed_fa, best_map, file_id)
 
     if not args.quiet:
         print(f"Wrote combined summary -> {summary_path}")
