@@ -491,9 +491,13 @@ def main(args=None):
     os.environ["PATH"] = f"{blast_manager.blast_path}:os.environ['PATH']"
 
     # validate database location
-    db_path = Path(args.database) or get_default_db_path()
-    if not db_path.exists():
-        parser.error(f"Database directory not found: {db_path}")
+    if not get_default_db_path().exists():
+        parser.error(f"Database directory not found!")
+
+        # now lets get our dbs to run against
+    dbs_dir = args.database
+    dbs = get_db_type(dbs_dir)
+    print(f"Databases to run against: {dbs}")
 
     if not args.quiet:
         print(f"Input file: {args.input}")
@@ -501,11 +505,6 @@ def main(args=None):
         print(f"Job threads: {args.threads}")
         print(f"Databases: {args.database}")
         print(f"Skip BLAST?: {args.skip_blast}")
-
-    # now lets get our dbs to run against
-    dbs_dir = args.database
-    dbs = get_db_type(dbs_dir)
-    print(f"Databases to run against: {dbs}")
 
     args.output.mkdir(parents=True, exist_ok=True)
 
