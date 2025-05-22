@@ -28,6 +28,10 @@ from intervaltree import IntervalTree
 from .blast_manager import BlastManager
 from .scoring import best_pf32_hit, best_wp_hit, choose_final_call, summarise_multiple_pf32
 
+# init blast_manager
+blast_manager = BlastManager()
+os.environ["PATH"] = f"{blast_manager.blast_path}:os.environ['PATH']"
+
 #todo: convert to logging, optimize visually
 # convert paths to pathlib.Path()s
 # write better tests for the scoring.
@@ -110,7 +114,7 @@ def _db_path(path_str: str = None) -> Path:
 def get_db_type(db_dir, quiet=True):
     """Get the database name and type for execution"""
     db_dir = db_dir.resolve() if isinstance(db_dir, Path) else Path(db_dir).resolve()
-    print(db_dir)
+    print(f"DB_Dir: {db_dir}")
     db_dir_contents = os.listdir(db_dir)
     print(db_dir_contents)
     try:
@@ -487,10 +491,6 @@ def main(args=None):
 
     # Parse the arguments
     args = parser.parse_args()
-
-    # init blast_manager
-    blast_manager = BlastManager()
-    os.environ["PATH"] = f"{blast_manager.blast_path}:os.environ['PATH']"
 
     # validate database location
     if not args.database.exists():
