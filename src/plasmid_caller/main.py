@@ -28,9 +28,6 @@ from intervaltree import IntervalTree
 from .blast_manager import BlastManager
 from .scoring import best_pf32_hit, best_wp_hit, choose_final_call, summarise_multiple_pf32
 
-blast_manager = BlastManager()
-os.environ["PATH"] = f"{blast_manager.blast_path}:os.environ['PATH']"
-
 #todo: convert to logging, optimize visually
 # convert paths to pathlib.Path()s
 # write better tests for the scoring.
@@ -43,6 +40,11 @@ def get_input_files(input_path, input_extension):
     files.extend(Path(input_path).glob(f"*.{input_extension}"))
     return files
 
+def existing_file(path_str: str) -> Path:
+    p = Path(path_str)
+    if not p.is_file():
+        raise argparse.ArgumentTypeError(f"Input FASTA not found: {p}")
+    return p
 
 def get_output_path(results_dir):
     """ensure the output path exists and create it if absent."""
@@ -416,8 +418,8 @@ def rename_fasta_headers(input_fa, output_fa, mapping):
 class FullVersion(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         print(f"{parser.prog} {__version__}")
-        print(blast_manager.versions)
-        sys.exit(0)
+        print(BlastManager().versions)
+        parser.exit(0)
 
 
 ## Define main function logic.
@@ -440,14 +442,16 @@ def main(args=None):
     parser.add_argument(
         "-i",
         "--input",
-        type=str,
+        type=existing_file,
+        required=True,
         help="Input FASTA file path"
     )
     parser.add_argument(
         "-o",
         "--output",
         type=str,
-        help="The directory for outputs"
+        required=True,
+        help="Output directory"
     )
     parser.add_argument(
         "-t",
@@ -462,7 +466,7 @@ def main(args=None):
         "--database",
         required=False,
         type=str,
-        help="Path to directory containing blast databases",
+        help="Path to directory containing blast databases (default: built-in dbs)",
         default=default_db_path,
     )
     parser.add_argument(
@@ -479,32 +483,17 @@ def main(args=None):
         default=False,
     )
 
-    if len(sys.argv) == 1:
-        parser.print_help()
-        parser.error("Please specify relevant arguments!")
-    else:
-        # Parse the arguments
-        args = parser.parse_args()
+    # Parse the arguments
+    args = parser.parse_args()
 
-        if args.version:
-            return 0
-        else:
-            if not args.input or not args.output:
-                parser.error("Please specify input and output arguments!")
-        # validate database location
-        db_path = Path(args.database)
-        if not db_path.exists():
-            parser.error(f"Database directory not found: {db_path}")
+    # init blast_manager
+    blast_manager = BlastManager()
+    os.environ["PATH"] = f"{blast_manager.blast_path}:os.environ['PATH']"
 
-        if not args.quiet:
-            print(args)
-
-    # Verify input file exists
-    if not os.path.exists(args.input):
-        parser.error("Input FASTA file does not exist!")
-
-    # Get output paths
-    output_path = Path(args.output)
+    # validate database location
+    db_path = Path(args.database) or get_default_db_path()
+    if not db_path.exists():
+        parser.error(f"Database directory not found: {db_path}")
 
     if not args.quiet:
         print(f"Input file: {args.input}")
@@ -518,10 +507,7 @@ def main(args=None):
     dbs = get_db_type(dbs_dir)
     print(f"Databases to run against: {dbs}")
 
-    if not output_path.exists():
-        if not args.quiet:
-            print("Creating output directory!\n")
-        output_path.mkdir(exist_ok=True)
+    args.output.mkdir(parents=True, exist_ok=True)
 
     file_id = Path(args.input).stem
 
@@ -531,8 +517,8 @@ def main(args=None):
         db_path = db[0]
         prog = db[1]
         db_name = Path(db_path).stem
-        results_dir = output_path / db_name / "xml_files"
-        tables_dir = output_path / db_name / "tables"
+        results_dir = args.output / db_name / "xml_files"
+        tables_dir = args.output / db_name / "tables"
         results_dir.mkdir(parents=True, exist_ok=True)
         tables_dir.mkdir(parents=True, exist_ok=True)
 
@@ -563,7 +549,7 @@ def main(args=None):
 
         combined_summary_parts.append(tagged_best_df)
 
-    summary_path = output_path / "summary_best_hits.tsv"
+    summary_path = args.output / "summary_best_hits.tsv"
 
     frames = [df.set_index("contig_id") for df in combined_summary_parts]
     summary_df = pandas.concat(frames, axis=1, join="outer").reset_index()
@@ -573,10 +559,10 @@ def main(args=None):
     summary_df.to_csv(summary_path, sep="\t", index=False)
 
     best_map = summary_df.set_index("contig_id")["final_call"].to_dict()
-    json_path = output_path / "summary_best_hits.json"
+    json_path = args.output / "summary_best_hits.json"
     json_path.write_text(json.dumps(best_map, indent=4))
 
-    renamed_fa = output_path / f"{file_id}_renamed.fasta"
+    renamed_fa = args.output / f"{file_id}_renamed.fasta"
     rename_fasta_headers(Path(args.input), renamed_fa, best_map)
 
     if not args.quiet:
