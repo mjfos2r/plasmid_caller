@@ -1,5 +1,5 @@
 IMAGE_NAME = plasmid_caller
-VERSION := $(shell python -c 'from $(IMAGE_NAME).__about__ import __version__; print(__version__)') 
+VERSION := $(shell python -c 'from $(IMAGE_NAME).__about__ import __version__; print(__version__)')
 
 TAG1 = mjfos2r/$(IMAGE_NAME):$(VERSION)
 TAG2 = mjfos2r/$(IMAGE_NAME):latest
@@ -11,6 +11,9 @@ build:
 
 build_no_cache:
 	docker build --no-cache -t $(TAG1) -t $(TAG2) .
+
+tag:
+	git tag -s v$(VERSION) -m "Release version $(VERSION)"
 
 push:
 	docker push $(TAG1)
