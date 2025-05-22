@@ -374,8 +374,8 @@ def get_hits_table(hits):
     return df
 
 
-def sanitize_fa_headers(input_fa):
-    tdir = Path("sanitized")
+def sanitize_fa_headers(input_fa, output_dir):
+    tdir = output_dir / "sanitized"
     tdir.mkdir(exist_ok=True)
     sanitized_fa = tdir / f"{Path(input_fa).stem}.fasta"
     with open(sanitized_fa, 'w') as handle:
