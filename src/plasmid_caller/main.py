@@ -520,6 +520,7 @@ def main(args=None):
 
     args.output.mkdir(parents=True, exist_ok=True)
 
+    sanitized_fa= sanitize_fa_headers(args.input, args.output)
     file_id = Path(args.input).stem
 
     combined_summary_parts = []
@@ -532,7 +533,6 @@ def main(args=None):
         tables_dir = args.output / db_name / "tables"
         results_dir.mkdir(parents=True, exist_ok=True)
         tables_dir.mkdir(parents=True, exist_ok=True)
-        sanitized_fa= sanitize_fa_headers(args.input)
         if not args.skip_blast:
             blast_params = get_blast_command(prog, sanitized_fa, results_dir, db_path, args.threads)
             # Run BLAST without parallelization since there's only one input file
