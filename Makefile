@@ -1,5 +1,5 @@
 IMAGE_NAME = plasmid_caller
-VERSION := $(shell python -c 'from $(IMAGE_NAME).__about__ import __version__; print(__version)') 
+VERSION := $(shell python -c 'from $(IMAGE_NAME).__about__ import __version__; print(__version__)') 
 
 TAG1 = mjfos2r/$(IMAGE_NAME):$(VERSION)
 TAG2 = mjfos2r/$(IMAGE_NAME):latest
