@@ -56,13 +56,18 @@ def get_output_path(results_dir):
     return output_path
 
 
-def default_db_path():
+def db_path(path_str: str = None) -> Path:
     """
     Find the database directory within the package installation.
+    *OR*
+    convert the passed path and return it.
 
     Returns:
         Path: Path to the database directory.
     """
+    if path_str is not None:
+        return Path(path_str)
+
     try:
         # print("Looking for bundled databases: [ 'wp', 'pf32' ]")
         spec = importlib.util.find_spec("plasmid_caller")
