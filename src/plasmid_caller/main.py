@@ -374,6 +374,18 @@ def get_hits_table(hits):
     return df
 
 
+def sanitize_fa_headers(input_fa):
+    tdir = Path("sanitized")
+    tdir.mkdir(exist_ok=True)
+    sanitized_fa = tdir / f"{Path(input_fa).stem}.fasta"
+    with open(sanitized_fa, 'w') as handle:
+        for record in SeqIO.parse(input_fa, 'fasta'):
+            new_id = record.id.split(' ')[0]
+            record.id = new_id
+            SeqIO.write(record, handle, 'fasta')
+    return sanitized_fa
+
+
 def parse_to_tsv(file_id, xml_file, full_table_path, args, parsing_type, db_path, best_table_path, tables_dir):
     hits = parse_blast_xml(xml_file, args, parsing_type=parsing_type, dbs_dir=db_path)
     full_hits_df = get_hits_table(hits)
@@ -408,7 +420,6 @@ def parse_to_tsv(file_id, xml_file, full_table_path, args, parsing_type, db_path
         )
 
     return best_hits_df
-
 
 def rename_fasta_headers(input_fa, output_fa, mapping):
     """
@@ -522,11 +533,9 @@ def main(args=None):
         tables_dir = args.output / db_name / "tables"
         results_dir.mkdir(parents=True, exist_ok=True)
         tables_dir.mkdir(parents=True, exist_ok=True)
-
+        sanitized_fa= sanitize_fa_headers(args.input)
         if not args.skip_blast:
-            blast_params = get_blast_command(
-                prog, args.input, results_dir, db_path, args.threads
-            )
+            blast_params = get_blast_command(prog, sanitized_fa, results_dir, db_path, args.threads)
             # Run BLAST without parallelization since there's only one input file
             run_blast(blast_params)
 
@@ -556,7 +565,6 @@ def main(args=None):
     summary_df = pandas.concat(frames, axis=1, join="outer").reset_index()
     summary_df = summary_df.loc[:, ~summary_df.columns.duplicated(keep="first")]
     summary_df["final_call"] = summary_df.apply(choose_final_call, axis=1)
-
     summary_df.to_csv(summary_path, sep="\t", index=False)
 
     best_map = summary_df.set_index("contig_id")["final_call"].to_dict()
