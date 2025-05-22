@@ -104,7 +104,7 @@ def get_default_db_path():
 # this is when dbs exist and are of proper version.
 def get_db_type(db_dir, quiet=True):
     """Get the database name and type for execution"""
-    db_dir = Path(db_dir).resolve()
+    db_dir = db_dir.resolve() if isinstance(db_dir, Path) else Path(db_dir).resolve()
     print(db_dir)
     db_dir_contents = os.listdir(db_dir)
     print(db_dir_contents)
