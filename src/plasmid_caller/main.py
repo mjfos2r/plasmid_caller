@@ -429,8 +429,7 @@ def rename_fasta_headers(input_fa, output_fa, mapping, header_prefix):
     """
     with open(output_fa, "w") as handle_out:
         for rec in SeqIO.parse(input_fa, "fasta"):
-            old_id = rec.description
-            rec.id = f"{header_prefix} {mapping.get(old_id, old_id)}"
+            rec.id = f"{header_prefix}_{rec.id}__{mapping.get(rec.id, rec.id)}"
             SeqIO.write(rec, handle_out, "fasta")
 
 
