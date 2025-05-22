@@ -380,8 +380,7 @@ def sanitize_fa_headers(input_fa):
     sanitized_fa = tdir / f"{Path(input_fa).stem}.fasta"
     with open(sanitized_fa, 'w') as handle:
         for record in SeqIO.parse(input_fa, 'fasta'):
-            new_id = record.id.split(' ')[0]
-            record.id = new_id
+            record.description = record.id # this is required for the tables to be readable.
             SeqIO.write(record, handle, 'fasta')
     return sanitized_fa
 
