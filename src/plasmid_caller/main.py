@@ -467,7 +467,7 @@ def main(args=None):
         "-db",
         "--database",
         required=False,
-        type=default_db_path,
+        type=db_path,
         help="Path to directory containing blast databases (default: built-in dbs)",
     )
     parser.add_argument(
