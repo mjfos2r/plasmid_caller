@@ -37,7 +37,7 @@ from .scoring import (
 
 # init blast_manager
 blast_manager = BlastManager()
-os.environ["PATH"] = f"{blast_manager.blast_path}:os.environ['PATH']"
+os.environ["PATH"] = f"{blast_manager.blast_path}:{os.environ['PATH']}"
 
 # todo: convert to logging, optimize visually
 # convert paths to pathlib.Path()s
