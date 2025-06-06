@@ -11,13 +11,14 @@ import json
 import os
 import pickle
 import re
+import shutil
 import subprocess
 import sys
-import shutil
 from collections import defaultdict
 from pathlib import Path
 
 from . import __about__ as about
+
 __version__ = about.__version__
 
 import pandas
@@ -27,17 +28,23 @@ from Bio.Blast import NCBIXML
 from intervaltree import IntervalTree
 
 from .blast_manager import BlastManager
-from .scoring import best_pf32_hit, best_wp_hit, choose_final_call, summarise_multiple_pf32
+from .scoring import (
+    best_pf32_hit,
+    best_wp_hit,
+    choose_final_call,
+    summarise_multiple_pf32,
+)
 
 # init blast_manager
 blast_manager = BlastManager()
 os.environ["PATH"] = f"{blast_manager.blast_path}:os.environ['PATH']"
 
-#todo: convert to logging, optimize visually
+# todo: convert to logging, optimize visually
 # convert paths to pathlib.Path()s
 # write better tests for the scoring.
 # also finish HMM integration
 # also split code into submodules and tidy things up
+
 
 def get_input_files(input_path, input_extension):
     """from an input path, return a list of filepaths to each input file"""
@@ -45,11 +52,13 @@ def get_input_files(input_path, input_extension):
     files.extend(Path(input_path).glob(f"*.{input_extension}"))
     return files
 
+
 def _existing_file(path_str: str) -> Path:
     p = Path(path_str)
     if not p.is_file():
         raise argparse.ArgumentTypeError(f"Input FASTA not found: {p}")
     return p
+
 
 def get_output_path(results_dir):
     """ensure the output path exists and create it if absent."""
@@ -238,6 +247,7 @@ def get_contig_len(input_file, contig_id):
         else:
             continue
 
+
 def calculate_percent_identity_and_coverage(alignment):
     total_identities = 0
     total_alignment_length = 0
@@ -292,36 +302,47 @@ def parse_blast_xml(xml_file, args, *, parsing_type: str, dbs_dir: Path) -> dict
     """
     # ---------------- prep ----------------
     assembly_id = Path(xml_file).stem.replace("_blast_results", "")
-    dbs_dir     = Path(dbs_dir)
+    dbs_dir = Path(dbs_dir)
     parsing_dict = pickle.load(open(dbs_dir / "blast_parsing_dict.pkl", "rb"))
 
     # master field list ( += contig_len which was missing in the old list)
     KEYS = [
-        "assembly_id", "contig_id", "contig_len",
-        "plasmid_id",  "plasmid_name", "strain",
-        "query_length", "ref_length",
+        "assembly_id",
+        "contig_id",
+        "contig_len",
+        "plasmid_id",
+        "plasmid_name",
+        "strain",
+        "query_length",
+        "ref_length",
         "overall_percent_identity",
-        "query_coverage_percent",      # renamed to match later code
-        "query_covered_length", "ref_covered_length",
-        "covered_intervals", "query_intervals", "subject_hit_coords",
+        "query_coverage_percent",  # renamed to match later code
+        "query_covered_length",
+        "ref_covered_length",
+        "covered_intervals",
+        "query_intervals",
+        "subject_hit_coords",
     ]
-    NA = pandas.NA   # convenient alias
+    NA = pandas.NA  # convenient alias
 
     # ---------------- parse ----------------
     blast_hits: dict[str, list[dict]] = defaultdict(list)
 
     with open(xml_file) as handle:
         for record in NCBIXML.parse(handle):
-            contig_id      = record.query
-            contig_length  = record.query_length
-            contig_len     = get_contig_len(args.input, contig_id)
+            contig_id = record.query
+            contig_length = record.query_length
+            contig_len = get_contig_len(args.input, contig_id)
 
             if not record.alignments:
                 blast_hits[contig_id].append(
-                    {k: NA for k in KEYS} | {"assembly_id": assembly_id,
-                                            "contig_id": contig_id,
-                                            "contig_len": contig_len,
-                                            "query_length": contig_length}
+                    {k: NA for k in KEYS}
+                    | {
+                        "assembly_id": assembly_id,
+                        "contig_id": contig_id,
+                        "contig_len": contig_len,
+                        "query_length": contig_length,
+                    }
                 )
                 continue
 
@@ -340,18 +361,19 @@ def parse_blast_xml(xml_file, args, *, parsing_type: str, dbs_dir: Path) -> dict
                 aln_stats = calculate_percent_identity_and_coverage(aln)
                 aln_stats["query_coverage_percent"] = (
                     aln_stats["query_covered_length"] / contig_length * 100
-                    if contig_length else NA
+                    if contig_length
+                    else NA
                 )
 
                 row = {
                     "assembly_id": assembly_id,
-                    "contig_id":   contig_id,
-                    "contig_len":  contig_len,
-                    "plasmid_id":  plasmid_id,
+                    "contig_id": contig_id,
+                    "contig_len": contig_len,
+                    "plasmid_id": plasmid_id,
                     "plasmid_name": plasmid_name,
-                    "strain":       strain,
+                    "strain": strain,
                     "query_length": contig_length,
-                    "ref_length":   ref_length,
+                    "ref_length": ref_length,
                 } | aln_stats
 
                 # ensure *all* KEYS exist
@@ -359,6 +381,7 @@ def parse_blast_xml(xml_file, args, *, parsing_type: str, dbs_dir: Path) -> dict
                 blast_hits[contig_id].append(complete_row)
 
     return blast_hits
+
 
 def get_results(results_dir, quiet=False):
     return glob.glob(f"{results_dir}/**/*.xml", recursive=True)
@@ -377,14 +400,25 @@ def sanitize_fa_headers(input_fa, output_dir):
     tdir = output_dir / "sanitized"
     tdir.mkdir(exist_ok=True)
     sanitized_fa = tdir / f"{Path(input_fa).stem}.fasta"
-    with open(sanitized_fa, 'w') as handle:
-        for record in SeqIO.parse(input_fa, 'fasta'):
-            record.description = record.id # this is required for the tables to be readable.
-            SeqIO.write(record, handle, 'fasta')
+    with open(sanitized_fa, "w") as handle:
+        for record in SeqIO.parse(input_fa, "fasta"):
+            record.description = (
+                record.id
+            )  # this is required for the tables to be readable.
+            SeqIO.write(record, handle, "fasta")
     return sanitized_fa
 
 
-def parse_to_tsv(file_id, xml_file, full_table_path, args, parsing_type, db_path, best_table_path, tables_dir):
+def parse_to_tsv(
+    file_id,
+    xml_file,
+    full_table_path,
+    args,
+    parsing_type,
+    db_path,
+    best_table_path,
+    tables_dir,
+):
     hits = parse_blast_xml(xml_file, args, parsing_type=parsing_type, dbs_dir=db_path)
     full_hits_df = get_hits_table(hits)
     full_hits_df.to_csv(full_table_path, sep="\t", index=False)
@@ -394,15 +428,15 @@ def parse_to_tsv(file_id, xml_file, full_table_path, args, parsing_type, db_path
         multi_best_df, concat_series = summarise_multiple_pf32(full_hits_df)
         multi_table = tables_dir / f"{file_id}_multi_loci.tsv"
         if not multi_best_df.empty:
-            multi_best_df.to_csv(multi_table, sep='\t', index=False)
+            multi_best_df.to_csv(multi_table, sep="\t", index=False)
             if not args.quiet:
                 print(f"[pf32] wrote multi-PF32 loci table → {multi_table.name}")
         # attach concatenated name with all loci + loci flag to best_hits_df
         best_hits_df = (
             best_hits_df.set_index("contig_id")
-                        .join(concat_series, how="left")
-                        .assign(multiple_loci=lambda df: df["concat_call"].notna())
-                        .reset_index()
+            .join(concat_series, how="left")
+            .assign(multiple_loci=lambda df: df["concat_call"].notna())
+            .reset_index()
         )
 
     elif parsing_type == "wp":
@@ -418,6 +452,7 @@ def parse_to_tsv(file_id, xml_file, full_table_path, args, parsing_type, db_path
         )
 
     return best_hits_df
+
 
 def rename_fasta_headers(input_fa, output_fa, mapping, header_prefix):
     """
@@ -476,14 +511,10 @@ def main(args=None):
         "--input",
         type=_existing_file,
         required=True,
-        help="Input FASTA file path"
+        help="Input FASTA file path",
     )
     parser.add_argument(
-        "-o",
-        "--output",
-        type=Path,
-        required=True,
-        help="Output directory"
+        "-o", "--output", type=Path, required=True, help="Output directory"
     )
     parser.add_argument(
         "-t",
@@ -491,7 +522,7 @@ def main(args=None):
         required=False,
         type=int,
         help="How many cores to use?",
-        default=4
+        default=4,
     )
     parser.add_argument(
         "-db",
@@ -499,7 +530,7 @@ def main(args=None):
         required=False,
         type=_db_path,
         help="Path to directory containing blast databases (default: built-in dbs)",
-        default="def_db"
+        default="def_db",
     )
     parser.add_argument(
         "--skip_blast",
@@ -520,7 +551,7 @@ def main(args=None):
 
     # validate database location
     if not args.database.exists():
-        parser.error(f"Database directory not found!")
+        parser.error("Database directory not found!")
 
         # now lets get our dbs to run against
     dbs_dir = args.database
@@ -536,7 +567,7 @@ def main(args=None):
 
     args.output.mkdir(parents=True, exist_ok=True)
 
-    sanitized_fa= sanitize_fa_headers(args.input, args.output)
+    sanitized_fa = sanitize_fa_headers(args.input, args.output)
     file_id = Path(args.input).stem
 
     combined_summary_parts = []
@@ -550,7 +581,9 @@ def main(args=None):
         results_dir.mkdir(parents=True, exist_ok=True)
         tables_dir.mkdir(parents=True, exist_ok=True)
         if not args.skip_blast:
-            blast_params = get_blast_command(prog, sanitized_fa, results_dir, db_path, args.threads)
+            blast_params = get_blast_command(
+                prog, sanitized_fa, results_dir, db_path, args.threads
+            )
             # Run BLAST without parallelization since there's only one input file
             run_blast(blast_params)
 
@@ -569,7 +602,11 @@ def main(args=None):
         )
         tag = f"_{db_name}"
         tagged_best_df = best_df.add_suffix(tag).rename(
-                columns={f"contig_id{tag}": "contig_id", f"contig_len{tag}": "contig_len", f"assembly_id{tag}": "assembly_id"}
+            columns={
+                f"contig_id{tag}": "contig_id",
+                f"contig_len{tag}": "contig_len",
+                f"assembly_id{tag}": "assembly_id",
+            }
         )
 
         combined_summary_parts.append(tagged_best_df)
