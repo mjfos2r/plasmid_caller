@@ -45,6 +45,29 @@ os.environ["PATH"] = f"{blast_manager.blast_path}:os.environ['PATH']"
 # also finish HMM integration
 # also split code into submodules and tidy things up
 
+def _ensure_deps() -> str:
+    prog = shutil.which("seqkit")
+    if prog is None:
+        sys.exit(
+            "ERROR: Cannot locate SeqKit binary. Please download the latest release for your OS from github!\nhttps://github.com/shenwei356/seqkit/releases"
+        )
+    else:
+        version = subprocess.run(
+            ["seqkit", "version"],
+            text=True,
+            capture_output=True,
+        )
+        return version.stdout.strip()
+
+
+class FullVersion(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        print(f"{parser.prog} {__version__}")
+        print(f"Biopython {BioPythonVersion}")
+        print(_ensure_deps())
+        print(blast_manager.versions)
+        parser.exit(0)
+
 
 def get_input_files(input_path, input_extension):
     """from an input path, return a list of filepaths to each input file"""
@@ -466,30 +489,6 @@ def rename_fasta_headers(input_fa, output_fa, mapping, header_prefix):
             rec.description = ""
             rec.id = f"{header_prefix}_{rec.id}__{mapping.get(rec.id, rec.id)}"
             SeqIO.write(rec, handle_out, "fasta")
-
-
-def _ensure_deps() -> str:
-    prog = shutil.which("seqkit")
-    if prog is None:
-        sys.exit(
-            "ERROR: Cannot locate SeqKit binary. Please download the latest release for your OS from github!\nhttps://github.com/shenwei356/seqkit/releases"
-        )
-    else:
-        version = subprocess.run(
-            ["seqkit", "version"],
-            text=True,
-            capture_output=True,
-        )
-        return version.stdout.strip()
-
-
-class FullVersion(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        print(f"{parser.prog} {__version__}")
-        print(f"Biopython {BioPythonVersion}")
-        print(_ensure_deps())
-        print(blast_manager.versions)
-        parser.exit(0)
 
 
 ## Define main function logic.
