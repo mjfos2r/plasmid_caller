@@ -18,6 +18,7 @@ build_no_cache:
 
 tag:
 	git tag -s v$(VERSION) -m "Release version $(VERSION)"
+	git push origin tag v$(VERSION)
 
 push:
 	docker push $(TAG1)
