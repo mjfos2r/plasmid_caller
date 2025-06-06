@@ -4,7 +4,11 @@ VERSION := $(shell python -c 'from $(IMAGE_NAME).__about__ import __version__; p
 TAG1 = mjfos2r/$(IMAGE_NAME):$(VERSION)
 TAG2 = mjfos2r/$(IMAGE_NAME):latest
 
-all: | build push
+all: | refresh build push
+
+refresh:
+	uv lock
+	uv sync --refresh
 
 build:
 	docker build -t $(TAG1) -t $(TAG2) .
