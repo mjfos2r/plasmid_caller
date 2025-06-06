@@ -17,11 +17,11 @@ from collections import defaultdict
 from pathlib import Path
 
 from . import __about__ as about
-
 __version__ = about.__version__
 
 import pandas
 from Bio import SeqIO
+from Bio import __version__ as BioPythonVersion
 from Bio.Blast import NCBIXML
 from intervaltree import IntervalTree
 
@@ -360,8 +360,6 @@ def parse_blast_xml(xml_file, args, *, parsing_type: str, dbs_dir: Path) -> dict
     return blast_hits
 
 def get_results(results_dir, quiet=False):
-    if not quiet:
-        print(os.listdir(results_dir))
     return glob.glob(f"{results_dir}/**/*.xml", recursive=True)
 
 
@@ -434,9 +432,26 @@ def rename_fasta_headers(input_fa, output_fa, mapping, header_prefix):
             SeqIO.write(rec, handle_out, "fasta")
 
 
+def _ensure_deps() -> str:
+    prog = shutil.which("seqkit")
+    if prog is None:
+        sys.exit(
+            "ERROR: Cannot locate SeqKit binary. Please download the latest release for your OS from github!\nhttps://github.com/shenwei356/seqkit/releases"
+        )
+    else:
+        version = subprocess.run(
+            ["seqkit", "version"],
+            text=True,
+            capture_output=True,
+        )
+        return version.stdout.strip()
+
+
 class FullVersion(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         print(f"{parser.prog} {__version__}")
+        print(f"Biopython {BioPythonVersion}")
+        print(_ensure_deps())
         print(blast_manager.versions)
         parser.exit(0)
 
