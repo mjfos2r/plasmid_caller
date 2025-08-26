@@ -575,11 +575,13 @@ def main(args=None):
 
     sanitized_fa = sanitize_fa_headers(args.input, args.output)
 
-    file_id = Path(args.input).stem
-    if file_id.suffix == ".gz":
-        file_id = file_id.with_suffix("")
-    if file_id.suffix in {".fa", ".fna", ".fasta"}:
-        file_id = file_id.with_suffix("")
+    file_id = Path(args.input)
+    suffixes = file_id.suffixes
+    if suffixes and suffixes[-1] == ".gz":
+        suffixes = suffixes[:-1]
+    if suffixes and suffixes[-1] in {".fa", ".fna", ".fasta"}:
+        suffixes = suffixes[:-1]
+    file_id = file_id.name.removesuffix("".join(suffixes))
 
     combined_summary_parts = []
 
