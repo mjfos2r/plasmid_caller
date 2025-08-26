@@ -479,7 +479,7 @@ def parse_to_tsv(
     return best_hits_df
 
 def read_fasta(path):
-    if path.endswith(".gz"):
+    if path.suffix == ".gz":
         return gzip.open(path, 'rt')
     return open(path, 'r')
 
