@@ -423,7 +423,7 @@ def get_hits_table(hits):
 def sanitize_fa_headers(input_fa, output_dir):
     tdir = output_dir / "sanitized"
     tdir.mkdir(exist_ok=True)
-    filename = re.sub(r'\.(fa|fna|fasta)(\.gz)?$', '', Path(args.input).name)
+    filename = re.sub(r'\.(fa|fna|fasta)(\.gz)?$', '', Path(input_fa).name)
     sanitized_fa = tdir / filename
     with open(sanitized_fa, "w") as handle_out:
         with read_fasta(input_fa) as handle_in:
