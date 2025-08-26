@@ -8,6 +8,7 @@ import argparse
 import glob
 import importlib.util
 import json
+import gzip
 import os
 import pickle
 import re
@@ -476,6 +477,10 @@ def parse_to_tsv(
 
     return best_hits_df
 
+def read_fasta(path):
+    if path.endswith(".gz"):
+        return gzip.open(path, 'rt')
+    return open(path, 'r')
 
 def rename_fasta_headers(input_fa, output_fa, mapping, header_prefix):
     """
@@ -485,10 +490,11 @@ def rename_fasta_headers(input_fa, output_fa, mapping, header_prefix):
         NNNNNNHiNNNNNNNNNNNNNNN....
     """
     with open(output_fa, "w") as handle_out:
-        for rec in SeqIO.parse(input_fa, "fasta"):
-            rec.description = ""
-            rec.id = f"{header_prefix}_{rec.id}__{mapping.get(rec.id, rec.id)}"
-            SeqIO.write(rec, handle_out, "fasta")
+        with read_fasta(input_fa) as handle:
+            for rec in SeqIO.parse(handle, "fasta"):
+                rec.description = ""
+                rec.id = f"{header_prefix}_{rec.id}__{mapping.get(rec.id, rec.id)}"
+                SeqIO.write(rec, handle_out, "fasta")
 
 
 ## Define main function logic.
