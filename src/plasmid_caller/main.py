@@ -423,7 +423,8 @@ def get_hits_table(hits):
 def sanitize_fa_headers(input_fa, output_dir):
     tdir = output_dir / "sanitized"
     tdir.mkdir(exist_ok=True)
-    sanitized_fa = tdir / f"{Path(input_fa).stem}.fasta"
+    filename = re.sub(r'\.(fa|fna|fasta)(\.gz)?$', '', Path(args.input).name)
+    sanitized_fa = tdir / filename
     with open(sanitized_fa, "w") as handle_out:
         with read_fasta(input_fa) as handle_in:
             for record in SeqIO.parse(handle_in, "fasta"):
@@ -575,13 +576,7 @@ def main(args=None):
 
     sanitized_fa = sanitize_fa_headers(args.input, args.output)
 
-    file_id = Path(args.input)
-    suffixes = file_id.suffixes
-    if suffixes and suffixes[-1] == ".gz":
-        suffixes = suffixes[:-1]
-    if suffixes and suffixes[-1] in {".fa", ".fna", ".fasta"}:
-        suffixes = suffixes[:-1]
-    file_id = file_id.name.removesuffix("".join(suffixes))
+    file_id = re.sub(r'\.(fa|fna|fasta)(\.gz)?$', '', Path(args.input).name)
 
     combined_summary_parts = []
 
