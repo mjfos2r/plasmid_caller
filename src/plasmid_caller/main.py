@@ -574,7 +574,12 @@ def main(args=None):
     args.output.mkdir(parents=True, exist_ok=True)
 
     sanitized_fa = sanitize_fa_headers(args.input, args.output)
+
     file_id = Path(args.input).stem
+    if file_id.suffix == ".gz":
+        file_id = file_id.with_suffix("")
+    if file_id.suffix in {".fa", ".fna", ".fasta"}:
+        file_id = file_id.with_suffix("")
 
     combined_summary_parts = []
 
