@@ -264,12 +264,12 @@ def parse_hit_id(hit_id):
 
 def get_contig_len(input_file, contig_id):
     """Get contig length directly from the input FASTA file"""
-    fasta_file = input_file
-    for record in SeqIO.parse(fasta_file, "fasta"):
-        if record.id.split()[0] == contig_id.split()[0]:
-            return len(record.seq)
-        else:
-            continue
+    with read_fasta(input_file) as handle:
+        for record in SeqIO.parse(handle, "fasta"):
+            if record.id.split()[0] == contig_id.split()[0]:
+                return len(record.seq)
+            else:
+                continue
 
 
 def calculate_percent_identity_and_coverage(alignment):
