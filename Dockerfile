@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     ca-certificates \
     bash \
+    xxd \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/root/.local/bin/:$PATH"
