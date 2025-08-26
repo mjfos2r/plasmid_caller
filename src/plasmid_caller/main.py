@@ -424,13 +424,13 @@ def sanitize_fa_headers(input_fa, output_dir):
     tdir = output_dir / "sanitized"
     tdir.mkdir(exist_ok=True)
     sanitized_fa = tdir / f"{Path(input_fa).stem}.fasta"
-    with open(sanitized_fa, "w") as handle:
-        with read_fasta(input_fa) as handle:
-            for record in SeqIO.parse(handle, "fasta"):
+    with open(sanitized_fa, "w") as handle_out:
+        with read_fasta(input_fa) as handle_in:
+            for record in SeqIO.parse(handle_in, "fasta"):
                 record.description = (
                     record.id
                 )  # this is required for the tables to be readable.
-                SeqIO.write(record, handle, "fasta")
+                SeqIO.write(record, handle_out, "fasta")
     return sanitized_fa
 
 
