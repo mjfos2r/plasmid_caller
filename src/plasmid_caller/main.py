@@ -1,6 +1,6 @@
 # plasmid_caller.py
-# Version: 6.0.0
-# May 20, 2025
+# Version: 6.1.0
+# Feb 06, 2026
 # - Michael J. Foster
 # - Ben Kotzen
 
@@ -323,11 +323,17 @@ def calculate_percent_identity_and_coverage(alignment):
 def parse_blast_xml(xml_file, args, *, parsing_type: str, dbs_dir: Path) -> dict:
     """
     rewritten XML parsing function.
+
+    When args.input is None (skip_blast without FASTA), contig_len is
+    derived from record.query_length in the XML instead of reading the
+    FASTA file.
     """
     # ---------------- prep ----------------
     assembly_id = Path(xml_file).stem.replace("_blast_results", "")
     dbs_dir = Path(dbs_dir)
     parsing_dict = pickle.load(open(dbs_dir / "blast_parsing_dict.pkl", "rb"))
+
+    have_fasta = args.input is not None
 
     # master field list ( += contig_len which was missing in the old list)
     KEYS = [
@@ -356,7 +362,11 @@ def parse_blast_xml(xml_file, args, *, parsing_type: str, dbs_dir: Path) -> dict
         for record in NCBIXML.parse(handle):
             contig_id = record.query
             contig_length = record.query_length
-            contig_len = get_contig_len(args.input, contig_id)
+
+            if have_fasta:
+                contig_len = get_contig_len(args.input, contig_id)
+            else:
+                contig_len = contig_length
 
             if not record.alignments:
                 blast_hits[contig_id].append(
@@ -499,6 +509,38 @@ def rename_fasta_headers(input_fa, output_fa, mapping, header_prefix):
                 SeqIO.write(rec, handle_out, "fasta")
 
 
+def _infer_file_id(output_dir: Path, db_names: list[str]) -> str:
+    """
+    Derive file_id from existing XML filenames in the output directory.
+    Looks in {output_dir}/{db_name}/xml_files/ for *_blast_results.xml.
+    """
+    for db_name in db_names:
+        xml_dir = output_dir / db_name / "xml_files"
+        if not xml_dir.exists():
+            continue
+        for xml_file in xml_dir.glob("*_blast_results.xml"):
+            return xml_file.stem.replace("_blast_results", "")
+    sys.exit(
+        "ERROR: --skip_blast without --input requires existing XML results "
+        "in the output directory, but none were found."
+    )
+
+
+def _discover_dbs(output_dir: Path) -> list[str]:
+    """
+    When skipping BLAST without a database specified, discover which
+    databases have existing results by looking for subdirectories
+    containing xml_files/.
+    """
+    db_names = []
+    for child in sorted(output_dir.iterdir()):
+        if child.is_dir() and (child / "xml_files").is_dir():
+            xmls = list((child / "xml_files").glob("*_blast_results.xml"))
+            if xmls:
+                db_names.append(child.name)
+    return db_names
+
+
 ## Define main function logic.
 def main(args=None):
     parser = argparse.ArgumentParser(
@@ -517,8 +559,9 @@ def main(args=None):
         "-i",
         "--input",
         type=_existing_file,
-        required=True,
-        help="Input FASTA file path",
+        required=False,
+        default=None,
+        help="Input FASTA file path (required unless --skip_blast)",
     )
     parser.add_argument(
         "-o", "--output", type=Path, required=True, help="Output directory"
@@ -542,7 +585,8 @@ def main(args=None):
     parser.add_argument(
         "--skip_blast",
         action="store_true",
-        help="Skip running BLAST and only parse existing results",
+        help="Skip running BLAST and only parse existing results. "
+             "When used without -i, contig lengths are read from the XML.",
         default=False,
     )
     parser.add_argument(
@@ -556,14 +600,50 @@ def main(args=None):
     # Parse the arguments
     args = parser.parse_args()
 
+    # Validate: need either --input or --skip_blast
+    if args.input is None and not args.skip_blast:
+        parser.error("--input is required unless --skip_blast is set.")
+
     # validate database location
-    if not args.database.exists():
+    if not args.skip_blast and not args.database.exists():
         parser.error("Database directory not found!")
 
-        # now lets get our dbs to run against
-    dbs_dir = args.database
-    dbs = get_db_type(dbs_dir)
-    print(f"Databases to run against: {dbs}")
+    args.output.mkdir(parents=True, exist_ok=True)
+
+    # --- Determine databases and file_id ---
+    have_fasta = args.input is not None
+
+    if args.skip_blast and not have_fasta:
+        # Discover databases from existing results
+        db_names = _discover_dbs(args.output)
+        if not db_names:
+            parser.error(
+                "No existing BLAST results found in the output directory. "
+                "Cannot --skip_blast without prior results."
+            )
+        file_id = _infer_file_id(args.output, db_names)
+
+        # Build a minimal db list: (name, program) — program doesn't matter
+        # since we're not running BLAST, but we need the structure
+        dbs_dir = args.database if args.database.exists() else _db_path("def_db")
+        dbs = [(str(dbs_dir / db_name), None) for db_name in db_names]
+
+        if not args.quiet:
+            print(f"[skip_blast] Discovered databases: {db_names}")
+            print(f"[skip_blast] Inferred file_id: {file_id}")
+            print(f"[skip_blast] No FASTA input — using query_length from XML")
+    else:
+        # Normal path: we have databases and possibly input
+        dbs_dir = args.database
+        dbs = get_db_type(dbs_dir)
+        if not args.quiet:
+            print(f"Databases to run against: {dbs}")
+
+        if have_fasta:
+            file_id = re.sub(r'\.(fa|fna|fasta)(\.gz)?$', '', Path(args.input).name)
+        else:
+            db_names = [Path(db[0]).stem for db in dbs]
+            file_id = _infer_file_id(args.output, db_names)
 
     if not args.quiet:
         print(f"Input file: {args.input}")
@@ -572,11 +652,11 @@ def main(args=None):
         print(f"Databases: {args.database}")
         print(f"Skip BLAST?: {args.skip_blast}")
 
-    args.output.mkdir(parents=True, exist_ok=True)
-
-    sanitized_fa = sanitize_fa_headers(args.input, args.output)
-
-    file_id = re.sub(r'\.(fa|fna|fasta)(\.gz)?$', '', Path(args.input).name)
+    # --- Sanitize FASTA (only when we have one) ---
+    if have_fasta:
+        sanitized_fa = sanitize_fa_headers(args.input, args.output)
+    else:
+        sanitized_fa = None
 
     combined_summary_parts = []
 
@@ -588,6 +668,7 @@ def main(args=None):
         tables_dir = args.output / db_name / "tables"
         results_dir.mkdir(parents=True, exist_ok=True)
         tables_dir.mkdir(parents=True, exist_ok=True)
+
         if not args.skip_blast:
             blast_params = get_blast_command(
                 prog, sanitized_fa, results_dir, db_path, args.threads
@@ -596,6 +677,11 @@ def main(args=None):
             run_blast(blast_params)
 
         xml_file = results_dir / f"{file_id}_blast_results.xml"
+
+        if not xml_file.exists():
+            print(f"WARNING: Expected XML not found: {xml_file}")
+            continue
+
         full_table = tables_dir / f"{file_id}_all.tsv"
         best_table = tables_dir / f"{file_id}_best.tsv"
         best_df = parse_to_tsv(
@@ -631,13 +717,16 @@ def main(args=None):
     json_path = args.output / "summary_best_hits.json"
     json_path.write_text(json.dumps(best_map, indent=4))
 
-    renamed_fa = args.output / f"{file_id}_renamed.fasta"
-    rename_fasta_headers(sanitized_fa, renamed_fa, best_map, file_id)
+    # --- Rename FASTA (only when we have one) ---
+    if have_fasta:
+        renamed_fa = args.output / f"{file_id}_renamed.fasta"
+        rename_fasta_headers(sanitized_fa, renamed_fa, best_map, file_id)
+        if not args.quiet:
+            print(f"Wrote renamed fasta file -> {renamed_fa}")
 
     if not args.quiet:
         print(f"Wrote combined summary -> {summary_path}")
         print(f"Wrote dictionary of final calls -> {json_path}")
-        print(f"Wrote renamed fasta file -> {renamed_fa}")
 
     return 0
 
