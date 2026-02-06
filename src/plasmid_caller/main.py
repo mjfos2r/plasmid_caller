@@ -1,5 +1,5 @@
 # plasmid_caller.py
-# Version: 6.2.2
+# Version: 6.2.3
 # Feb 06, 2026
 # - Michael J. Foster
 # - Ben Kotzen
@@ -614,26 +614,103 @@ def main(args=None):
     have_fasta = args.input is not None
 
     if args.skip_blast and not have_fasta:
-        # Discover databases from existing results
+        # --- BATCH MODE: re-parse all existing XMLs ---
         db_names = _discover_dbs(args.output)
         if not db_names:
             parser.error(
                 "No existing BLAST results found in the output directory. "
                 "Cannot --skip_blast without prior results."
             )
-        file_id = _infer_file_id(args.output, db_names)
 
-        # Build a minimal db list: (name, program) — program doesn't matter
-        # since we're not running BLAST, but we need the structure
         dbs_dir = args.database if args.database.exists() else _db_path("def_db")
-        dbs = [(str(dbs_dir / db_name), None) for db_name in db_names]
 
         if not args.quiet:
             print(f"[skip_blast] Discovered databases: {db_names}")
-            print(f"[skip_blast] Inferred file_id: {file_id}")
             print(f"[skip_blast] No FASTA input — using query_length from XML")
+
+        # Collect all file_ids from XMLs across all databases
+        all_file_ids = set()
+        for db_name in db_names:
+            xml_dir = args.output / db_name / "xml_files"
+            for xml_file in xml_dir.glob("*_blast_results.xml"):
+                all_file_ids.add(xml_file.stem.replace("_blast_results", ""))
+
+        all_file_ids = sorted(all_file_ids)
+        if not args.quiet:
+            print(f"[skip_blast] Found {len(all_file_ids)} assemblies to process")
+
+        # Process each assembly across all databases
+        all_summary_frames = []
+
+        for file_id in all_file_ids:
+            combined_summary_parts = []
+
+            for db_name in db_names:
+                results_dir = args.output / db_name / "xml_files"
+                tables_dir = args.output / db_name / "tables"
+                tables_dir.mkdir(parents=True, exist_ok=True)
+
+                xml_file = results_dir / f"{file_id}_blast_results.xml"
+                if not xml_file.exists():
+                    if not args.quiet:
+                        print(f"  WARNING: {xml_file.name} not found, skipping")
+                    continue
+
+                full_table = tables_dir / f"{file_id}_all.tsv"
+                best_table = tables_dir / f"{file_id}_best.tsv"
+                best_df = parse_to_tsv(
+                    file_id=file_id,
+                    xml_file=xml_file,
+                    full_table_path=full_table,
+                    args=args,
+                    parsing_type=db_name,
+                    db_path=dbs_dir,
+                    best_table_path=best_table,
+                    tables_dir=tables_dir,
+                )
+                tag = f"_{db_name}"
+                tagged_best_df = best_df.add_suffix(tag).rename(
+                    columns={
+                        f"contig_id{tag}": "contig_id",
+                        f"contig_len{tag}": "contig_len",
+                        f"assembly_id{tag}": "assembly_id",
+                    }
+                )
+                combined_summary_parts.append(tagged_best_df)
+
+            if combined_summary_parts:
+                frames = [df.set_index("contig_id") for df in combined_summary_parts]
+                summary_df = pandas.concat(frames, axis=1, join="outer").reset_index()
+                summary_df = summary_df.loc[:, ~summary_df.columns.duplicated(keep="first")]
+                summary_df["final_call"] = summary_df.apply(choose_final_call, axis=1)
+
+                # Per-assembly summary
+                per_summary = args.output / f"{file_id}_summary_best_hits.tsv"
+                summary_df.to_csv(per_summary, sep="\t", index=False)
+
+                all_summary_frames.append(summary_df)
+
+                if not args.quiet:
+                    print(f"  [OK] {file_id}: {len(summary_df)} contigs")
+
+        # Combined summary across all assemblies
+        if all_summary_frames:
+            combined_df = pandas.concat(all_summary_frames, ignore_index=True)
+            combined_path = args.output / "summary_best_hits.tsv"
+            combined_df.to_csv(combined_path, sep="\t", index=False)
+
+            best_map = combined_df.set_index("contig_id")["final_call"].to_dict()
+            json_path = args.output / "summary_best_hits.json"
+            json_path.write_text(json.dumps(best_map, indent=4))
+
+            if not args.quiet:
+                print(f"\nProcessed {len(all_file_ids)} assemblies, "
+                      f"{len(combined_df)} total contigs")
+                print(f"Wrote combined summary -> {combined_path}")
+                print(f"Wrote dictionary of final calls -> {json_path}")
+
     else:
-        # Normal path: we have databases and possibly input
+        # --- SINGLE FILE MODE: original behavior ---
         dbs_dir = args.database
         dbs = get_db_type(dbs_dir)
         if not args.quiet:
@@ -645,88 +722,86 @@ def main(args=None):
             db_names = [Path(db[0]).stem for db in dbs]
             file_id = _infer_file_id(args.output, db_names)
 
-    if not args.quiet:
-        print(f"Input file: {args.input}")
-        print(f"Output directory: {args.output}")
-        print(f"Job threads: {args.threads}")
-        print(f"Databases: {args.database}")
-        print(f"Skip BLAST?: {args.skip_blast}")
-
-    # --- Sanitize FASTA (only when we have one) ---
-    if have_fasta:
-        sanitized_fa = sanitize_fa_headers(args.input, args.output)
-    else:
-        sanitized_fa = None
-
-    combined_summary_parts = []
-
-    for db in dbs:
-        db_path = db[0]
-        prog = db[1]
-        db_name = Path(db_path).stem
-        results_dir = args.output / db_name / "xml_files"
-        tables_dir = args.output / db_name / "tables"
-        results_dir.mkdir(parents=True, exist_ok=True)
-        tables_dir.mkdir(parents=True, exist_ok=True)
-
-        if not args.skip_blast:
-            blast_params = get_blast_command(
-                prog, sanitized_fa, results_dir, db_path, args.threads
-            )
-            # Run BLAST without parallelization since there's only one input file
-            run_blast(blast_params)
-
-        xml_file = results_dir / f"{file_id}_blast_results.xml"
-
-        if not xml_file.exists():
-            print(f"WARNING: Expected XML not found: {xml_file}")
-            continue
-
-        full_table = tables_dir / f"{file_id}_all.tsv"
-        best_table = tables_dir / f"{file_id}_best.tsv"
-        best_df = parse_to_tsv(
-            file_id=file_id,
-            xml_file=xml_file,
-            full_table_path=full_table,
-            args=args,
-            parsing_type=db_name,
-            db_path=dbs_dir,
-            best_table_path=best_table,
-            tables_dir=tables_dir,
-        )
-        tag = f"_{db_name}"
-        tagged_best_df = best_df.add_suffix(tag).rename(
-            columns={
-                f"contig_id{tag}": "contig_id",
-                f"contig_len{tag}": "contig_len",
-                f"assembly_id{tag}": "assembly_id",
-            }
-        )
-
-        combined_summary_parts.append(tagged_best_df)
-
-    summary_path = args.output / "summary_best_hits.tsv"
-
-    frames = [df.set_index("contig_id") for df in combined_summary_parts]
-    summary_df = pandas.concat(frames, axis=1, join="outer").reset_index()
-    summary_df = summary_df.loc[:, ~summary_df.columns.duplicated(keep="first")]
-    summary_df["final_call"] = summary_df.apply(choose_final_call, axis=1)
-    summary_df.to_csv(summary_path, sep="\t", index=False)
-
-    best_map = summary_df.set_index("contig_id")["final_call"].to_dict()
-    json_path = args.output / "summary_best_hits.json"
-    json_path.write_text(json.dumps(best_map, indent=4))
-
-    # --- Rename FASTA (only when we have one) ---
-    if have_fasta:
-        renamed_fa = args.output / f"{file_id}_renamed.fasta"
-        rename_fasta_headers(sanitized_fa, renamed_fa, best_map, file_id)
         if not args.quiet:
-            print(f"Wrote renamed fasta file -> {renamed_fa}")
+            print(f"Input file: {args.input}")
+            print(f"Output directory: {args.output}")
+            print(f"Job threads: {args.threads}")
+            print(f"Databases: {args.database}")
+            print(f"Skip BLAST?: {args.skip_blast}")
 
-    if not args.quiet:
-        print(f"Wrote combined summary -> {summary_path}")
-        print(f"Wrote dictionary of final calls -> {json_path}")
+        # --- Sanitize FASTA (only when we have one) ---
+        if have_fasta:
+            sanitized_fa = sanitize_fa_headers(args.input, args.output)
+        else:
+            sanitized_fa = None
+
+        combined_summary_parts = []
+
+        for db in dbs:
+            db_path = db[0]
+            prog = db[1]
+            db_name = Path(db_path).stem
+            results_dir = args.output / db_name / "xml_files"
+            tables_dir = args.output / db_name / "tables"
+            results_dir.mkdir(parents=True, exist_ok=True)
+            tables_dir.mkdir(parents=True, exist_ok=True)
+
+            if not args.skip_blast:
+                blast_params = get_blast_command(
+                    prog, sanitized_fa, results_dir, db_path, args.threads
+                )
+                run_blast(blast_params)
+
+            xml_file = results_dir / f"{file_id}_blast_results.xml"
+
+            if not xml_file.exists():
+                print(f"WARNING: Expected XML not found: {xml_file}")
+                continue
+
+            full_table = tables_dir / f"{file_id}_all.tsv"
+            best_table = tables_dir / f"{file_id}_best.tsv"
+            best_df = parse_to_tsv(
+                file_id=file_id,
+                xml_file=xml_file,
+                full_table_path=full_table,
+                args=args,
+                parsing_type=db_name,
+                db_path=dbs_dir,
+                best_table_path=best_table,
+                tables_dir=tables_dir,
+            )
+            tag = f"_{db_name}"
+            tagged_best_df = best_df.add_suffix(tag).rename(
+                columns={
+                    f"contig_id{tag}": "contig_id",
+                    f"contig_len{tag}": "contig_len",
+                    f"assembly_id{tag}": "assembly_id",
+                }
+            )
+            combined_summary_parts.append(tagged_best_df)
+
+        summary_path = args.output / "summary_best_hits.tsv"
+
+        frames = [df.set_index("contig_id") for df in combined_summary_parts]
+        summary_df = pandas.concat(frames, axis=1, join="outer").reset_index()
+        summary_df = summary_df.loc[:, ~summary_df.columns.duplicated(keep="first")]
+        summary_df["final_call"] = summary_df.apply(choose_final_call, axis=1)
+        summary_df.to_csv(summary_path, sep="\t", index=False)
+
+        best_map = summary_df.set_index("contig_id")["final_call"].to_dict()
+        json_path = args.output / "summary_best_hits.json"
+        json_path.write_text(json.dumps(best_map, indent=4))
+
+        # --- Rename FASTA (only when we have one) ---
+        if have_fasta:
+            renamed_fa = args.output / f"{file_id}_renamed.fasta"
+            rename_fasta_headers(sanitized_fa, renamed_fa, best_map, file_id)
+            if not args.quiet:
+                print(f"Wrote renamed fasta file -> {renamed_fa}")
+
+        if not args.quiet:
+            print(f"Wrote combined summary -> {summary_path}")
+            print(f"Wrote dictionary of final calls -> {json_path}")
 
     return 0
 
