@@ -1,5 +1,5 @@
 # plasmid_caller.py
-# Version: 6.1.0
+# Version: 6.2.2
 # Feb 06, 2026
 # - Michael J. Foster
 # - Ben Kotzen
