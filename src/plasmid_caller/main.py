@@ -1,5 +1,5 @@
 # plasmid_caller.py
-# Version: 6.2.3
+# Version: 6.1.0
 # Feb 06, 2026
 # - Michael J. Foster
 # - Ben Kotzen
@@ -30,9 +30,11 @@ from intervaltree import IntervalTree
 
 from .blast_manager import BlastManager
 from .scoring import (
+    MIN_CALL_BP,
     best_pf32_hit,
     best_wp_hit,
     choose_final_call,
+    filter_calls,
     summarise_multiple_pf32,
 )
 
@@ -696,17 +698,28 @@ def main(args=None):
         # Combined summary across all assemblies
         if all_summary_frames:
             combined_df = pandas.concat(all_summary_frames, ignore_index=True)
-            combined_path = args.output / "summary_best_hits.tsv"
-            combined_df.to_csv(combined_path, sep="\t", index=False)
 
-            best_map = combined_df.set_index("contig_id")["final_call"].to_dict()
+            # All calls — unfiltered
+            all_calls_path = args.output / "summary_all_calls.tsv"
+            combined_df.to_csv(all_calls_path, sep="\t", index=False)
+
+            # Filtered calls — publication-ready
+            filtered_df = filter_calls(combined_df)
+            filtered_path = args.output / "summary_best_hits.tsv"
+            filtered_df.to_csv(filtered_path, sep="\t", index=False)
+
+            best_map = filtered_df.set_index("contig_id")["filtered_call"].to_dict()
             json_path = args.output / "summary_best_hits.json"
             json_path.write_text(json.dumps(best_map, indent=4))
 
             if not args.quiet:
+                n_filtered = (filtered_df["filtered_call"] == "unclassified").sum() - \
+                             (combined_df["final_call"] == "unclassified").sum()
                 print(f"\nProcessed {len(all_file_ids)} assemblies, "
                       f"{len(combined_df)} total contigs")
-                print(f"Wrote combined summary -> {combined_path}")
+                print(f"Wrote all calls (unfiltered) -> {all_calls_path}")
+                print(f"Wrote best hits (filtered, {n_filtered} contigs "
+                      f"below {MIN_CALL_BP}bp) -> {filtered_path}")
                 print(f"Wrote dictionary of final calls -> {json_path}")
 
     else:
@@ -786,9 +799,17 @@ def main(args=None):
         summary_df = pandas.concat(frames, axis=1, join="outer").reset_index()
         summary_df = summary_df.loc[:, ~summary_df.columns.duplicated(keep="first")]
         summary_df["final_call"] = summary_df.apply(choose_final_call, axis=1)
-        summary_df.to_csv(summary_path, sep="\t", index=False)
 
-        best_map = summary_df.set_index("contig_id")["final_call"].to_dict()
+        # All calls — unfiltered
+        all_calls_path = args.output / "summary_all_calls.tsv"
+        summary_df.to_csv(all_calls_path, sep="\t", index=False)
+
+        # Filtered calls — publication-ready
+        filtered_df = filter_calls(summary_df)
+        summary_path = args.output / "summary_best_hits.tsv"
+        filtered_df.to_csv(summary_path, sep="\t", index=False)
+
+        best_map = filtered_df.set_index("contig_id")["filtered_call"].to_dict()
         json_path = args.output / "summary_best_hits.json"
         json_path.write_text(json.dumps(best_map, indent=4))
 
@@ -800,7 +821,8 @@ def main(args=None):
                 print(f"Wrote renamed fasta file -> {renamed_fa}")
 
         if not args.quiet:
-            print(f"Wrote combined summary -> {summary_path}")
+            print(f"Wrote all calls (unfiltered) -> {all_calls_path}")
+            print(f"Wrote best hits (filtered) -> {summary_path}")
             print(f"Wrote dictionary of final calls -> {json_path}")
 
     return 0
