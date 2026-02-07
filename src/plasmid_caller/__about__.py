@@ -1,3 +1,3 @@
 __author__= "Michael J. Foster"
 __organization__ = "Lemieux Lab, Massachusetts General Hospital"
-__version__ = "6.2.3"
+__version__ = "6.2.4"
