@@ -154,31 +154,22 @@ def summarise_multiple_pf32(full_pf32_df: pandas.DataFrame, min_cov_bp: int = PF
     return multi_best_df, concat
 
 def choose_final_call(row):
-    """after determining the best pf32 and wp hits, choose the pf32 hit first (if present) and only use the wp hit if it's very convincing. (set params above)"""
+    """Determine the best replicon call from merged pf32/wp hits.
+    No size filtering — every contig gets its best possible call.
+    Use filter_calls() to apply size thresholds afterward."""
     if pandas.isna(row.get("plasmid_name_pf32")) and pandas.isna(row.get("plasmid_name_wp")):
-        return "unclassified"
-
-    # if contig_len is less than MIN_CALL_BP, we don't want to call it since it's obviously a fragment.
-    if row["contig_len"] < MIN_CALL_BP:
         return "unclassified"
 
     pf32_ok = not pandas.isna(row.get("plasmid_name_pf32")) and _valid_pf32(row)
     wp_ok = not pandas.isna(row.get("plasmid_name_wp")) and _valid_wp(row)
 
     # check for really long contigs, likely chromosomal fragments.
-    # in prior versions, anything over 100,000 was automatically classified as chromosome.
-    # let's flesh out this logic a bit more.
     if row["contig_len"] >= CHROMOSOME_MIN_BP:
-        # if we have a chromosome call, return that.
         if (pf32_ok and row["plasmid_name_pf32"].lower() == "chromosome") or \
             (wp_ok and row["plasmid_name_wp"].lower() == "chromosome"):
                 return "chromosome"
         else:
             return row["plasmid_name_wp"]
-        ## allow a really good wp_hit to override. (this probably won't happen. but could in cases of tremendous misassembly)
-        #if wp_ok and (row["query_coverage_percent_wp"] >= WP_OVERRIDE_COV_PCT and
-        #              row["overall_percent_identity_wp"] >= WP_OVERRIDE_PID_PCT):
-        #    return row["plasmid_name_wp"]
 
     if row.get("multiple_loci_pf32", False):
         return row["concat_call_pf32"]
@@ -189,15 +180,23 @@ def choose_final_call(row):
     if wp_ok and not pf32_ok:
         return row["plasmid_name_wp"]
 
-    # identity is primarily based on pf32, I don't feel like dealing with the nuance of this right now.
     if pf32_ok and wp_ok:
         return row["plasmid_name_pf32"]
-    #if pf32_ok and wp_ok:
-    #    if (row["query_coverage_percent_wp"] >= WP_OVERRIDE_COV_PCT and row["overall_percent_identity_wp"] >= WP_OVERRIDE_COV_PCT):
-    #        return row["plasmid_name_wp"]
-    #    return row["plasmid_name_pf32"]
 
     return "unclassified"
+
+
+def filter_calls(df: pandas.DataFrame,
+                 min_call_bp: int = MIN_CALL_BP,
+                 call_col: str = "final_call") -> pandas.DataFrame:
+    """Apply size and quality filters to produce publication-ready calls.
+    Contigs below min_call_bp get their call set to 'unclassified'.
+    Returns a copy with a 'filtered_call' column."""
+    df = df.copy()
+    df["filtered_call"] = df[call_col]
+    df.loc[df["contig_len"] < min_call_bp, "filtered_call"] = "unclassified"
+    return df
+
 
 # unused function to determine the best match
 def get_best_match(matches, key):
