@@ -508,7 +508,7 @@ def parse_to_tsv(
         best_hits_df = best_wp_hit(full_hits_df)
 
         best_hits_df = annotate_best_hits(
-            full_hits_df, best_hits_df, parsing_type, WP_MIN_COV_PCT, WP_MIN_COV_BP
+            full_hits_df, best_hits_df, parsing_type,
         )
         
     best_hits_df.to_csv(best_table_path, sep="\t", index=False)
