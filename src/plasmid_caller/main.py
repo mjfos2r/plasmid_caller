@@ -28,6 +28,11 @@ from Bio import __version__ as BioPythonVersion
 from Bio.Blast import NCBIXML
 from intervaltree import IntervalTree
 
+# Genospecies extension v1
+from .taxonomy import (
+    load_reference_taxa, hit_taxonomy, lookup_reference, annotate_best_hits,
+    add_genospecies_calls, write_genospecies_composition,
+)
 from .blast_manager import BlastManager
 from .scoring import (
     MIN_CALL_BP,
@@ -341,6 +346,8 @@ def parse_blast_xml(xml_file, args, *, parsing_type: str, dbs_dir: Path) -> dict
     dbs_dir = Path(dbs_dir)
     parsing_dict = pickle.load(open(dbs_dir / "blast_parsing_dict.pkl", "rb"))
 
+    reference_taxa = load_reference_taxa(dbs_dir)
+    
     have_fasta = args.input is not None
 
     # master field list ( += contig_len which was missing in the old list)
@@ -351,6 +358,8 @@ def parse_blast_xml(xml_file, args, *, parsing_type: str, dbs_dir: Path) -> dict
         "plasmid_id",
         "plasmid_name",
         "strain",
+        "genospecies",
+        "genospecies_candidates",
         "query_length",
         "ref_length",
         "overall_percent_identity",
@@ -392,8 +401,18 @@ def parse_blast_xml(xml_file, args, *, parsing_type: str, dbs_dir: Path) -> dict
                 plasmid_id = aln.hit_id
                 ref_length = aln.length
 
+                genospecies, genospecies_candidates = hit_taxonomy(
+                    parsing_type, aln, reference_taxa, parsing_dict
+                )
+                
                 if parsing_type == "wp":
-                    strain, plasmid_name = get_name_from_acc(plasmid_id, parsing_dict)
+                    #strain, plasmid_name = get_name_from_acc(plasmid_id, parsing_dict)
+                    reference_info = lookup_reference(
+                        plasmid_id, parsing_dict, getattr(aln, "hit_def", ""),
+                        getattr(aln, "accession", "")
+                    )
+                    strain, plasmid_name = reference_info["strain"], reference_info["name"]
+                    
                 elif parsing_type == "pf32":
                     strain, plasmid_name = parse_hit_id(plasmid_id)
                 else:
@@ -414,6 +433,8 @@ def parse_blast_xml(xml_file, args, *, parsing_type: str, dbs_dir: Path) -> dict
                     "plasmid_id": plasmid_id,
                     "plasmid_name": plasmid_name,
                     "strain": strain,
+                    "genospecies": genospecies,
+                    "genospecies_candidates": genospecies_candidates,
                     "query_length": contig_length,
                     "ref_length": ref_length,
                 } | aln_stats
@@ -486,6 +507,10 @@ def parse_to_tsv(
     elif parsing_type == "wp":
         best_hits_df = best_wp_hit(full_hits_df)
 
+        best_hits_df = annotate_best_hits(
+            full_hits_df, best_hits_df, parsing_type, WP_MIN_COV_PCT, WP_MIN_COV_BP
+        )
+        
     best_hits_df.to_csv(best_table_path, sep="\t", index=False)
 
     if not args.quiet:
@@ -691,7 +716,9 @@ def main(args=None):
                 summary_df = pandas.concat(frames, axis=1, join="outer").reset_index()
                 summary_df = summary_df.loc[:, ~summary_df.columns.duplicated(keep="first")]
                 summary_df["final_call"] = summary_df.apply(choose_final_call, axis=1)
-
+                summary_df = add_genospecies_calls(summary_df, MIN_CALL_BP)
+                write_genospecies_composition(summary_df, args.output / f"{file_id}_genospecies_composition.tsv")
+                
                 # Per-assembly summary
                 per_summary = args.output / f"{file_id}_summary_best_hits.tsv"
                 summary_df.to_csv(per_summary, sep="\t", index=False)
@@ -704,7 +731,8 @@ def main(args=None):
         # Combined summary across all assemblies
         if all_summary_frames:
             combined_df = pandas.concat(all_summary_frames, ignore_index=True)
-
+            write_genospecies_composition(combined_df, args.output / "genospecies_composition.tsv")
+            
             # All calls — unfiltered
             all_calls_path = args.output / "summary_all_calls.tsv"
             combined_df.to_csv(all_calls_path, sep="\t", index=False)
@@ -805,7 +833,9 @@ def main(args=None):
         summary_df = pandas.concat(frames, axis=1, join="outer").reset_index()
         summary_df = summary_df.loc[:, ~summary_df.columns.duplicated(keep="first")]
         summary_df["final_call"] = summary_df.apply(choose_final_call, axis=1)
-
+        summary_df = add_genospecies_calls(summary_df, MIN_CALL_BP)
+        write_genospecies_composition(summary_df, args.output / f"genospecies_composition.tsv")
+        
         # All calls — unfiltered
         all_calls_path = args.output / "summary_all_calls.tsv"
         summary_df.to_csv(all_calls_path, sep="\t", index=False)
