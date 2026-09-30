@@ -1,2 +1,5 @@
+src/plasmid_caller/db/ref_seqs/wp_v3.fna filter=lfs diff=lfs merge=lfs -text
+new_db/old/ref_seqs/wp_v2_db.json filter=lfs diff=lfs merge=lfs -text
+src/plasmid_caller/db/old/ref_seqs/wp_v2_db.json filter=lfs diff=lfs merge=lfs -text
 src/plasmid_caller/db/ref_seqs/wp.fna filter=lfs diff=lfs merge=lfs -text
 src/plasmid_caller/db/ref_seqs/pf32.faa filter=lfs diff=lfs merge=lfs -text
