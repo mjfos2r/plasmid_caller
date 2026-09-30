@@ -572,7 +572,83 @@ def _discover_dbs(output_dir: Path) -> list[str]:
             if xmls:
                 db_names.append(child.name)
     return db_names
+    
+def _merge_summary_frames(frames):
+    """Merge query metadata across databases before removing duplicate columns."""
+    if not frames:
+        raise ValueError("No BLAST result tables to merge")
 
+    for frame in frames:
+        if frame.index.has_duplicates:
+            raise ValueError("Repeated contig IDs in a best-hit table")
+
+    merged = pandas.concat(frames, axis=1, join="outer").reset_index()
+    shared = {}
+
+    for field in ("assembly_id", "contig_len"):
+        candidates = merged.loc[:, merged.columns == field].copy()
+
+        if field == "contig_len":
+            # Also use query lengths recorded in the BLAST XML.
+            xml_columns = [
+                col for col in merged.columns
+                if col == "query_length" or col.startswith("query_length_")
+            ]
+            if xml_columns:
+                candidates = pandas.concat(
+                    [candidates, merged[xml_columns]], axis=1
+                )
+
+            candidates = candidates.apply(
+                pandas.to_numeric, errors="coerce"
+            )
+
+        if candidates.shape[1] == 0:
+            raise ValueError(f"No {field} metadata in result tables")
+
+        # Available values must agree before filling missing values.
+        conflicting = candidates.nunique(axis=1, dropna=True) > 1
+        if conflicting.any():
+            ids = merged.loc[
+                conflicting, "contig_id"
+            ].astype(str).head(10).tolist()
+
+            raise ValueError(
+                f"Conflicting {field} for {ids}. "
+                "Check that both XML files and the input FASTA "
+                "describe the same query."
+            )
+
+        shared[field] = candidates.bfill(axis=1).iloc[:, 0]
+
+    merged = merged.loc[
+        :, ~merged.columns.duplicated(keep="first")
+    ].copy()
+
+    for field, values in shared.items():
+        merged[field] = values
+
+    invalid = (
+        merged["assembly_id"].isna()
+        | merged["contig_len"].isna()
+        | (merged["contig_len"] < 0)
+    )
+    if invalid.any():
+        ids = merged.loc[
+            invalid, "contig_id"
+        ].astype(str).head(10).tolist()
+
+        raise ValueError(
+            f"Missing assembly ID or invalid query length for {ids}"
+        )
+
+    if "multiple_loci_pf32" in merged:
+        # Missing PF32 evidence must not become a truthy NaN.
+        merged["multiple_loci_pf32"] = (
+            merged["multiple_loci_pf32"].eq(True).fillna(False)
+        )
+
+    return merged
 
 ## Define main function logic.
 def main(args=None):
@@ -713,8 +789,7 @@ def main(args=None):
 
             if combined_summary_parts:
                 frames = [df.set_index("contig_id") for df in combined_summary_parts]
-                summary_df = pandas.concat(frames, axis=1, join="outer").reset_index()
-                summary_df = summary_df.loc[:, ~summary_df.columns.duplicated(keep="first")]
+                summary_df = _merge_summary_frames(frames)
                 summary_df["final_call"] = summary_df.apply(choose_final_call, axis=1)
                 summary_df = add_genospecies_calls(summary_df, MIN_CALL_BP)
                 write_genospecies_composition(summary_df, args.output / f"{file_id}_genospecies_composition.tsv")
@@ -830,8 +905,7 @@ def main(args=None):
         summary_path = args.output / "summary_best_hits.tsv"
 
         frames = [df.set_index("contig_id") for df in combined_summary_parts]
-        summary_df = pandas.concat(frames, axis=1, join="outer").reset_index()
-        summary_df = summary_df.loc[:, ~summary_df.columns.duplicated(keep="first")]
+        summary_df = _merge_summary_frames(frames)
         summary_df["final_call"] = summary_df.apply(choose_final_call, axis=1)
         summary_df = add_genospecies_calls(summary_df, MIN_CALL_BP)
         write_genospecies_composition(summary_df, args.output / f"genospecies_composition.tsv")
