@@ -199,7 +199,13 @@ def get_db_type(db_dir, quiet=True):
 
 def get_blast_command(prog, input_file, output_path, database, threads):
     """Construct a params dict from the given input for use in run_blast()"""
-    file_id = Path(input_file).stem
+    #file_id = Path(input_file).stem
+    file_id = re.sub(
+        r'\.(fa|fna|fasta)(\.gz)?$',
+        '',
+        Path(input_file).name,
+        flags=re.IGNORECASE,
+    )
     output_file = f"{output_path}/{file_id}_blast_results.xml"
     return {
         "program": prog,
