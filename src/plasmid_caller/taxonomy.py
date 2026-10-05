@@ -145,4 +145,6 @@ def write_genospecies_composition(summary, output):
     )
     
     composition.to_csv(output, sep='\t', index=False, float_format='%.6f')
+    print(f"Output genospecies composition to {output}")
+    
     return composition

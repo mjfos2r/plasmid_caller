@@ -908,7 +908,8 @@ def main(args=None):
         summary_df = _merge_summary_frames(frames)
         summary_df["final_call"] = summary_df.apply(choose_final_call, axis=1)
         summary_df = add_genospecies_calls(summary_df, MIN_CALL_BP)
-        write_genospecies_composition(summary_df, args.output / f"genospecies_composition.tsv")
+        genospecies_calls_path = args.output / "genospecies_composition.tsv"
+        write_genospecies_composition(summary_df, genospecies_calls_path)
         
         # All calls — unfiltered
         all_calls_path = args.output / "summary_all_calls.tsv"
@@ -934,6 +935,7 @@ def main(args=None):
             print(f"Wrote all calls (unfiltered) -> {all_calls_path}")
             print(f"Wrote best hits (filtered) -> {summary_path}")
             print(f"Wrote dictionary of final calls -> {json_path}")
+            print(f"Wrote genospecies calls -> {genospecies_calls_path}")
 
     return 0
 
