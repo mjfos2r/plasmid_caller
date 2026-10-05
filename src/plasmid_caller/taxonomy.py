@@ -138,5 +138,11 @@ def write_genospecies_composition(summary, output):
     totals = composition.groupby('assembly_id')['assigned_bp'].transform('sum')
     composition['total_query_bp'] = totals
     composition['percent_composition'] = (100 * composition['assigned_bp'] / totals.where(totals > 0)).fillna(0)
+
+    composition = composition.sort_values(
+        ["assembly_id", "percent_composition", "genospecies"],
+        ascending=[True, False, True],
+    )
+    
     composition.to_csv(output, sep='\t', index=False, float_format='%.6f')
     return composition
