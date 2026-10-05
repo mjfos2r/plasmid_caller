@@ -26,11 +26,23 @@ def _pick_best_or_empty(group):
 
 def best_pf32_hit(df: pandas.DataFrame) -> pandas.DataFrame:
     if df.empty:
-        return df
+        return df.copy()
+
     df = df.copy()
-    df["overall_percent_identity"] = pandas.to_numeric(df["overall_percent_identity"], errors = "coerce")
-    best_hits_df = df.groupby("contig_id", group_keys=False).apply(_pick_best_or_empty).reset_index(drop=True)
-    return best_hits_df
+    df["overall_percent_identity"] = pandas.to_numeric(
+        df["overall_percent_identity"], errors="coerce"
+    )
+
+    return (
+        df.sort_values(
+            "overall_percent_identity",
+            ascending=False,
+            kind="stable",
+            na_position="last",
+        )
+        .drop_duplicates(subset="contig_id", keep="first")
+        .reset_index(drop=True)
+    )
 
 def best_wp_hit(df: pandas.DataFrame) -> pandas.DataFrame:
     """score each wp hit by the product of the percent coverage and the percent identity. (as long as coverage is either over 10% or greater than 1000bp) """
