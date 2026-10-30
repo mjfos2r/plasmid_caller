@@ -1,2 +1,0 @@
-new_db/old/ref_seqs/wp_v2_db.json filter=lfs diff=lfs merge=lfs -text
-src/plasmid_caller/db/old/ref_seqs/wp_v2_db.json filter=lfs diff=lfs merge=lfs -text
