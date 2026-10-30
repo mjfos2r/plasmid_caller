@@ -1,0 +1,25 @@
+database	reference_id	genospecies	notes
+wp	CP132433.1	bissettiae	M7p: NCBI says Borreliella bissettiae; build found bissettiae;carolinensis ambiguity
+wp	CP132434.1	bissettiae	M7p: NCBI says Borreliella bissettiae; build found bissettiae;carolinensis ambiguity
+wp	CP132435.1	bissettiae	M7p: NCBI says Borreliella bissettiae; build found bissettiae;carolinensis ambiguity
+wp	CP132436.1	bissettiae	M7p: NCBI says Borreliella bissettiae; build found bissettiae;carolinensis ambiguity
+pf32	RS06160_118a_118a_cp32-5_ParA_X	burgdorferi	118a: Borreliella burgdorferi 118a (GCA_000171735.2)
+pf32	RS05165_118a_118a_cp32-6_ParA_X	burgdorferi	118a: Borreliella burgdorferi 118a (GCA_000171735.2)
+pf32	RS04445_118a_118a_cp32-8_ParA_X	burgdorferi	118a: Borreliella burgdorferi 118a (GCA_000171735.2)
+pf32	RS05285_CA-11.2A_CA-11.2A_cp32-10_ParA_X	burgdorferi	CA-11.2A: Borreliella burgdorferi CA-11.2A (GCA_000172315.2)
+pf32	RS06375_CA-11.2A_CA-11.2A_cp32-3_ParA_X	burgdorferi	CA-11.2A: Borreliella burgdorferi CA-11.2A (GCA_000172315.2)
+pf32	RS05970_CA-11.2A_CA-11.2A_lp36-28-4_ParA_X	burgdorferi	CA-11.2A: Borreliella burgdorferi CA-11.2A (GCA_000172315.2)
+pf32	RS04670_CA-11.2A_CA-11.2A_lp56_ParA_X	burgdorferi	CA-11.2A: Borreliella burgdorferi CA-11.2A (GCA_000172315.2)
+pf32	RS05220_29805_29805_cp26_ParA_X	burgdorferi	29805: Borreliella burgdorferi 29805 (GCA_000172295.2)
+pf32	RS06545_29805_29805_cp32-7_ParA_X	burgdorferi	29805: Borreliella burgdorferi 29805 (GCA_000172295.2)
+pf32	RS05540_29805_29805_lp25_ParA_X	burgdorferi	29805: Borreliella burgdorferi 29805 (GCA_000172295.2)
+pf32	RS04755_29805_29805_lp28-3_ParA_X	burgdorferi	29805: Borreliella burgdorferi 29805 (GCA_000172295.2)
+pf32	RS06330_29805_29805_lp36_ParA_X	burgdorferi	29805: Borreliella burgdorferi 29805 (GCA_000172295.2)
+pf32	RS04825_29805_29805_lp38_ParA_X	burgdorferi	29805: Borreliella burgdorferi 29805 (GCA_000172295.2)
+pf32	RS04285_29805_29805_lp54_ParA_X	burgdorferi	29805: Borreliella burgdorferi 29805 (GCA_000172295.2)
+pf32	RS03465_29805_29805_lp54_ParA_X	burgdorferi	29805: Borreliella burgdorferi 29805 (GCA_000172295.2)
+pf32	RS00395_29805_29805_lp54_ParA_X	burgdorferi	29805: Borreliella burgdorferi 29805 (GCA_000172295.2)
+pf32	DN127_cp9_ParA_X	bissettiae	DN127: Borreliella bissettiae DN127 (GCA_000222305.1)
+pf32	MOD5_untig_175_lp28-14_ParA_X	andersonii	MOD5: Borrelia andersonii MOD-5 (GCA_032595975.2)
+pf32	Y501_unitig_7_lp28-13_ParA_X	turdi	Y501: Borrelia turdi Ya501 (GCA_030439285.2)
+pf32	Y501_unitig_2_lp28-12_ParA_X	turdi	Y501: Borrelia turdi Ya501 (GCA_030439285.2)
