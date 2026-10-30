@@ -1,0 +1,64 @@
+pfam32_type	source	protein_accession	pubmlst_assembly_id	replicon	start_1based	end_1based	sequence_status	source_reference	sequence_id	nucleotide_accession	cds_start_1based	cds_end_1based	strand	protein_length_aa	cds_length_nt	translation_matches_protein	coded_by
+cp26	GenBank	AAC66318.1					protein_and_CDS_downloaded_translation_verified	GenBank: AAC66318.1	cp26__AAC66318.1	AE000792.1	9275	10036	+	253	762	true	AE000792.1:9275..10036
+cp32-1	GenBank	AAF07421.1					protein_and_CDS_downloaded_translation_verified	GenBank: AAF07421.1	cp32-1__AAF07421.1	AE001575.1	20766	21506	+	246	741	true	AE001575.1:20766..21506
+cp32-3	GenBank	AAF07454.1					protein_and_CDS_downloaded_translation_verified	GenBank: AAF07454.1	cp32-3__AAF07454.1	AE001576.1	21257	21997	+	246	741	true	AE001576.1:21257..21997
+cp32-4	GenBank	XDA40783.1					protein_and_CDS_downloaded_translation_verified	GenBank: XDA40783.1	cp32-4__XDA40783.1	CP161195.1	20608	21363	+	251	756	true	CP161195.1:20608..21363
+cp32-5	GenBank	AEL70284.1					protein_and_CDS_downloaded_translation_verified	GenBank: AEL70284.1	cp32-5__AEL70284.1	CP002939.1	20881	21654	+	257	774	true	CP002939.1:20881..21654
+cp32-6	GenBank	AAF07543.1					protein_and_CDS_downloaded_translation_verified	GenBank: AAF07543.1	cp32-6__AAF07543.1	AE001578.1	20721	21470	+	249	750	true	AE001578.1:20721..21470
+cp32-7	GenBank	AAF07574.1					protein_and_CDS_downloaded_translation_verified	GenBank: AAF07574.1	cp32-7__AAF07574.1	AE001579.1	20766	21515	+	249	750	true	AE001579.1:20766..21515
+cp32-8	GenBank	AAF07618.1					protein_and_CDS_downloaded_translation_verified	GenBank: AAF07618.1	cp32-8__AAF07618.1	AE001580.1	20740	21480	+	246	741	true	AE001580.1:20740..21480
+cp32-9	GenBank	XDA40963.1					protein_and_CDS_downloaded_translation_verified	GenBank: XDA40963.1	cp32-9__XDA40963.1	CP161202.1	4054	4809	+	251	756	true	CP161202.1:4054..4809
+cp32-10	GenBank	ADQ31489.1					protein_and_CDS_downloaded_translation_verified	GenBank: ADQ31489.1	cp32-10__ADQ31489.1	CP002323.1	20704	21459	+	251	756	true	CP002323.1:20704..21459
+cp32-11	GenBank	ADQ30251.1					protein_and_CDS_downloaded_translation_verified	GenBank: ADQ30251.1, AEL70117.1	cp32-11__ADQ30251.1	CP002309.1	21060	21818	+	252	759	true	CP002309.1:21060..21818
+cp32-11	GenBank	AEL70117.1					protein_and_CDS_downloaded_translation_verified	GenBank: ADQ30251.1, AEL70117.1	cp32-11__AEL70117.1	CP002935.1	20562	21320	+	252	759	true	CP002935.1:20562..21320
+cp32-12	GenBank	ADQ31413.1					protein_and_CDS_downloaded_translation_verified	GenBank: ADQ31413.1, AEL70159.1	cp32-12__ADQ31413.1	CP002321.1	20784	21566	+	260	783	true	CP002321.1:20784..21566
+cp32-12	GenBank	AEL70159.1					protein_and_CDS_downloaded_translation_verified	GenBank: ADQ31413.1, AEL70159.1	cp32-12__AEL70159.1	CP002936.1	20200	20982	+	260	783	true	CP002936.1:20200..20982
+cp32-13	GenBank	ACM10107.1					protein_and_CDS_downloaded_translation_verified	GenBank: ACM10107.1	cp32-13__ACM10107.1	CP001371.1	20873	21637	+	254	765	true	CP001371.1:20873..21637
+cp32-14	PubMLST		4230	cp32-14	20660	21412	not_retrieved_public_PubMLST_access	PubMLST: id-4230 (cp32-14: 20660-21412 bp)									
+lp21	GenBank	AAF07694.1					protein_and_CDS_downloaded_translation_verified	GenBank: AAF07694.1	lp21__AAF07694.1	AE001582.2	2868	3656	+	262	789	true	AE001582.2:2868..3656
+lp25	GenBank	AAC66029.1					protein_and_CDS_downloaded_translation_verified	GenBank: AAC66029.1	lp25__AAC66029.1	AE000785.1	12096	12854	-	252	759	true	complement(AE000785.1:12096..12854)
+lp28-1	GenBank	AAC66373.1					protein_and_CDS_downloaded_translation_verified	GenBank: AAC66373.1	lp28-1__AAC66373.1	AE000794.2	13029	13793	-	254	765	true	complement(AE000794.2:13029..13793)
+lp28-2	GenBank	XDA40847.1					protein_and_CDS_downloaded_translation_verified	GenBank: XDA40847.1, AEL70405.1	lp28-2__XDA40847.1	CP161197.1	6020	6787	+	255	768	true	CP161197.1:6020..6787
+lp28-2	GenBank	AEL70405.1					protein_and_CDS_downloaded_translation_verified	GenBank: XDA40847.1, AEL70405.1	lp28-2__AEL70405.1	CP002943.1	4004	4771	+	255	768	true	CP002943.1:4004..4771
+lp28-3	GenBank	AAC65994.1					protein_and_CDS_downloaded_translation_verified	GenBank: AAC65994.1	lp28-3__AAC65994.1	AE000784.1	17947	18702	+	251	756	true	AE000784.1:17947..18702
+lp28-4	GenBank	AAC66186.1					protein_and_CDS_downloaded_translation_verified	GenBank: AAC66186.1	lp28-4__AAC66186.1	AE000789.1	12454	13206	+	250	753	true	AE000789.1:12454..13206
+lp28-5	GenBank	ADQ31306.1					protein_and_CDS_downloaded_translation_verified	GenBank: ADQ31306.1	lp28-5__ADQ31306.1	CP002317.1	17448	18200	+	250	753	true	CP002317.1:17448..18200
+lp28-6	GenBank	ADQ31527.1					protein_and_CDS_downloaded_translation_verified	GenBank: ADQ31527.1	lp28-6__ADQ31527.1	CP002324.1	2964	3719	-	251	756	true	complement(CP002324.1:2964..3719)
+lp28-7	GenBank	ADQ31352.1					protein_and_CDS_downloaded_translation_verified	GenBank: ADQ31352.1, AEL70485.1	lp28-7__ADQ31352.1	CP002319.1	5735	6496	-	253	762	true	complement(CP002319.1:5735..6496)
+lp28-7	GenBank	AEL70485.1					protein_and_CDS_downloaded_translation_verified	GenBank: ADQ31352.1, AEL70485.1	lp28-7__AEL70485.1	CP002946.1	6696	7457	-	253	762	true	complement(CP002946.1:6696..7457)
+lp28-8	GenBank	AEL70524.1					protein_and_CDS_downloaded_translation_verified	GenBank: AEL70524.1	lp28-8__AEL70524.1	CP002947.1	13696	14511	-	271	816	true	complement(CP002947.1:13696..14511)
+lp28-9	GenBank	XOU15019.1					protein_and_CDS_downloaded_translation_verified	GenBank: XOU15019.1	lp28-9__XOU15019.1	CP179305.1	23960	24724	+	254	765	true	CP179305.1:23960..24724
+lp28-11	GenBank	XDA40821.1					protein_and_CDS_downloaded_translation_verified	GenBank: XDA40821.1	lp28-11__XDA40821.1	CP161196.1	7399	8148	-	249	750	true	complement(CP161196.1:7399..8148)
+lp28-12	GenBank	XPK49313.1					protein_and_CDS_downloaded_translation_verified	GenBank: XPK49313.1	lp28-12__XPK49313.1	CP179619.1	10476	11231	+	251	756	true	CP179619.1:10476..11231
+lp28-13	GenBank	XPK49439.1					protein_and_CDS_downloaded_translation_verified	GenBank: XPK49439.1	lp28-13__XPK49439.1	CP179623.1	15111	15869	+	252	759	true	CP179623.1:15111..15869
+lp28-14	GenBank	XPC86269.1					protein_and_CDS_downloaded_translation_verified	GenBank: XPC86269.1	lp28-14__XPC86269.1	CP179271.1	36407	37174	+	255	768	true	CP179271.1:36407..37174
+lp36	GenBank	XDA40711.1					protein_and_CDS_downloaded_translation_verified	GenBank: XDA40711.1	lp36__XDA40711.1	CP161193.1	13614	14363	-	249	750	true	complement(CP161193.1:13614..14363)
+lp38	GenBank	AAC66087.1					protein_and_CDS_downloaded_translation_verified	GenBank: AAC66087.1	lp38__AAC66087.1	AE000787.1	11152	11889	-	245	738	true	complement(AE000787.1:11152..11889)
+lp54	GenBank	XDA40656.1					protein_and_CDS_downloaded_translation_verified	GenBank: XDA40656.1	lp54__XDA40656.1	CP161192.1	13557	14309	+	250	753	true	CP161192.1:13557..14309
+lp56	GenBank	AAF07709.1					protein_and_CDS_downloaded_translation_verified	GenBank: AAF07709.1	lp56__AAF07709.1	AE001584.1	5069	5830	-	253	762	true	complement(AE001584.1:5069..5830)
+cp26	GenBank	XDA25918.1					protein_downloaded_translation_to_verify	GenBank: XDA25918.1	cp26__XDA25918.1	CP161025.1				253	759		
+cp32-3	GenBank	XDA25729.1					protein_downloaded_translation_to_verify	GenBank: XDA25729.1	cp32-3__XDA25729.1	CP161020.1				250	750		
+cp32-4	GenBank	XDA25770.1					protein_downloaded_translation_to_verify	GenBank: XDA25770.1	cp32-4__XDA25770.1	CP161021.1				251	753		
+cp32-5	GenBank	XDA25814.1					protein_downloaded_translation_to_verify	GenBank: XDA25814.1	cp32-5__XDA25814.1	CP161022.1				257	771		
+cp9	GenBank	XDA26002.1					protein_downloaded_translation_to_verify	GenBank: XDA26002.1	cp9__XDA26002.1	CP161029.1				248	744		
+lp17	GenBank	XDA25979.1					protein_downloaded_translation_to_verify	GenBank: XDA25979.1	lp17__XDA25979.1	CP161028.1				246	738		
+lp28-3	GenBank	XDA25885.1					protein_downloaded_translation_to_verify	GenBank: XDA25885.1	lp28-3__XDA25885.1	CP161024.1				251	753		
+lp28-4	GenBank	XDA25964.1					protein_downloaded_translation_to_verify	GenBank: XDA25964.1	lp28-4__XDA25964.1	CP161027.1				250	750		
+lp28-7	GenBank	XDA25925.1					protein_downloaded_translation_to_verify	GenBank: XDA25925.1	lp28-7__XDA25925.1	CP161026.1				253	759		
+lp28-8	GenBank	XDA25866.1					protein_downloaded_translation_to_verify	GenBank: XDA25866.1	lp28-8__XDA25866.1	CP161023.1				271	813		
+lp38	GenBank	XDA25707.1					protein_downloaded_translation_to_verify	GenBank: XDA25707.1	lp38__XDA25707.1	CP161019.1				245	735		
+lp54	GenBank	XDA25654.1					protein_downloaded_translation_to_verify	GenBank: XDA25654.1	lp54__XDA25654.1	CP161018.1				250	750		
+cp26	GenBank	AJY72897.1					protein_downloaded_translation_to_verify	GenBank: AJY72897.1	cp26__AJY72897.1	CP009060.1				253	759		
+cp32-3	GenBank	AJY73258.1					protein_downloaded_translation_to_verify	GenBank: AJY73258.1	cp32-3__AJY73258.1	CP009070.1				250	750		
+cp32-4	GenBank	AJY73217.1					protein_downloaded_translation_to_verify	GenBank: AJY73217.1	cp32-4__AJY73217.1	CP009069.1				251	753		
+cp32-5	GenBank	AJY73300.1					protein_downloaded_translation_to_verify	GenBank: AJY73300.1	cp32-5__AJY73300.1	CP009071.1				257	771		
+cp32-9	GenBank	AJY73175.1					protein_downloaded_translation_to_verify	GenBank: AJY73175.1	cp32-9__AJY73175.1	CP009068.1				251	753		
+lp17	GenBank	AJY72921.1					protein_downloaded_translation_to_verify	GenBank: AJY72921.1	lp17__AJY72921.1	CP009061.1				246	738		
+lp28-1	GenBank	AJY72948.1					protein_downloaded_translation_to_verify	GenBank: AJY72948.1	lp28-1__AJY72948.1	CP009062.1				254	762		
+lp28-2	GenBank	AJY73016.1					protein_downloaded_translation_to_verify	GenBank: AJY73016.1	lp28-2__AJY73016.1	CP009063.1				250	750		
+lp28-3	GenBank	AJY73035.1					protein_downloaded_translation_to_verify	GenBank: AJY73035.1	lp28-3__AJY73035.1	CP009064.1				251	753		
+lp28-4	GenBank	AJY73068.1					protein_downloaded_translation_to_verify	GenBank: AJY73068.1	lp28-4__AJY73068.1	CP009065.1				250	750		
+lp28-8	GenBank	AJY73105.1					protein_downloaded_translation_to_verify	GenBank: AJY73105.1	lp28-8__AJY73105.1	CP009066.1				271	813		
+lp38	GenBank	AJY73127.1					protein_downloaded_translation_to_verify	GenBank: AJY73127.1	lp38__AJY73127.1	CP009067.1				245	735		
+lp54	GenBank	AJY72836.1					protein_downloaded_translation_to_verify	GenBank: AJY72836.1	lp54__AJY72836.1	CP009059.1				250	750		
+lp54	GenBank	AIK19203.1					protein_downloaded_translation_to_verify	GenBank: AIK19203.1	lp54__AIK19203.1	CP009214.1				250	750		

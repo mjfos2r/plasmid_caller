@@ -16,3 +16,8 @@ old_code/v3/dbs/all_plasmids_bbss/Bbss.json
 __pycache__
 src/plasmid_caller/vendor
 test_out
+test_calls/
+test_class_all/
+new_db/new/localized/
+new_db/new/genomes.dehydrated.zip
+plasmid_caller_review_bundle.zip

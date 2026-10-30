@@ -1,0 +1,91 @@
+species	strain	assembly_accession	source_bioproject	notes
+Borrelia americana	SCW-30h	GCA_032595795.2	PRJNA431102	
+Borrelia americana	SCW-41	GCA_030445085.2	PRJNA431102	
+Borrelia andersonii	21038	GCA_032595875.2	PRJNA431102	
+Borrelia andersonii	MOD-5	GCA_032595975.2	PRJNA431102	
+Borrelia bavariensis	A104S	GCA_018831565.1	PRJNA327303	
+Borrelia bavariensis	A91S	GCA_014526045.1	PRJNA327303	
+Borrelia bavariensis	DK6	GCA_014526005.1	PRJNA327303	
+Borrelia bavariensis	Lubl25	GCA_014525845.1	PRJNA327303	
+Borrelia bavariensis	NT24	GCA_018831585.1	PRJNA327303	
+Borrelia bavariensis	PBaeII	GCA_014525805.2	PRJNA327303	
+Borrelia bavariensis	PBar	GCA_014525785.1	PRJNA327303	
+Borrelia bavariensis	PBi	GCA_000196215.1		independent NCBI deposit
+Borrelia bavariensis	PBN	GCA_014525745.1	PRJNA327303	
+Borrelia bavariensis	PEi			assembly accession not yet verified
+Borrelia bavariensis	PHerI	GCA_014525755.1	PRJNA327303	
+Borrelia bavariensis	PLad	GCA_014525705.1	PRJNA327303	
+Borrelia bavariensis	PNeb	GCA_014525715.1	PRJNA327303	
+Borrelia bavariensis	PNi	GCA_014525685.1	PRJNA327303	
+Borrelia bavariensis	PRab	GCA_014525665.1	PRJNA327303	
+Borrelia bavariensis	Prm7564-11			assembly accession not yet verified
+Borrelia bavariensis	PRof	GCA_014525565.1	PRJNA327303	
+Borrelia bavariensis	PTrob	GCA_014525535.1	PRJNA327303	
+Borrelia bavariensis	PWin	GCA_014525525.1	PRJNA327303	
+Borrelia bavariensis	PZwi	GCA_014525455.1	PRJNA327303	
+Borrelia bavariensis	Tmsk976-2013			assembly accession not yet verified; PubMLST assembly ID 2722
+Borrelia bissettiae	PGeb	GCA_030439775.2	PRJNA431102	
+Borrelia burgdorferi sensu stricto	217_5	GCA_044941625.1		
+Borrelia burgdorferi sensu stricto	80a	GCA_030439665.2	PRJNA431102	
+Borrelia burgdorferi sensu stricto	B31	GCA_000008685.2		
+Borrelia burgdorferi sensu stricto	Bol29	GCA_032595515.2	PRJNA431102	
+Borrelia burgdorferi sensu stricto	Fr-93-1	GCA_032595375.2	PRJNA431102	
+Borrelia burgdorferi sensu stricto	NE5248	GCA_030445025.2	PRJNA431102	
+Borrelia burgdorferi sensu stricto	NE5261	GCA_030445005.2	PRJNA431102	
+Borrelia burgdorferi sensu stricto	NE5267	GCA_030439625.2	PRJNA431102	
+Borrelia burgdorferi sensu stricto	NIH3			assembly accession not yet verified
+Borrelia burgdorferi sensu stricto	NIH5			assembly accession not yet verified
+Borrelia burgdorferi sensu stricto	NIH8			assembly accession not yet verified
+Borrelia burgdorferi sensu stricto	PAbe			assembly accession not yet verified
+Borrelia burgdorferi sensu stricto	PAli			assembly accession not yet verified
+Borrelia burgdorferi sensu stricto	SCW-9	GCA_032595535.1	PRJNA431102	
+Borrelia burgdorferi sensu stricto	Sh-2-82	GCA_030440345.2	PRJNA431102	
+Borrelia burgdorferi sensu stricto	Z9	GCA_032595755.2	PRJNA431102	
+Borrelia californiensis	CA443	GCA_030438475.2	PRJNA431102	
+Borrelia californiensis	CA446	GCA_032597935.1	PRJNA431102	
+Borrelia carolinensis	BUL-H-2	GCA_032595775.1	PRJNA431102	
+Borrelia carolinensis	M7p	GCA_032595555.1	PRJNA431102	
+Borrelia carolinensis	MI-3	GCA_032595855.2	PRJNA431102	
+Borrelia carolinensis	SCGT-18	GCA_030440315.3	PRJNA431102	
+Borrelia carolinensis	SCW-22	GCA_032595915.1	PRJNA431102	
+Borrelia finlandensis	Z11	GCA_030438365.2	PRJNA431102	
+Borrelia garinii	20047	GCA_026642495.1	PRJNA327303	
+Borrelia garinii	NT31	GCA_026642355.1	PRJNA327303	
+Borrelia garinii	PBes	GCA_026643455.2	PRJNA327303	
+Borrelia garinii	PBr	GCA_026643515.1	PRJNA327303	
+Borrelia garinii	PFr	GCA_026643435.1	PRJNA327303	
+Borrelia garinii	PHC	GCA_026643415.1	PRJNA327303	
+Borrelia garinii	PHei	GCA_026643475.1	PRJNA327303	
+Borrelia garinii	PKi	GCA_026643375.1	PRJNA327303	
+Borrelia garinii	PLa	GCA_026643355.1	PRJNA327303	
+Borrelia garinii	PLi	GCA_026643295.1	PRJNA327303	
+Borrelia garinii	PMa	GCA_026642535.1	PRJNA327303	
+Borrelia garinii	PMe	GCA_026643255.1	PRJNA327303	
+Borrelia japonica	HO14	GCA_030438275.2	PRJNA431102	
+Borrelia japonica	Miyazaki2E	GCA_030438115.2	PRJNA431102	
+Borrelia kurtenbachii	25015	GCA_030437945.2	PRJNA431102	
+Borrelia lanei	CA-28-91	GCA_030437705.2	PRJNA431102	
+Borrelia lusitaniae	PoHL1	GCA_032595895.2	PRJNA431102	
+Borrelia lusitaniae	PotiB2	GCA_030440365.2	PRJNA431102	
+Borrelia lusitaniae	PotiB3	GCA_032595955.2	PRJNA431102	
+Borrelia maritima	CA690	GCA_030440275.2	PRJNA431102	
+Borrelia mayonii	MN14-1420	GCA_001936315.1	PRJNA321302	
+Borrelia mayonii	MN14-1539	GCA_001936295.1	PRJNA321302	
+Borrelia sinica	CMN3	GCA_033969665.2	PRJNA431102	
+Borrelia spielmanii	PMew	GCA_030436445.2	PRJNA431102	
+Borrelia tanukii	Hk501	GCA_030436345.2	PRJNA431102	
+Borrelia tanukii	Koshiki4E	GCA_030439725.2	PRJNA431102	
+Borrelia tanukii	TanegashimaAS13	GCA_030439745.2	PRJNA431102	
+Borrelia tanukii	TanegashimaAS9	GCA_030439705.2	PRJNA431102	
+Borrelia turdi	047-3	GCA_030439295.2	PRJNA431102	
+Borrelia turdi	Ya501	GCA_030439285.2	PRJNA431102	
+Borrelia valaisiana	100B40	GCA_036352115.1	PRJNA327303	
+Borrelia valaisiana	89B13	GCA_030708355.1	PRJNA327303	
+Borrelia valaisiana	Am501	GCA_030436405.2	PRJNA431102	
+Borrelia yangtzensis	Miyako4E	GCA_030436205.2	PRJNA431102	
+Borrelia yangtzensis	Okinawa-CW61	GCA_030436185.2	PRJNA431102	
+Borrelia yangtzensis	Okinawa-CW62	GCA_030436165.1	PRJNA431102	
+Borrelia afzelii	BO23	GCA_040790685.1	PRJNA1130942	
+Borrelia afzelii	K78	GCA_000962775.1	PRJNA158661	
+Borrelia afzelii	PKo	GCA_000222835.1	PRJNA68149	
+Borrelia afzelii	Tom3107	GCA_000741005.1	PRJNA218503	

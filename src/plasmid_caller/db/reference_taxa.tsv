@@ -738,10 +738,10 @@ wp	CP132445.1	carolinensis	carolinensis	BUL-H-2
 wp	CP132447.1	carolinensis	carolinensis	BUL-H-2
 wp	CP132446.1	carolinensis	carolinensis	BUL-H-2
 wp	CP132448.1	carolinensis	carolinensis	BUL-H-2
-wp	CP132433.1	bissettiae	bissettiae	M7p
-wp	CP132434.1	bissettiae	bissettiae	M7p
-wp	CP132435.1	bissettiae	bissettiae	M7p
-wp	CP132436.1	bissettiae	bissettiae	M7p
+wp	CP132433.1	ambiguous	bissettiae;carolinensis	M7p
+wp	CP132434.1	ambiguous	bissettiae;carolinensis	M7p
+wp	CP132435.1	ambiguous	bissettiae;carolinensis	M7p
+wp	CP132436.1	ambiguous	bissettiae;carolinensis	M7p
 wp	CP132453.1	carolinensis	carolinensis	MI-3
 wp	CP132455.1	carolinensis	carolinensis	MI-3
 wp	CP179455.1	carolinensis	carolinensis	MI-3
@@ -1105,6 +1105,54 @@ wp	CP123998.1	yangtzensis	yangtzensis	Okinawa-CW62
 wp	CP123996.1	yangtzensis	yangtzensis	Okinawa-CW62
 wp	CP123995.1	yangtzensis	yangtzensis	Okinawa-CW62
 wp	CP123997.1	yangtzensis	yangtzensis	Okinawa-CW62
+wp	CP161017.1	afzelii	afzelii	BO23
+wp	CP161025.1	afzelii	afzelii	BO23
+wp	CP161020.1	afzelii	afzelii	BO23
+wp	CP161021.1	afzelii	afzelii	BO23
+wp	CP161022.1	afzelii	afzelii	BO23
+wp	CP161029.1	afzelii	afzelii	BO23
+wp	CP161028.1	afzelii	afzelii	BO23
+wp	CP161024.1	afzelii	afzelii	BO23
+wp	CP161027.1	afzelii	afzelii	BO23
+wp	CP161026.1	afzelii	afzelii	BO23
+wp	CP161023.1	afzelii	afzelii	BO23
+wp	CP161019.1	afzelii	afzelii	BO23
+wp	CP161018.1	afzelii	afzelii	BO23
+wp	CP009058.1	afzelii	afzelii	K78
+wp	CP009061.1	afzelii	afzelii	K78
+wp	CP009060.1	afzelii	afzelii	K78
+wp	CP009062.1	afzelii	afzelii	K78
+wp	CP009063.1	afzelii	afzelii	K78
+wp	CP009064.1	afzelii	afzelii	K78
+wp	CP009065.1	afzelii	afzelii	K78
+wp	CP009066.1	afzelii	afzelii	K78
+wp	CP009070.1	afzelii	afzelii	K78
+wp	CP009069.1	afzelii	afzelii	K78
+wp	CP009071.1	afzelii	afzelii	K78
+wp	CP009068.1	afzelii	afzelii	K78
+wp	CP009067.1	afzelii	afzelii	K78
+wp	CP009059.1	afzelii	afzelii	K78
+wp	CP002933.1	afzelii	afzelii	PKo
+wp	CP002942.1	afzelii	afzelii	PKo
+wp	CP002934.1	afzelii	afzelii	PKo
+wp	CP002943.1	afzelii	afzelii	PKo
+wp	CP002944.1	afzelii	afzelii	PKo
+wp	CP002945.1	afzelii	afzelii	PKo
+wp	CP002946.1	afzelii	afzelii	PKo
+wp	CP002947.1	afzelii	afzelii	PKo
+wp	CP002937.1	afzelii	afzelii	PKo
+wp	CP002935.1	afzelii	afzelii	PKo
+wp	CP002936.1	afzelii	afzelii	PKo
+wp	CP002938.1	afzelii	afzelii	PKo
+wp	CP002939.1	afzelii	afzelii	PKo
+wp	CP002940.1	afzelii	afzelii	PKo
+wp	CP002941.1	afzelii	afzelii	PKo
+wp	CP002948.1	afzelii	afzelii	PKo
+wp	CP002949.1	afzelii	afzelii	PKo
+wp	CP002950.1	afzelii	afzelii	PKo
+wp	CP009212.1	afzelii	afzelii	Tom3107
+wp	CP009213.1	afzelii	afzelii	Tom3107
+wp	CP009214.1	afzelii	afzelii	Tom3107
 pf32	B12_B31_cp26_ParA_X	burgdorferi	burgdorferi	
 pf32	P32_B31_cp32-1_ParA_X	burgdorferi	burgdorferi	
 pf32	S35_B31_cp32-3_ParA_X	burgdorferi	burgdorferi	
@@ -1121,112 +1169,135 @@ pf32	J17_B31_lp38_ParA_X	burgdorferi	burgdorferi
 pf32	J18_B31_lp38_ParA_X	burgdorferi	burgdorferi	
 pf32	A20_B31_lp54_ParA_X	burgdorferi	burgdorferi	
 pf32	Q08_B31_lp56_ParA_X	burgdorferi	burgdorferi	
-pf32	RS00680_MM1_plsm_cp26_ParA_X	burgdorferi	burgdorferi	MM1
-pf32	RS02205_MM1_plsm_cp32-4_ParA_X	burgdorferi	burgdorferi	MM1
-pf32	RS01520_MM1_plsm_cp32-6_ParA_X	burgdorferi	burgdorferi	MM1
-pf32	RS01730_MM1_plsm_cp32-9_ParA_X	burgdorferi	burgdorferi	MM1
-pf32	RS00875_MM1_plsm_lp17_ParA_X	burgdorferi	burgdorferi	MM1
-pf32	RS210_MM1_plsm_lp28-8_ParA_X	burgdorferi	burgdorferi	MM1
-pf32	RS01335_MM1_plsm_lp36_ParA_X	burgdorferi	burgdorferi	MM1
-pf32	RS06300_JD1_JD1_cp26_ParA_X	burgdorferi	burgdorferi	JD1
-pf32	RS01295_JD1_JD1_cp32-1+5_ParA_X	burgdorferi	burgdorferi	JD1
-pf32	RS00880_JD1_JD1_cp32-11_ParA_X	burgdorferi	burgdorferi	JD1
-pf32	RS07125_JD1_JD1_cp32-12_ParA_X	burgdorferi	burgdorferi	JD1
-pf32	RS01500_JD1_JD1_cp32-8_ParA_X	burgdorferi	burgdorferi	JD1
-pf32	RS00670_JD1_JD1_lp25_ParA_X	burgdorferi	burgdorferi	JD1
-pf32	RS00365_JD1_JD1_lp28-1_ParA_X	burgdorferi	burgdorferi	JD1
-pf32	RS06415_JD1_JD1_lp28-5_ParA_X	burgdorferi	burgdorferi	JD1
-pf32	RS07610_JD1_JD1_lp28-6_ParA_X	burgdorferi	burgdorferi	JD1
-pf32	RS06620_JD1_JD1_lp28-7_ParA_X	burgdorferi	burgdorferi	JD1
-pf32	RS07790_JD1_JD1_lp38_ParA_X	burgdorferi	burgdorferi	JD1
-pf32	RS01165_B31_NRZ_p_cp32-4_ParA_X	burgdorferi	burgdorferi	B31_NRZ
-pf32	RS00580_ZS7_ZS7_cp32-12_ParA_X	burgdorferi	burgdorferi	ZS7
-pf32	RS01095_ZS7_ZS7_cp32-3+10_ParA_X	burgdorferi	burgdorferi	ZS7
-pf32	RS00040_ZS7_ZS7_lp25_ParA_X	burgdorferi	burgdorferi	ZS7
-pf32	RS06245_ZS7_ZS7_lp28-2_ParA_X	burgdorferi	burgdorferi	ZS7
-pf32	RS05930_ZS7_ZS7_lp28-4_ParA_X	burgdorferi	burgdorferi	ZS7
-pf32	RS04350_B331_B331_cp26_ParA_X	burgdorferi	burgdorferi	B331
-pf32	RS04790_B331_B331_cp32_10_ParA_X	burgdorferi	burgdorferi	B331
-pf32	RS05205_B331_B331_cp32_4_ParA_X	burgdorferi	burgdorferi	B331
-pf32	RS06425_B331_B331_lp28_6_ParA_X	burgdorferi	burgdorferi	B331
-pf32	RS06690_B331_B331_lp38_ParA_X	burgdorferi	burgdorferi	B331
-pf32	RS07175_B331_B331_lp56_ParA_X	burgdorferi	burgdorferi	B331
-pf32	RS06135_N40_N40_cp26_ParA_X	burgdorferi	burgdorferi	N40
-pf32	RS06365_N40_N40_cp32-10_ParA_X	burgdorferi	burgdorferi	N40
-pf32	RS06035_N40_N40_cp32-12_ParA_X	burgdorferi	burgdorferi	N40
-pf32	RS06485_N40_N40_lp17_ParA_X	burgdorferi	burgdorferi	N40
-pf32	RS05185_N40_N40_lp28-2_ParA_X	burgdorferi	burgdorferi	N40
-pf32	RS05390_N40_N40_lp28-5_ParA_X	burgdorferi	burgdorferi	N40
-pf32	RS05780_N40_N40_lp38_ParA_X	burgdorferi	burgdorferi	N40
-pf32	RS06760_Bol26_Bol26_lp28-3_ParA_X	burgdorferi	burgdorferi	Bol26
-pf32	RS05395_Bol26_Bol26_lp28-9_ParA_X	burgdorferi	burgdorferi	Bol26
-pf32	RS05455_72a_72a_cp26_ParA_X	burgdorferi	burgdorferi	72a
-pf32	RS06370_72a_72a_cp32-1_ParA_X	burgdorferi	burgdorferi	72a
-pf32	RS06010_72a_72a_cp32-10_ParA_X	burgdorferi	burgdorferi	72a
-pf32	RS04795_72a_72a_cp32-13_ParA_X	burgdorferi	burgdorferi	72a
-pf32	RS05610_72a_72a_cp32-5_ParA_X	burgdorferi	burgdorferi	72a
-pf32	RS05790_72a_72a_lp32-3_ParA_X	burgdorferi	burgdorferi	72a
-pf32	RS05810_94a_94a_cp32-10_ParA_X	burgdorferi	burgdorferi	94a
-pf32	RS04000_94a_94a_lp56_ParA_X	burgdorferi	burgdorferi	94a
-pf32	RS06160_118a_118a_cp32-5_ParA_X	burgdorferi	burgdorferi	118a
-pf32	RS05165_118a_118a_cp32-6_ParA_X	burgdorferi	burgdorferi	118a
-pf32	RS04445_118a_118a_cp32-8_ParA_X	burgdorferi	burgdorferi	118a
-pf32	RS05285_CA-11.2A_CA-11.2A_cp32-10_ParA_X	burgdorferi	burgdorferi	CA-11.2A
-pf32	RS06375_CA-11.2A_CA-11.2A_cp32-3_ParA_X	burgdorferi	burgdorferi	CA-11.2A
-pf32	RS05970_CA-11.2A_CA-11.2A_lp36-28-4_ParA_X	burgdorferi	burgdorferi	CA-11.2A
-pf32	RS04670_CA-11.2A_CA-11.2A_lp56_ParA_X	burgdorferi	burgdorferi	CA-11.2A
-pf32	RS06040_WI91-23_WI91-23_cp32-11_ParA_X	burgdorferi	burgdorferi	WI91-23
-pf32	RS06275_WI91-23_WI91-23_cp32-5_ParA_X	burgdorferi	burgdorferi	WI91-23
-pf32	RS06670_WI91-23_WI91-23_lp28-1_ParA_X	burgdorferi	burgdorferi	WI91-23
-pf32	RS03755_WI91-23_WI91-23_lp56_ParA_X	burgdorferi	burgdorferi	WI91-23
-pf32	RS04200_WI91-23_WI91-23_lp56_ParA_X	burgdorferi	burgdorferi	WI91-23
-pf32	RS01390_WI91-23_WI91-23_lp56_ParA_X	burgdorferi	burgdorferi	WI91-23
-pf32	RS00875_WI91-23_WI91-23_lp56_ParA_X	burgdorferi	burgdorferi	WI91-23
-pf32	RS05220_29805_29805_cp26_ParA_X	burgdorferi	burgdorferi	29805
-pf32	RS06545_29805_29805_cp32-7_ParA_X	burgdorferi	burgdorferi	29805
-pf32	RS05540_29805_29805_lp25_ParA_X	burgdorferi	burgdorferi	29805
-pf32	RS04755_29805_29805_lp28-3_ParA_X	burgdorferi	burgdorferi	29805
-pf32	RS06330_29805_29805_lp36_ParA_X	burgdorferi	burgdorferi	29805
-pf32	RS04825_29805_29805_lp38_ParA_X	burgdorferi	burgdorferi	29805
-pf32	RS04285_29805_29805_lp54_ParA_X	burgdorferi	burgdorferi	29805
-pf32	RS03465_29805_29805_lp54_ParA_X	burgdorferi	burgdorferi	29805
-pf32	RS00395_29805_29805_lp54_ParA_X	burgdorferi	burgdorferi	29805
+pf32	RS00680_MM1_plsm_cp26_ParA_X	burgdorferi	burgdorferi	
+pf32	RS02205_MM1_plsm_cp32-4_ParA_X	burgdorferi	burgdorferi	
+pf32	RS01520_MM1_plsm_cp32-6_ParA_X	burgdorferi	burgdorferi	
+pf32	RS01730_MM1_plsm_cp32-9_ParA_X	burgdorferi	burgdorferi	
+pf32	RS00875_MM1_plsm_lp17_ParA_X	burgdorferi	burgdorferi	
+pf32	RS210_MM1_plsm_lp28-8_ParA_X	burgdorferi	burgdorferi	
+pf32	RS01335_MM1_plsm_lp36_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06300_JD1_JD1_cp26_ParA_X	burgdorferi	burgdorferi	
+pf32	RS01295_JD1_JD1_cp32-1+5_ParA_X	burgdorferi	burgdorferi	
+pf32	RS00880_JD1_JD1_cp32-11_ParA_X	burgdorferi	burgdorferi	
+pf32	RS07125_JD1_JD1_cp32-12_ParA_X	burgdorferi	burgdorferi	
+pf32	RS01500_JD1_JD1_cp32-8_ParA_X	burgdorferi	burgdorferi	
+pf32	RS00670_JD1_JD1_lp25_ParA_X	burgdorferi	burgdorferi	
+pf32	RS00365_JD1_JD1_lp28-1_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06415_JD1_JD1_lp28-5_ParA_X	burgdorferi	burgdorferi	
+pf32	RS07610_JD1_JD1_lp28-6_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06620_JD1_JD1_lp28-7_ParA_X	burgdorferi	burgdorferi	
+pf32	RS07790_JD1_JD1_lp38_ParA_X	burgdorferi	burgdorferi	
+pf32	RS01165_B31_NRZ_p_cp32-4_ParA_X	burgdorferi	burgdorferi	
+pf32	RS00580_ZS7_ZS7_cp32-12_ParA_X	burgdorferi	burgdorferi	
+pf32	RS01095_ZS7_ZS7_cp32-3+10_ParA_X	burgdorferi	burgdorferi	
+pf32	RS00040_ZS7_ZS7_lp25_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06245_ZS7_ZS7_lp28-2_ParA_X	burgdorferi	burgdorferi	
+pf32	RS05930_ZS7_ZS7_lp28-4_ParA_X	burgdorferi	burgdorferi	
+pf32	RS04350_B331_B331_cp26_ParA_X	burgdorferi	burgdorferi	
+pf32	RS04790_B331_B331_cp32_10_ParA_X	burgdorferi	burgdorferi	
+pf32	RS05205_B331_B331_cp32_4_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06425_B331_B331_lp28_6_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06690_B331_B331_lp38_ParA_X	burgdorferi	burgdorferi	
+pf32	RS07175_B331_B331_lp56_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06135_N40_N40_cp26_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06365_N40_N40_cp32-10_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06035_N40_N40_cp32-12_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06485_N40_N40_lp17_ParA_X	burgdorferi	burgdorferi	
+pf32	RS05185_N40_N40_lp28-2_ParA_X	burgdorferi	burgdorferi	
+pf32	RS05390_N40_N40_lp28-5_ParA_X	burgdorferi	burgdorferi	
+pf32	RS05780_N40_N40_lp38_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06760_Bol26_Bol26_lp28-3_ParA_X	burgdorferi	burgdorferi	
+pf32	RS05395_Bol26_Bol26_lp28-9_ParA_X	burgdorferi	burgdorferi	
+pf32	RS05455_72a_72a_cp26_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06370_72a_72a_cp32-1_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06010_72a_72a_cp32-10_ParA_X	burgdorferi	burgdorferi	
+pf32	RS04795_72a_72a_cp32-13_ParA_X	burgdorferi	burgdorferi	
+pf32	RS05610_72a_72a_cp32-5_ParA_X	burgdorferi	burgdorferi	
+pf32	RS05790_72a_72a_lp32-3_ParA_X	burgdorferi	burgdorferi	
+pf32	RS05810_94a_94a_cp32-10_ParA_X	burgdorferi	burgdorferi	
+pf32	RS04000_94a_94a_lp56_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06160_118a_118a_cp32-5_ParA_X	unclassified		
+pf32	RS05165_118a_118a_cp32-6_ParA_X	unclassified		
+pf32	RS04445_118a_118a_cp32-8_ParA_X	unclassified		
+pf32	RS05285_CA-11.2A_CA-11.2A_cp32-10_ParA_X	unclassified		
+pf32	RS06375_CA-11.2A_CA-11.2A_cp32-3_ParA_X	unclassified		
+pf32	RS05970_CA-11.2A_CA-11.2A_lp36-28-4_ParA_X	unclassified		
+pf32	RS04670_CA-11.2A_CA-11.2A_lp56_ParA_X	unclassified		
+pf32	RS06040_WI91-23_WI91-23_cp32-11_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06275_WI91-23_WI91-23_cp32-5_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06670_WI91-23_WI91-23_lp28-1_ParA_X	burgdorferi	burgdorferi	
+pf32	RS03755_WI91-23_WI91-23_lp56_ParA_X	burgdorferi	burgdorferi	
+pf32	RS04200_WI91-23_WI91-23_lp56_ParA_X	burgdorferi	burgdorferi	
+pf32	RS01390_WI91-23_WI91-23_lp56_ParA_X	burgdorferi	burgdorferi	
+pf32	RS00875_WI91-23_WI91-23_lp56_ParA_X	burgdorferi	burgdorferi	
+pf32	RS05220_29805_29805_cp26_ParA_X	unclassified		
+pf32	RS06545_29805_29805_cp32-7_ParA_X	unclassified		
+pf32	RS05540_29805_29805_lp25_ParA_X	unclassified		
+pf32	RS04755_29805_29805_lp28-3_ParA_X	unclassified		
+pf32	RS06330_29805_29805_lp36_ParA_X	unclassified		
+pf32	RS04825_29805_29805_lp38_ParA_X	unclassified		
+pf32	RS04285_29805_29805_lp54_ParA_X	unclassified		
+pf32	RS03465_29805_29805_lp54_ParA_X	unclassified		
+pf32	RS00395_29805_29805_lp54_ParA_X	unclassified		
 pf32	HO14_NovelPFam32_DatabaseShortContig_ParA_X	japonica	japonica	
-pf32	PotiB2_lp32-3#2_ParA_X	lusitaniae	lusitaniae	PotiB2
-pf32	MOD5_untig_175_lp28-14_ParA_X	andersonii	andersonii	MOD5
-pf32	Y501_unitig_7_lp28-13_ParA_X	turdi	turdi	Y501
-pf32	Y501_unitig_2_lp28-12_ParA_X	turdi	turdi	Y501
-pf32	CA_28_91_lp28-8_ParA_X	lanei	lanei	CA_28_91
-pf32	DN127_cp9_ParA_X	bissettiae	bissettiae	DN127
-pf32	297_cp32-12_ParA_X	burgdorferi	burgdorferi	297
-pf32	NE_5261_chromosome_ParA_2	burgdorferi	burgdorferi	NE5261
-pf32	NE_5261_chromosome_ParA_4	burgdorferi	burgdorferi	NE5261
-pf32	B500_chromosome_ParA_2	burgdorferi	burgdorferi	B500
-pf32	B379_chromosome_ParA_1	burgdorferi	burgdorferi	B379
-pf32	B379_chromosome_ParA_2	burgdorferi	burgdorferi	B379
-pf32	B379_chromosome_ParA_4	burgdorferi	burgdorferi	B379
-pf32	B379_chromosome_ParA_5	burgdorferi	burgdorferi	B379
-pf32	80a_chromosome_ParA_2	burgdorferi	burgdorferi	80a
-pf32	NE_5248_chromosome_ParA_3	burgdorferi	burgdorferi	NE_5248
-pf32	NE_5261_cp26_ParA_1	burgdorferi	burgdorferi	NE_5261
-pf32	JD1_cp26_ParA_1	burgdorferi	burgdorferi	JD1
-pf32	MM1_cp26_ParA_1	burgdorferi	burgdorferi	MM1
-pf32	WI91-23_cp26_ParA_1	burgdorferi	burgdorferi	WI91-23
-pf32	B379_cp26_ParA_1	burgdorferi	burgdorferi	B379
-pf32	80a_cp26_ParA_1	burgdorferi	burgdorferi	80a
-pf32	156a_cp26_ParA_1	burgdorferi	burgdorferi	156a
-pf32	94a_cp26_ParA_1	burgdorferi	burgdorferi	94a
-pf32	N40_cp26_ParA_1	burgdorferi	burgdorferi	N40
-pf32	B500_cp32-11_ParA_1	burgdorferi	burgdorferi	B500
-pf32	MM1_cp32-1_ParA_1	burgdorferi	burgdorferi	MM1
-pf32	B379_cp32-2_ParA_1	burgdorferi	burgdorferi	B379
-pf32	B500_cp32-5_ParA_1	burgdorferi	burgdorferi	B500
-pf32	B408_lp25_ParA_2	burgdorferi	burgdorferi	B408
-pf32	B379_lp28-5_ParA_1	burgdorferi	burgdorferi	B379
-pf32	B500_lp56_ParA_1	burgdorferi	burgdorferi	B500
-pf32	PKo_cp32-11_ParA_AEL70117.1	afzelii	afzelii	Pko
-pf32	PKo_cp32-12_ParA_AEL70159.1	afzelii	afzelii	Pko
-pf32	PKo_cp32-5_ParA_AEL70284.1	afzelii	afzelii	Pko
-pf32	PKo_lp28-2_ParA_AEL70405.1	afzelii	afzelii	Pko
-pf32	PKo_lp28-7_ParA_AEL70485.1	afzelii	afzelii	Pko
-pf32	PKo_lp28-8_ParA_AEL70524.1	afzelii	afzelii	Pko
+pf32	PotiB2_lp32-3#2_ParA_X	lusitaniae	lusitaniae	
+pf32	MOD5_untig_175_lp28-14_ParA_X	ambiguous	andersonii	
+pf32	Y501_unitig_7_lp28-13_ParA_X	ambiguous	turdi	
+pf32	Y501_unitig_2_lp28-12_ParA_X	ambiguous	turdi	
+pf32	CA_28_91_lp28-8_ParA_X	lanei	lanei	
+pf32	DN127_cp9_ParA_X	unclassified		
+pf32	297_cp32-12_ParA_X	unclassified		
+pf32	NE_5261_chromosome_ParA_2	burgdorferi	burgdorferi	
+pf32	NE_5261_chromosome_ParA_4	burgdorferi	burgdorferi	
+pf32	B500_chromosome_ParA_2	burgdorferi	burgdorferi	
+pf32	B379_chromosome_ParA_1	burgdorferi	burgdorferi	
+pf32	B379_chromosome_ParA_2	burgdorferi	burgdorferi	
+pf32	B379_chromosome_ParA_4	burgdorferi	burgdorferi	
+pf32	B379_chromosome_ParA_5	burgdorferi	burgdorferi	
+pf32	80a_chromosome_ParA_2	burgdorferi	burgdorferi	
+pf32	NE_5248_chromosome_ParA_3	burgdorferi	burgdorferi	
+pf32	NE_5261_cp26_ParA_1	burgdorferi	burgdorferi	
+pf32	JD1_cp26_ParA_1	burgdorferi	burgdorferi	
+pf32	MM1_cp26_ParA_1	burgdorferi	burgdorferi	
+pf32	WI91-23_cp26_ParA_1	burgdorferi	burgdorferi	
+pf32	B379_cp26_ParA_1	burgdorferi	burgdorferi	
+pf32	80a_cp26_ParA_1	burgdorferi	burgdorferi	
+pf32	156a_cp26_ParA_1	burgdorferi	burgdorferi	
+pf32	94a_cp26_ParA_1	burgdorferi	burgdorferi	
+pf32	N40_cp26_ParA_1	burgdorferi	burgdorferi	
+pf32	B500_cp32-11_ParA_1	burgdorferi	burgdorferi	
+pf32	MM1_cp32-1_ParA_1	burgdorferi	burgdorferi	
+pf32	B379_cp32-2_ParA_1	burgdorferi	burgdorferi	
+pf32	B500_cp32-5_ParA_1	burgdorferi	burgdorferi	
+pf32	B408_lp25_ParA_2	burgdorferi	burgdorferi	
+pf32	B379_lp28-5_ParA_1	burgdorferi	burgdorferi	
+pf32	B500_lp56_ParA_1	burgdorferi	burgdorferi	
+pf32	PKo_cp32-11_ParA_AEL70117.1	afzelii	afzelii	
+pf32	PKo_cp32-12_ParA_AEL70159.1	afzelii	afzelii	
+pf32	PKo_cp32-5_ParA_AEL70284.1	afzelii	afzelii	
+pf32	PKo_lp28-2_ParA_AEL70405.1	afzelii	afzelii	
+pf32	PKo_lp28-7_ParA_AEL70485.1	afzelii	afzelii	
+pf32	PKo_lp28-8_ParA_AEL70524.1	afzelii	afzelii	
+pf32	BO23_cp26_ParA_XDA25918.1	afzelii	afzelii	
+pf32	BO23_cp32-3_ParA_XDA25729.1	afzelii	afzelii	
+pf32	BO23_cp32-4_ParA_XDA25770.1	afzelii	afzelii	
+pf32	BO23_cp9_ParA_XDA26002.1	afzelii	afzelii	
+pf32	BO23_lp17_ParA_XDA25979.1	afzelii	afzelii	
+pf32	BO23_lp28-3_ParA_XDA25885.1	afzelii	afzelii	
+pf32	BO23_lp28-4_ParA_XDA25964.1	afzelii	afzelii	
+pf32	BO23_lp28-7_ParA_XDA25925.1	afzelii	afzelii	
+pf32	BO23_lp28-8_ParA_XDA25866.1	afzelii	afzelii	
+pf32	BO23_lp38_ParA_XDA25707.1	afzelii	afzelii	
+pf32	BO23_lp54_ParA_XDA25654.1	afzelii	afzelii	
+pf32	K78_cp26_ParA_AJY72897.1	afzelii	afzelii	
+pf32	K78_cp32-4_ParA_AJY73217.1	afzelii	afzelii	
+pf32	K78_cp32-5_ParA_AJY73300.1	afzelii	afzelii	
+pf32	K78_cp32-9_ParA_AJY73175.1	afzelii	afzelii	
+pf32	K78_lp28-1_ParA_AJY72948.1	afzelii	afzelii	
+pf32	K78_lp28-2_ParA_AJY73016.1	afzelii	afzelii	
+pf32	K78_lp28-3_ParA_AJY73035.1	afzelii	afzelii	
+pf32	K78_lp28-4_ParA_AJY73068.1	afzelii	afzelii	
+pf32	K78_lp28-8_ParA_AJY73105.1	afzelii	afzelii	
+pf32	K78_lp38_ParA_AJY73127.1	afzelii	afzelii	
+pf32	JD1_cp32-10_ParA_ADQ31489.1	burgdorferi	burgdorferi	
+pf32	B31_lp28-11_ParA_XDA40821.1	burgdorferi	burgdorferi	
