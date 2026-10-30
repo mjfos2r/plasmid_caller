@@ -373,8 +373,6 @@ wp	JACFBF010000009.1	bavariensis	bavariensis	A91S
 wp	JACFBF010000010.1	bavariensis	bavariensis	A91S
 wp	JACFBF010000004.1	bavariensis	bavariensis	A91S
 wp	JACFBF010000003.1	bavariensis	bavariensis	A91S
-wp	JACFBF010000014.1	bavariensis	bavariensis	A91S
-wp	JACFBF010000015.1	bavariensis	bavariensis	A91S
 wp	JACFBC010000001.1	bavariensis	bavariensis	DK6
 wp	JACFBC010000002.1	bavariensis	bavariensis	DK6
 wp	JACFBC010000006.1	bavariensis	bavariensis	DK6
@@ -386,15 +384,6 @@ wp	JACFBC010000008.1	bavariensis	bavariensis	DK6
 wp	JACFBC010000009.1	bavariensis	bavariensis	DK6
 wp	JACFBC010000004.1	bavariensis	bavariensis	DK6
 wp	JACFBC010000003.1	bavariensis	bavariensis	DK6
-wp	JACFBC010000012.1	bavariensis	bavariensis	DK6
-wp	JACFBC010000013.1	bavariensis	bavariensis	DK6
-wp	JACFBC010000014.1	bavariensis	bavariensis	DK6
-wp	JACFBC010000015.1	bavariensis	bavariensis	DK6
-wp	JACFBC010000016.1	bavariensis	bavariensis	DK6
-wp	JACFBC010000017.1	bavariensis	bavariensis	DK6
-wp	JACFBC010000018.1	bavariensis	bavariensis	DK6
-wp	JACFBC010000019.1	bavariensis	bavariensis	DK6
-wp	JACFBC010000020.1	bavariensis	bavariensis	DK6
 wp	JACFBB010000001.1	bavariensis	bavariensis	Lubl25
 wp	JACFBB010000002.1	bavariensis	bavariensis	Lubl25
 wp	JACFBB010000013.1	bavariensis	bavariensis	Lubl25
@@ -408,8 +397,6 @@ wp	JACFBB010000009.1	bavariensis	bavariensis	Lubl25
 wp	JACFBB010000010.1	bavariensis	bavariensis	Lubl25
 wp	JACFBB010000004.1	bavariensis	bavariensis	Lubl25
 wp	JACFBB010000003.1	bavariensis	bavariensis	Lubl25
-wp	JACFBB010000014.1	bavariensis	bavariensis	Lubl25
-wp	JACFBB010000015.1	bavariensis	bavariensis	Lubl25
 wp	CP059009.1	bavariensis	bavariensis	NT24
 wp	CP059013.1	bavariensis	bavariensis	NT24
 wp	CP059014.1	bavariensis	bavariensis	NT24
@@ -441,9 +428,6 @@ wp	CP117809.1	bavariensis	bavariensis	PBaeII
 wp	CP117810.1	bavariensis	bavariensis	PBaeII
 wp	CP117805.1	bavariensis	bavariensis	PBaeII
 wp	CP117800.1	bavariensis	bavariensis	PBaeII
-wp	JACFAY010000014.1	bavariensis	bavariensis	PBar
-wp	JACFAY010000015.1	bavariensis	bavariensis	PBar
-wp	JACFAY010000016.1	bavariensis	bavariensis	PBar
 wp	JACFAY010000001.1	bavariensis	bavariensis	PBar
 wp	JACFAY010000002.1	bavariensis	bavariensis	PBar
 wp	JACFAY010000013.1	bavariensis	bavariensis	PBar
@@ -460,10 +444,6 @@ wp	JACFAY010000003.1	bavariensis	bavariensis	PBar
 wp	CP000013.1	bavariensis	bavariensis	PBi
 wp	CP000014.1	bavariensis	bavariensis	PBi
 wp	CP000015.1	bavariensis	bavariensis	PBi
-wp	JACFAX010000013.1	bavariensis	bavariensis	PBN
-wp	JACFAX010000014.1	bavariensis	bavariensis	PBN
-wp	JACFAX010000015.1	bavariensis	bavariensis	PBN
-wp	JACFAX010000016.1	bavariensis	bavariensis	PBN
 wp	JACFAX010000001.1	bavariensis	bavariensis	PBN
 wp	JACFAX010000002.1	bavariensis	bavariensis	PBN
 wp	JACFAX010000012.1	bavariensis	bavariensis	PBN
@@ -489,11 +469,6 @@ wp	JACFAW010000010.1	bavariensis	bavariensis	PHerI
 wp	JACFAW010000004.1	bavariensis	bavariensis	PHerI
 wp	JACFAW010000003.1	bavariensis	bavariensis	PHerI
 wp	JACFAW010000011.1	bavariensis	bavariensis	PHerI
-wp	JACFAV010000014.1	bavariensis	bavariensis	PLad
-wp	JACFAV010000015.1	bavariensis	bavariensis	PLad
-wp	JACFAV010000016.1	bavariensis	bavariensis	PLad
-wp	JACFAV010000017.1	bavariensis	bavariensis	PLad
-wp	JACFAV010000018.1	bavariensis	bavariensis	PLad
 wp	JACFAV010000001.1	bavariensis	bavariensis	PLad
 wp	JACFAV010000002.1	bavariensis	bavariensis	PLad
 wp	JACFAV010000006.1	bavariensis	bavariensis	PLad
@@ -507,8 +482,6 @@ wp	JACFAV010000010.1	bavariensis	bavariensis	PLad
 wp	JACFAV010000011.1	bavariensis	bavariensis	PLad
 wp	JACFAV010000004.1	bavariensis	bavariensis	PLad
 wp	JACFAV010000003.1	bavariensis	bavariensis	PLad
-wp	JACFAU010000014.1	bavariensis	bavariensis	PNeb
-wp	JACFAU010000015.1	bavariensis	bavariensis	PNeb
 wp	JACFAU010000001.1	bavariensis	bavariensis	PNeb
 wp	JACFAU010000002.1	bavariensis	bavariensis	PNeb
 wp	JACFAU010000006.1	bavariensis	bavariensis	PNeb
@@ -521,8 +494,6 @@ wp	JACFAU010000009.1	bavariensis	bavariensis	PNeb
 wp	JACFAU010000010.1	bavariensis	bavariensis	PNeb
 wp	JACFAU010000004.1	bavariensis	bavariensis	PNeb
 wp	JACFAU010000003.1	bavariensis	bavariensis	PNeb
-wp	JACFAT010000012.1	bavariensis	bavariensis	PNi
-wp	JACFAT010000013.1	bavariensis	bavariensis	PNi
 wp	JACFAT010000001.1	bavariensis	bavariensis	PNi
 wp	JACFAT010000002.1	bavariensis	bavariensis	PNi
 wp	JACFAT010000006.1	bavariensis	bavariensis	PNi
@@ -534,7 +505,6 @@ wp	JACFAT010000010.1	bavariensis	bavariensis	PNi
 wp	JACFAT010000011.1	bavariensis	bavariensis	PNi
 wp	JACFAT010000004.1	bavariensis	bavariensis	PNi
 wp	JACFAT010000003.1	bavariensis	bavariensis	PNi
-wp	JACFAS010000013.1	bavariensis	bavariensis	PRab
 wp	JACFAS010000001.1	bavariensis	bavariensis	PRab
 wp	JACFAS010000002.1	bavariensis	bavariensis	PRab
 wp	JACFAS010000006.1	bavariensis	bavariensis	PRab
@@ -547,13 +517,6 @@ wp	JACFAS010000009.1	bavariensis	bavariensis	PRab
 wp	JACFAS010000010.1	bavariensis	bavariensis	PRab
 wp	JACFAS010000004.1	bavariensis	bavariensis	PRab
 wp	JACFAS010000003.1	bavariensis	bavariensis	PRab
-wp	JACFAO010000014.1	bavariensis	bavariensis	PRof
-wp	JACFAO010000015.1	bavariensis	bavariensis	PRof
-wp	JACFAO010000016.1	bavariensis	bavariensis	PRof
-wp	JACFAO010000017.1	bavariensis	bavariensis	PRof
-wp	JACFAO010000018.1	bavariensis	bavariensis	PRof
-wp	JACFAO010000019.1	bavariensis	bavariensis	PRof
-wp	JACFAO010000020.1	bavariensis	bavariensis	PRof
 wp	JACFAO010000001.1	bavariensis	bavariensis	PRof
 wp	JACFAO010000002.1	bavariensis	bavariensis	PRof
 wp	JACFAO010000006.1	bavariensis	bavariensis	PRof
@@ -738,10 +701,10 @@ wp	CP132445.1	carolinensis	carolinensis	BUL-H-2
 wp	CP132447.1	carolinensis	carolinensis	BUL-H-2
 wp	CP132446.1	carolinensis	carolinensis	BUL-H-2
 wp	CP132448.1	carolinensis	carolinensis	BUL-H-2
-wp	CP132433.1	ambiguous	bissettiae;carolinensis	M7p
-wp	CP132434.1	ambiguous	bissettiae;carolinensis	M7p
-wp	CP132435.1	ambiguous	bissettiae;carolinensis	M7p
-wp	CP132436.1	ambiguous	bissettiae;carolinensis	M7p
+wp	CP132433.1	bissettiae	bissettiae	M7p
+wp	CP132434.1	bissettiae	bissettiae	M7p
+wp	CP132435.1	bissettiae	bissettiae	M7p
+wp	CP132436.1	bissettiae	bissettiae	M7p
 wp	CP132453.1	carolinensis	carolinensis	MI-3
 wp	CP132455.1	carolinensis	carolinensis	MI-3
 wp	CP179455.1	carolinensis	carolinensis	MI-3
@@ -903,7 +866,6 @@ wp	CP179543.1	maritima	maritima	CA690
 wp	CP179546.1	maritima	maritima	CA690
 wp	CP179545.1	maritima	maritima	CA690
 wp	CP124045.1	maritima	maritima	CA690
-wp	CP017631.1	mayonii	mayonii	MN14-1420
 wp	CP015796.1	mayonii	mayonii	MN14-1539
 wp	CP015962.1	mayonii	mayonii	MN14-1539
 wp	CP015803.1	mayonii	mayonii	MN14-1539
@@ -1153,6 +1115,125 @@ wp	CP002950.1	afzelii	afzelii	PKo
 wp	CP009212.1	afzelii	afzelii	Tom3107
 wp	CP009213.1	afzelii	afzelii	Tom3107
 wp	CP009214.1	afzelii	afzelii	Tom3107
+wp	JACFBF010000014.1	bavariensis	bavariensis	A91S
+wp	JACFBF010000015.1	bavariensis	bavariensis	A91S
+wp	JACFBC010000012.1	bavariensis	bavariensis	DK6
+wp	JACFBC010000013.1	bavariensis	bavariensis	DK6
+wp	JACFBC010000014.1	bavariensis	bavariensis	DK6
+wp	JACFBC010000015.1	bavariensis	bavariensis	DK6
+wp	JACFBC010000016.1	bavariensis	bavariensis	DK6
+wp	JACFBC010000017.1	bavariensis	bavariensis	DK6
+wp	JACFBC010000018.1	bavariensis	bavariensis	DK6
+wp	JACFBC010000019.1	bavariensis	bavariensis	DK6
+wp	JACFBC010000020.1	bavariensis	bavariensis	DK6
+wp	JACFBB010000014.1	bavariensis	bavariensis	Lubl25
+wp	JACFBB010000015.1	bavariensis	bavariensis	Lubl25
+wp	JACFAY010000014.1	bavariensis	bavariensis	PBar
+wp	JACFAY010000015.1	bavariensis	bavariensis	PBar
+wp	JACFAY010000016.1	bavariensis	bavariensis	PBar
+wp	JACFAX010000013.1	bavariensis	bavariensis	PBN
+wp	JACFAX010000014.1	bavariensis	bavariensis	PBN
+wp	JACFAX010000015.1	bavariensis	bavariensis	PBN
+wp	JACFAX010000016.1	bavariensis	bavariensis	PBN
+wp	JACFAV010000014.1	bavariensis	bavariensis	PLad
+wp	JACFAV010000015.1	bavariensis	bavariensis	PLad
+wp	JACFAV010000016.1	bavariensis	bavariensis	PLad
+wp	JACFAV010000017.1	bavariensis	bavariensis	PLad
+wp	JACFAV010000018.1	bavariensis	bavariensis	PLad
+wp	JACFAU010000014.1	bavariensis	bavariensis	PNeb
+wp	JACFAU010000015.1	bavariensis	bavariensis	PNeb
+wp	JACFAT010000012.1	bavariensis	bavariensis	PNi
+wp	JACFAT010000013.1	bavariensis	bavariensis	PNi
+wp	JACFAS010000013.1	bavariensis	bavariensis	PRab
+wp	JACFAP010000019.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000020.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000021.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000022.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000023.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000024.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000025.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000026.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000027.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000028.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000029.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000030.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000031.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000032.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000033.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000034.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000035.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000036.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000037.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000038.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000039.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000040.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000041.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000042.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000043.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000044.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000045.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000046.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000047.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000048.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000049.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000050.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000051.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000052.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000053.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000054.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000055.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000056.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000057.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000058.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000059.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000060.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000061.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000062.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000063.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000064.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000065.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000001.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000002.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000018.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000013.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000014.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000015.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000016.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000006.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000007.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000008.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000009.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000010.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000011.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000012.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000017.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000004.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000005.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAP010000003.1	bavariensis	bavariensis	Prm7564-11
+wp	JACFAO010000014.1	bavariensis	bavariensis	PRof
+wp	JACFAO010000015.1	bavariensis	bavariensis	PRof
+wp	JACFAO010000016.1	bavariensis	bavariensis	PRof
+wp	JACFAO010000017.1	bavariensis	bavariensis	PRof
+wp	JACFAO010000018.1	bavariensis	bavariensis	PRof
+wp	JACFAO010000019.1	bavariensis	bavariensis	PRof
+wp	JACFAO010000020.1	bavariensis	bavariensis	PRof
+wp	CP161158.1	burgdorferi	burgdorferi	297
+wp	CP161167.1	burgdorferi	burgdorferi	297
+wp	CP161173.1	burgdorferi	burgdorferi	297
+wp	CP161162.1	burgdorferi	burgdorferi	297
+wp	CP161161.1	burgdorferi	burgdorferi	297
+wp	CP161171.1	burgdorferi	burgdorferi	297
+wp	CP161172.1	burgdorferi	burgdorferi	297
+wp	CP161169.1	burgdorferi	burgdorferi	297
+wp	CP161168.1	burgdorferi	burgdorferi	297
+wp	CP161164.1	burgdorferi	burgdorferi	297
+wp	CP161163.1	burgdorferi	burgdorferi	297
+wp	CP161165.1	burgdorferi	burgdorferi	297
+wp	CP161166.1	burgdorferi	burgdorferi	297
+wp	CP161170.1	burgdorferi	burgdorferi	297
+wp	CP161160.1	burgdorferi	burgdorferi	297
+wp	CP161159.1	burgdorferi	burgdorferi	297
+wp	CP017631.1	mayonii	mayonii	MN14-1420
 pf32	B12_B31_cp26_ParA_X	burgdorferi	burgdorferi	
 pf32	P32_B31_cp32-1_ParA_X	burgdorferi	burgdorferi	
 pf32	S35_B31_cp32-3_ParA_X	burgdorferi	burgdorferi	
@@ -1216,13 +1297,13 @@ pf32	RS05610_72a_72a_cp32-5_ParA_X	burgdorferi	burgdorferi
 pf32	RS05790_72a_72a_lp32-3_ParA_X	burgdorferi	burgdorferi	
 pf32	RS05810_94a_94a_cp32-10_ParA_X	burgdorferi	burgdorferi	
 pf32	RS04000_94a_94a_lp56_ParA_X	burgdorferi	burgdorferi	
-pf32	RS06160_118a_118a_cp32-5_ParA_X	unclassified		
-pf32	RS05165_118a_118a_cp32-6_ParA_X	unclassified		
-pf32	RS04445_118a_118a_cp32-8_ParA_X	unclassified		
-pf32	RS05285_CA-11.2A_CA-11.2A_cp32-10_ParA_X	unclassified		
-pf32	RS06375_CA-11.2A_CA-11.2A_cp32-3_ParA_X	unclassified		
-pf32	RS05970_CA-11.2A_CA-11.2A_lp36-28-4_ParA_X	unclassified		
-pf32	RS04670_CA-11.2A_CA-11.2A_lp56_ParA_X	unclassified		
+pf32	RS06160_118a_118a_cp32-5_ParA_X	burgdorferi	burgdorferi	
+pf32	RS05165_118a_118a_cp32-6_ParA_X	burgdorferi	burgdorferi	
+pf32	RS04445_118a_118a_cp32-8_ParA_X	burgdorferi	burgdorferi	
+pf32	RS05285_CA-11.2A_CA-11.2A_cp32-10_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06375_CA-11.2A_CA-11.2A_cp32-3_ParA_X	burgdorferi	burgdorferi	
+pf32	RS05970_CA-11.2A_CA-11.2A_lp36-28-4_ParA_X	burgdorferi	burgdorferi	
+pf32	RS04670_CA-11.2A_CA-11.2A_lp56_ParA_X	burgdorferi	burgdorferi	
 pf32	RS06040_WI91-23_WI91-23_cp32-11_ParA_X	burgdorferi	burgdorferi	
 pf32	RS06275_WI91-23_WI91-23_cp32-5_ParA_X	burgdorferi	burgdorferi	
 pf32	RS06670_WI91-23_WI91-23_lp28-1_ParA_X	burgdorferi	burgdorferi	
@@ -1230,23 +1311,23 @@ pf32	RS03755_WI91-23_WI91-23_lp56_ParA_X	burgdorferi	burgdorferi
 pf32	RS04200_WI91-23_WI91-23_lp56_ParA_X	burgdorferi	burgdorferi	
 pf32	RS01390_WI91-23_WI91-23_lp56_ParA_X	burgdorferi	burgdorferi	
 pf32	RS00875_WI91-23_WI91-23_lp56_ParA_X	burgdorferi	burgdorferi	
-pf32	RS05220_29805_29805_cp26_ParA_X	unclassified		
-pf32	RS06545_29805_29805_cp32-7_ParA_X	unclassified		
-pf32	RS05540_29805_29805_lp25_ParA_X	unclassified		
-pf32	RS04755_29805_29805_lp28-3_ParA_X	unclassified		
-pf32	RS06330_29805_29805_lp36_ParA_X	unclassified		
-pf32	RS04825_29805_29805_lp38_ParA_X	unclassified		
-pf32	RS04285_29805_29805_lp54_ParA_X	unclassified		
-pf32	RS03465_29805_29805_lp54_ParA_X	unclassified		
-pf32	RS00395_29805_29805_lp54_ParA_X	unclassified		
+pf32	RS05220_29805_29805_cp26_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06545_29805_29805_cp32-7_ParA_X	burgdorferi	burgdorferi	
+pf32	RS05540_29805_29805_lp25_ParA_X	burgdorferi	burgdorferi	
+pf32	RS04755_29805_29805_lp28-3_ParA_X	burgdorferi	burgdorferi	
+pf32	RS06330_29805_29805_lp36_ParA_X	burgdorferi	burgdorferi	
+pf32	RS04825_29805_29805_lp38_ParA_X	burgdorferi	burgdorferi	
+pf32	RS04285_29805_29805_lp54_ParA_X	burgdorferi	burgdorferi	
+pf32	RS03465_29805_29805_lp54_ParA_X	burgdorferi	burgdorferi	
+pf32	RS00395_29805_29805_lp54_ParA_X	burgdorferi	burgdorferi	
 pf32	HO14_NovelPFam32_DatabaseShortContig_ParA_X	japonica	japonica	
 pf32	PotiB2_lp32-3#2_ParA_X	lusitaniae	lusitaniae	
-pf32	MOD5_untig_175_lp28-14_ParA_X	ambiguous	andersonii	
-pf32	Y501_unitig_7_lp28-13_ParA_X	ambiguous	turdi	
-pf32	Y501_unitig_2_lp28-12_ParA_X	ambiguous	turdi	
+pf32	MOD5_untig_175_lp28-14_ParA_X	andersonii	andersonii	
+pf32	Y501_unitig_7_lp28-13_ParA_X	turdi	turdi	
+pf32	Y501_unitig_2_lp28-12_ParA_X	turdi	turdi	
 pf32	CA_28_91_lp28-8_ParA_X	lanei	lanei	
-pf32	DN127_cp9_ParA_X	unclassified		
-pf32	297_cp32-12_ParA_X	unclassified		
+pf32	DN127_cp9_ParA_X	bissettiae	bissettiae	
+pf32	297_cp32-12_ParA_X	burgdorferi	burgdorferi	
 pf32	NE_5261_chromosome_ParA_2	burgdorferi	burgdorferi	
 pf32	NE_5261_chromosome_ParA_4	burgdorferi	burgdorferi	
 pf32	B500_chromosome_ParA_2	burgdorferi	burgdorferi	

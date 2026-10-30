@@ -12,18 +12,18 @@ Borrelia bavariensis	PBaeII	GCA_014525805.2	PRJNA327303
 Borrelia bavariensis	PBar	GCA_014525785.1	PRJNA327303	
 Borrelia bavariensis	PBi	GCA_000196215.1		independent NCBI deposit
 Borrelia bavariensis	PBN	GCA_014525745.1	PRJNA327303	
-Borrelia bavariensis	PEi			assembly accession not yet verified
+Borrelia bavariensis	PEi			no genome assembly in NCBI; marker genes only; GCA_000196215.1/GCA_003814425.1 are PBi not PEi
 Borrelia bavariensis	PHerI	GCA_014525755.1	PRJNA327303	
 Borrelia bavariensis	PLad	GCA_014525705.1	PRJNA327303	
 Borrelia bavariensis	PNeb	GCA_014525715.1	PRJNA327303	
 Borrelia bavariensis	PNi	GCA_014525685.1	PRJNA327303	
 Borrelia bavariensis	PRab	GCA_014525665.1	PRJNA327303	
-Borrelia bavariensis	Prm7564-11			assembly accession not yet verified
+Borrelia bavariensis	Prm7564-11	GCA_014525605.1		contig-level assembly; NCBI strain label is "Prm7564"
 Borrelia bavariensis	PRof	GCA_014525565.1	PRJNA327303	
 Borrelia bavariensis	PTrob	GCA_014525535.1	PRJNA327303	
 Borrelia bavariensis	PWin	GCA_014525525.1	PRJNA327303	
 Borrelia bavariensis	PZwi	GCA_014525455.1	PRJNA327303	
-Borrelia bavariensis	Tmsk976-2013			assembly accession not yet verified; PubMLST assembly ID 2722
+Borrelia bavariensis	Tmsk976-2013			no complete genome; PubMLST assembly ID 2722 only
 Borrelia bissettiae	PGeb	GCA_030439775.2	PRJNA431102	
 Borrelia burgdorferi sensu stricto	217_5	GCA_044941625.1		
 Borrelia burgdorferi sensu stricto	80a	GCA_030439665.2	PRJNA431102	
@@ -33,11 +33,12 @@ Borrelia burgdorferi sensu stricto	Fr-93-1	GCA_032595375.2	PRJNA431102
 Borrelia burgdorferi sensu stricto	NE5248	GCA_030445025.2	PRJNA431102	
 Borrelia burgdorferi sensu stricto	NE5261	GCA_030445005.2	PRJNA431102	
 Borrelia burgdorferi sensu stricto	NE5267	GCA_030439625.2	PRJNA431102	
-Borrelia burgdorferi sensu stricto	NIH3			assembly accession not yet verified
-Borrelia burgdorferi sensu stricto	NIH5			assembly accession not yet verified
-Borrelia burgdorferi sensu stricto	NIH8			assembly accession not yet verified
-Borrelia burgdorferi sensu stricto	PAbe			assembly accession not yet verified
-Borrelia burgdorferi sensu stricto	PAli			assembly accession not yet verified
+Borrelia burgdorferi sensu stricto	NIH3			no genome assembly in NCBI; from PLOS ONE doi:10.1371/journal.pone.0346097; PubMLST only
+Borrelia burgdorferi sensu stricto	NIH5			no genome assembly in NCBI; from PLOS ONE doi:10.1371/journal.pone.0346097; PubMLST only
+Borrelia burgdorferi sensu stricto	NIH8			no genome assembly in NCBI; from PLOS ONE doi:10.1371/journal.pone.0346097; PubMLST only
+Borrelia burgdorferi sensu stricto	297	GCA_040790795.1	PRJNA1130942	complete genome
+Borrelia burgdorferi sensu stricto	PAbe	GCA_002151485.1		complete genome; Bavarian Health and Food Safety Authority
+Borrelia burgdorferi sensu stricto	PAli	GCA_002151465.1		complete genome; Bavarian Health and Food Safety Authority
 Borrelia burgdorferi sensu stricto	SCW-9	GCA_032595535.1	PRJNA431102	
 Borrelia burgdorferi sensu stricto	Sh-2-82	GCA_030440345.2	PRJNA431102	
 Borrelia burgdorferi sensu stricto	Z9	GCA_032595755.2	PRJNA431102	
@@ -69,7 +70,7 @@ Borrelia lusitaniae	PoHL1	GCA_032595895.2	PRJNA431102
 Borrelia lusitaniae	PotiB2	GCA_030440365.2	PRJNA431102	
 Borrelia lusitaniae	PotiB3	GCA_032595955.2	PRJNA431102	
 Borrelia maritima	CA690	GCA_030440275.2	PRJNA431102	
-Borrelia mayonii	MN14-1420	GCA_001936315.1	PRJNA321302	
+Borrelia mayonii	MN14-1420	GCA_001936315.1	PRJNA321302	NOTE: assembly contains E. coli CP017631.1 (lab contaminant); filtered from WP db post-build
 Borrelia mayonii	MN14-1539	GCA_001936295.1	PRJNA321302	
 Borrelia sinica	CMN3	GCA_033969665.2	PRJNA431102	
 Borrelia spielmanii	PMew	GCA_030436445.2	PRJNA431102	
