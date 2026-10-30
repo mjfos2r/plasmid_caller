@@ -16,15 +16,10 @@ old_code/v3/dbs/all_plasmids_bbss/Bbss.json
 __pycache__
 src/plasmid_caller/vendor
 
-# Database files — distributed as release assets, not tracked in git
+# Reference sequences — distributed as release assets (wp.fna exceeds GitHub 100 MB limit)
 src/plasmid_caller/db/ref_seqs/wp.fna
 src/plasmid_caller/db/ref_seqs/pf32.faa
 src/plasmid_caller/db/ref_seqs/pf32_cds.fna
-src/plasmid_caller/db/blast_parsing_dict.pkl
-src/plasmid_caller/db/ref_seqs/blast_parsing_dict.pkl
-src/plasmid_caller/db/wp/
-src/plasmid_caller/db/pf32/
-src/plasmid_caller/db/renamed_db_v5/
 
 test_out
 test_calls/

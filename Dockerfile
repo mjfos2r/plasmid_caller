@@ -28,13 +28,14 @@ RUN [ "$(md5sum '/tmp/seqkit_linux_amd64.tar.gz' | awk '{print $1}')" = "$(awk '
     || { echo -e "\033[0;31mChecksum invalid!\033[0m"; exit 1; }
 
 ARG DB_VERSION=v7.1.2
-ARG DB_URL=https://github.com/mjfos2r/plasmid_caller/releases/download/${DB_VERSION}/db_v9.tar.gz
+ARG REF_SEQS_URL=https://github.com/mjfos2r/plasmid_caller/releases/download/${DB_VERSION}/ref_seqs_v9.tar.gz
 
 WORKDIR /app/plasmid_caller
 COPY . .
 
-# Download and extract reference database
-RUN curl -fLsS "${DB_URL}" | tar -xz -C src/plasmid_caller/
+# Download reference sequences (wp.fna, pf32.faa, pf32_cds.fna)
+# BLAST indexes and metadata are bundled in the repo; only the FASTA files are distributed separately
+RUN curl -fLsS "${REF_SEQS_URL}" | tar -xz -C src/plasmid_caller/db/ref_seqs/
 
 WORKDIR /app
 RUN uv venv
