@@ -27,8 +27,15 @@ RUN [ "$(md5sum '/tmp/seqkit_linux_amd64.tar.gz' | awk '{print $1}')" = "$(awk '
     && { echo -e "\033[0;32mChecksum valid!\033[0m"; tar -xzf /tmp/seqkit_linux_amd64.tar.gz -C /usr/local/bin --no-same-owner; rm /tmp/seqkit_linux_amd64.tar.gz; } \
     || { echo -e "\033[0;31mChecksum invalid!\033[0m"; exit 1; }
 
+ARG DB_VERSION=v7.1.2
+ARG DB_URL=https://github.com/mjfos2r/plasmid_caller/releases/download/${DB_VERSION}/db_v9.tar.gz
+
 WORKDIR /app/plasmid_caller
 COPY . .
+
+# Download and extract reference database
+RUN curl -fLsS "${DB_URL}" | tar -xz -C src/plasmid_caller/
+
 WORKDIR /app
 RUN uv venv
 ENV PATH="/app/.venv/bin:$PATH"
