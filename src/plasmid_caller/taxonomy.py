@@ -135,9 +135,19 @@ def write_genospecies_composition(summary, output):
     frame['genospecies'] = frame['genospecies'].fillna(UNCLASSIFIED)
     composition = frame.groupby(['assembly_id', 'genospecies'], as_index=False).agg(
         contigs=('contig_id', 'size'), assigned_bp=('contig_len', 'sum'))
-    totals = composition.groupby('assembly_id')['assigned_bp'].transform('sum')
-    composition['total_query_bp'] = totals
-    composition['percent_composition'] = (100 * composition['assigned_bp'] / totals.where(totals > 0)).fillna(0)
+    total_bp = composition.groupby('assembly_id')['assigned_bp'].transform('sum')
+    composition['total_query_bp'] = total_bp
+    # Percent composition is calculated over classified bp only so that short,
+    # no-hit, or sub-threshold contigs don't dilute the species signal.
+    classified_bp = (
+        composition.loc[composition['genospecies'] != UNCLASSIFIED]
+        .groupby('assembly_id')['assigned_bp'].sum()
+    )
+    composition['classified_bp'] = composition['assembly_id'].map(classified_bp).fillna(0)
+    composition['percent_composition'] = (
+        100 * composition['assigned_bp'] /
+        composition['classified_bp'].where(composition['classified_bp'] > 0)
+    ).fillna(0)
 
     composition = composition.sort_values(
         ["assembly_id", "percent_composition", "genospecies"],
