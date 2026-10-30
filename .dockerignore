@@ -1,14 +1,24 @@
+# Exclude everything by default; re-include only what the build needs
 *
-.venv
-!README.md
-!db
+
+# Re-include production files
 !src
-!scripts
 !pyproject.toml
-vendor
-old_code
-notes
-docs
-.venv
 !Dockerfile
-test_out
+!README.md
+!vendor
+!.venv
+
+# Development / analysis (excluded by * above, listed explicitly for clarity)
+# .claude/
+# new_db/
+# notes/
+# tools/
+# taxon_metadata/
+# test_calls/
+# test_class_all/
+# old_code/
+# vendor/
+# .venv/
+# *.tar.gz
+# *.zip
