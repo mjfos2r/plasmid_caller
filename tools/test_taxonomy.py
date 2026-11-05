@@ -49,9 +49,9 @@ class TaxonomyTests(unittest.TestCase):
         final = tx.add_genospecies_calls(joined)
         with tempfile.TemporaryDirectory() as tmp:
             composition = tx.write_genospecies_composition(final, Path(tmp) / 'comp.tsv').set_index('genospecies')
-            self.assertEqual(composition.loc['afzelii', 'percent_composition'], 60)
-            self.assertEqual(composition.loc['ambiguous', 'percent_composition'], 20)
-            self.assertEqual(composition.loc['unclassified', 'percent_composition'], 20)
+            self.assertEqual(composition.loc['afzelii', 'percent_composition'], 75)
+            self.assertEqual(composition.loc['ambiguous', 'percent_composition'], 25)
+            self.assertEqual(composition.loc['unclassified', 'percent_composition'], 0)
             self.assertEqual(composition['percent_composition'].sum(), 100)
 
     def test_batch_denominator_and_pf32_only(self):

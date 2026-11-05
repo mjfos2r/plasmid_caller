@@ -1,4 +1,5 @@
 # scoring.py
+import ast
 import pandas
 import math
 

@@ -151,66 +151,42 @@ def _db_path(path_str: str = None) -> Path:
     return Path("/db")  # if all else fails return the container path. (BAD)
 
 
+# WP needs headroom: BLAST ranks by bit score but calls rank by coverage x identity, so a low
+# cap can cut the best-scoring reference. PF32 stays low: extra weak hits read as false loci.
+WP_MAX_TARGET_SEQS = 500
+PF32_MAX_TARGET_SEQS = 5
+
+# (name, BLAST program, index file proving the database was built)
+REQUIRED_DBS = (
+    ("pf32", "blastx", "pf32.psq"),
+    ("wp", "blastn", "wp.nsq"),
+)
+
+
 # this is when dbs exist and are of proper version.
-def get_db_type(db_dir, quiet=True):
-    """Get the database name and type for execution"""
-    db_dir = db_dir.resolve() if isinstance(db_dir, Path) else Path(db_dir).resolve()
-    print(f"DB_Dir: {db_dir}")
-    db_dir_contents = os.listdir(db_dir)
-    print(db_dir_contents)
-    try:
-        print(f"Getting database information from databases contained in: {db_dir}")
-        print(f"Contents: {db_dir_contents}")
-        result = blast_manager.run_blast_command(
-            "blastdbcmd",
-            list=db_dir,
-            recursive=True,
-        )
-    except Exception as exc:
-        if not quiet:
-            print(f"[get_db_type] blastdbcmd failed: {exc}")
-        return []
-
+def get_db_type(db_dir):
+    """Resolve the two databases by exact path. Never search: stale copies must not run."""
+    db_dir = Path(db_dir).resolve()
     db_prog_pairs: list[tuple[str, str]] = []
-
-    for line in (
-        result.stdout.splitlines()
-    ):  # [:-1]:  # last line is empty so don't iterate to it!
-        if not line.strip():
-            continue
-
-        parts = line.split()
-        if len(parts) < 2:
-            if not quiet:
-                print(f"[get_db_type] Unrecognized line: {line!r}")
-            continue
-
-        name, db_type = parts[0], parts[1].lower()
-
-        if db_type == "protein":
-            program = "blastx"
-        elif db_type == "nucleotide":
-            program = "blastn"
-        else:
-            if not quiet:
-                print(f"[get_db_type] Unknown DB type {db_type!r} for {name}")
-            continue
-        db_prog_pairs.append((name, program))
-
-        if not quiet:
-            print(f"[get_db_type] {name:<40} -> {program}")
+    for name, program, index in REQUIRED_DBS:
+        if not (db_dir / name / index).is_file():
+            sys.exit(f"ERROR: Missing BLAST database: {db_dir / name / index}")
+        db_prog_pairs.append((str(db_dir / name / name), program))
     return db_prog_pairs
 
 
-def get_blast_command(prog, input_file, output_path, database, threads):
-    """Construct a params dict from the given input for use in run_blast()"""
-    #file_id = Path(input_file).stem
-    file_id = re.sub(
+def get_file_id(input_file):
+    """Strip FASTA extensions from a filename to get the assembly's file_id."""
+    return re.sub(
         r'\.(fa|fna|fasta)(\.gz)?$',
         '',
         Path(input_file).name,
         flags=re.IGNORECASE,
     )
+
+
+def get_blast_command(prog, file_id, input_file, output_path, database, threads, max_target_seqs):
+    """Construct a params dict from the given input for use in run_blast()"""
     output_file = f"{output_path}/{file_id}_blast_results.xml"
     return {
         "program": prog,
@@ -220,26 +196,16 @@ def get_blast_command(prog, input_file, output_path, database, threads):
         "evalue": "1e-100",
         "num_threads": threads,
         "outfmt": "5",
-        "max_target_seqs": "5",
+        "max_target_seqs": str(max_target_seqs),
         "max_hsps": "10",
     }
 
 
 def run_blast(params):
-    """Run a blast command using blast_manager"""
-    try:
-        if isinstance(params, dict):
-            program = params.pop(
-                "program", "blastn"
-            )  # blastn if we don't have one.. FIX
-            return blast_manager.run_blast_command(program, **params)
-        return (
-            f"SUCCESS: {' '.join(command)}" if result.returncode == 0 else result.stderr
-        )
-    except subprocess.CalledProcessError as e:
-        return f"FAILURE: '{command}'\nerror: {e.stderr}"
-    except Exception as e:
-        return f"An unexpected error occurred: {str(e)}"
+    """Run a blast command using blast_manager. Failures raise: partial results are not results."""
+    params = dict(params)
+    program = params.pop("program")
+    return blast_manager.run_blast_command(program, **params)
 
 
 def get_name_from_acc(hit_id, parsing_dict):
@@ -275,14 +241,10 @@ def parse_hit_id(hit_id):
     return strain, plasmid_id
 
 
-def get_contig_len(input_file, contig_id):
-    """Get contig length directly from the input FASTA file"""
+def get_contig_lengths(input_file):
+    """Get every contig length from the input FASTA file in a single pass"""
     with read_fasta(input_file) as handle:
-        for record in SeqIO.parse(handle, "fasta"):
-            if record.id.split()[0] == contig_id.split()[0]:
-                return len(record.seq)
-            else:
-                continue
+        return {record.id: len(record.seq) for record in SeqIO.parse(handle, "fasta")}
 
 
 def calculate_percent_identity_and_coverage(alignment):
@@ -349,6 +311,7 @@ def parse_blast_xml(xml_file, args, *, parsing_type: str, dbs_dir: Path) -> dict
     reference_taxa = load_reference_taxa(dbs_dir)
     
     have_fasta = args.input is not None
+    contig_lengths = get_contig_lengths(args.input) if have_fasta else {}
 
     # master field list ( += contig_len which was missing in the old list)
     KEYS = [
@@ -381,7 +344,7 @@ def parse_blast_xml(xml_file, args, *, parsing_type: str, dbs_dir: Path) -> dict
             contig_length = record.query_length
 
             if have_fasta:
-                contig_len = get_contig_len(args.input, contig_id)
+                contig_len = contig_lengths.get(contig_id.split()[0])
             else:
                 contig_len = contig_length
 
@@ -462,8 +425,7 @@ def get_hits_table(hits):
 def sanitize_fa_headers(input_fa, output_dir):
     tdir = output_dir / "sanitized"
     tdir.mkdir(exist_ok=True)
-    filename = re.sub(r'\.(fa|fna|fasta)(\.gz)?$', '', Path(input_fa).name)
-    sanitized_fa = tdir / filename
+    sanitized_fa = tdir / get_file_id(input_fa)
     with open(sanitized_fa, "w") as handle_out:
         with read_fasta(input_fa) as handle_in:
             for record in SeqIO.parse(handle_in, "fasta"):
@@ -692,6 +654,13 @@ def main(args=None):
         default="def_db",
     )
     parser.add_argument(
+        "--max_target_seqs",
+        type=int,
+        default=WP_MAX_TARGET_SEQS,
+        help=f"WP hits kept per contig (default: {WP_MAX_TARGET_SEQS}). "
+             f"PF32 is fixed at {PF32_MAX_TARGET_SEQS}.",
+    )
+    parser.add_argument(
         "--skip_blast",
         action="store_true",
         help="Skip running BLAST and only parse existing results. "
@@ -839,7 +808,7 @@ def main(args=None):
             print(f"Databases to run against: {dbs}")
 
         if have_fasta:
-            file_id = re.sub(r'\.(fa|fna|fasta)(\.gz)?$', '', Path(args.input).name)
+            file_id = get_file_id(args.input)
         else:
             db_names = [Path(db[0]).stem for db in dbs]
             file_id = _infer_file_id(args.output, db_names)
@@ -870,15 +839,16 @@ def main(args=None):
 
             if not args.skip_blast:
                 blast_params = get_blast_command(
-                    prog, sanitized_fa, results_dir, db_path, args.threads
+                    prog, file_id, sanitized_fa, results_dir, db_path,
+                    args.threads,
+                    args.max_target_seqs if db_name == "wp" else PF32_MAX_TARGET_SEQS,
                 )
                 run_blast(blast_params)
 
             xml_file = results_dir / f"{file_id}_blast_results.xml"
 
             if not xml_file.exists():
-                print(f"WARNING: Expected XML not found: {xml_file}")
-                continue
+                sys.exit(f"ERROR: Expected XML not found: {xml_file}")
 
             full_table = tables_dir / f"{file_id}_all.tsv"
             best_table = tables_dir / f"{file_id}_best.tsv"

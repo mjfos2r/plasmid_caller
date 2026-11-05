@@ -148,6 +148,7 @@ def write_genospecies_composition(summary, output):
         100 * composition['assigned_bp'] /
         composition['classified_bp'].where(composition['classified_bp'] > 0)
     ).fillna(0)
+    composition.loc[composition['genospecies'] == UNCLASSIFIED, 'percent_composition'] = 0
 
     composition = composition.sort_values(
         ["assembly_id", "percent_composition", "genospecies"],
