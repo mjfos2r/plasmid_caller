@@ -1,0 +1,11 @@
+*
+!src
+!pyproject.toml
+!uv.lock
+!README.md
+src/plasmid_caller/vendor
+src/plasmid_caller/db/ref_seqs
+src/plasmid_caller/db/renamed_db_v5
+src/plasmid_caller/test_data
+**/.ipynb_checkpoints
+**/__pycache__
