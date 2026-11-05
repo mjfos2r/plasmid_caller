@@ -261,16 +261,23 @@ function identityTable(contigs, cells, otherLabel, jobId) {
       order.value = "contig";
     }
   };
+  // The fusion column stays first in every order, beside the contig names.
+  const pinned = labels.filter((label) => label === "fusion");
+  const others = labels.filter((label) => label !== "fusion");
   const columns = () => {
-    if (order.value === "name") return labels;
+    if (order.value === "name") return [...pinned, ...others];
     const rank = (label) => anchor === null ? peak.get(label) : columnRank(hits.get(anchor).get(label));
-    return [...labels].sort((a, b) => rank(b) - rank(a) || chromosomeFirst(a, b));
+    return [...pinned, ...[...others].sort((a, b) => rank(b) - rank(a) || chromosomeFirst(a, b))];
+  };
+  const pin = (label, node) => {
+    if (label === "fusion") node.classList.add("pin");
+    return node;
   };
   const render = () => {
     const shown = columns();
     headRow.replaceChildren(el("th", { scope: "col" }, "Contig"), ...shown.map((label) =>
-      el("th", { class: "num" }, el("button", {
-        onclick: () => { sortLabel = sortLabel === label ? null : label; render(); } }, label))));
+      pin(label, el("th", { class: "num" }, el("button", {
+        onclick: () => { sortLabel = sortLabel === label ? null : label; render(); } }, label)))));
     const rows = contigs
       .filter((row) => `${row.contig_id} ${row.filtered_call ?? ""}`.toLowerCase().includes(query))
       .sort((a, b) => sortLabel === null ? b.contig_len - a.contig_len : identity(b, sortLabel) - identity(a, sortLabel));
@@ -282,7 +289,7 @@ function identityTable(contigs, cells, otherLabel, jobId) {
         } }, row.contig_id),
         el("div", { class: "muted" }, `${row.filtered_call ?? "no call"} · ${number(row.contig_len)} bp · `,
           el("a", { href: contigHref(jobId, row.contig_id) }, "open"))),
-      ...shown.map((label) => identityCell(label, hits.get(row.contig_id), otherLabel)))));
+      ...shown.map((label) => pin(label, identityCell(label, hits.get(row.contig_id), otherLabel))))));
   };
   const filter = el("input", { class: "filter", type: "search", placeholder: "Filter contigs",
     "aria-label": "Filter contigs", oninput: (event) => { query = event.target.value.toLowerCase(); render(); } });
@@ -290,16 +297,6 @@ function identityTable(contigs, cells, otherLabel, jobId) {
   return [el("div", { class: "controls" }, filter, el("label", {}, "Columns ", order)),
     el("div", { class: "scroll matrix" }, el("table", {}, el("thead", {}, headRow), body))];
 }
-
-const fusionNote = "The fusion column holds the contig's best hit to any fused reference; dotted underlines mark that fusion's parts, each with its own unfused identity. ";
-const identityKey = (noun, gates) => el("p", { class: "muted" },
-  `Best WP hit for each contig and ${noun}, as % identity. Darker cells are closer to 100%. ` +
-  "The outlined bold cell scored highest on coverage × identity, which is how WP picks its hit; " +
-  "the contig's call can still differ because it prefers PF32. " +
-  (gates ? `Grey cells cover under ${gates.coverage_pct}% of the contig and under ${number(gates.covered_bp)} bp, so they can't be called. ` : "") +
-  (noun === "plasmid" ? fusionNote : "") +
-  "Columns run from highest to lowest identity, with grey cells after the rest. " +
-  "Hover a cell for coverage and reference. Click a column to sort rows by it, or a contig to order columns by it.");
 
 function tabs(panels) {
   const bodies = panels.map(([, nodes]) => el("div", {}, ...nodes));
@@ -330,13 +327,11 @@ async function jobPage(id) {
       ["Contigs", [
         el("h2", {}, flagged ? `Contigs (${flagged} flagged: PF32/WP disagree or ambiguous genospecies)` : "Contigs"),
         ...contigTable(contigs, id)]],
-      ["Plasmid identity", [identityKey("plasmid", identity.gates),
-        ...identityTable(contigs, identity.plasmid, "Genospecies", id)]],
-      ["Genospecies identity", [identityKey("genospecies", identity.gates),
-        ...identityTable(contigs, identity.genospecies, "Plasmid", id)]],
+      ["Plasmid identity", identityTable(contigs, identity.plasmid, "Genospecies", id)],
+      ["Genospecies identity", identityTable(contigs, identity.genospecies, "Plasmid", id)],
     ]),
-    job.provenance ? el("p", { class: "muted" }, `plasmid_caller ${job.provenance.caller_version} · BLAST ${job.provenance.blast_version} · ` +
-      `database ${job.provenance.database_sha256.slice(0, 12)} · run ${when(job.finished_at)}`) : null,
+    ...(job.provenance ? [el("p", { class: "muted" }, `plasmid_caller ${job.provenance.caller_version} · BLAST ${job.provenance.blast_version} · ` +
+      `database ${job.provenance.database_sha256.slice(0, 12)} · run ${when(job.finished_at)}`)] : []),
     el("h2", {}, "Downloads"),
     el("div", { class: "links" }, ...downloads.map((name) =>
       el("a", { href: `/api/jobs/${id}/download/${name}` }, name))));

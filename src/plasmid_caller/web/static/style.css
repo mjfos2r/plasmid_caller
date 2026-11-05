@@ -56,13 +56,17 @@ tr.flagged td:first-child { box-shadow: inset 3px 0 var(--warn); }
 .matrix table { border-collapse: separate; border-spacing: 0; }
 .matrix th, .matrix td { padding: 6px 9px; }
 .matrix thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); }
-.matrix tbody th { position: sticky; left: 0; z-index: 1; max-width: 260px; overflow: hidden;
+.matrix tbody th { position: sticky; left: 0; z-index: 1; width: 240px; min-width: 240px; max-width: 240px; overflow: hidden;
   text-overflow: ellipsis; color: var(--text); background: var(--surface); box-shadow: inset -1px 0 var(--line); }
 .matrix thead th:first-child { left: 0; z-index: 3; box-shadow: inset -1px 0 var(--line); }
 .matrix tbody th .muted { font-size: 12px; font-weight: 400; }
 .matrix td { background: color-mix(in srgb, var(--accent) var(--shade, 0%), transparent); }
 .matrix td.weak { color: var(--muted); }
-.matrix td.top { font-weight: 700; box-shadow: inset 0 0 0 2px var(--accent); }
+/* Sits on top of scrolled cells, so the shade is layered over an opaque background. */
+.matrix th.pin, .matrix td.pin { position: sticky; left: 240px; z-index: 1; box-shadow: inset -1px 0 var(--line); }
+.matrix thead th.pin { z-index: 3; }
+.matrix td.pin { background: linear-gradient(color-mix(in srgb, var(--accent) var(--shade, 0%), transparent) 0 0), var(--surface); }
+.matrix td.top, .matrix td.pin.top { font-weight: 700; box-shadow: inset 0 0 0 2px var(--accent); }
 .matrix td .muted { font-size: 11px; font-weight: 400; }
 .matrix td.part { text-decoration: underline dotted var(--accent) 2px; text-underline-offset: 3px; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 8px; font-size: 14px; }

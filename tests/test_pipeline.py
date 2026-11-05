@@ -77,3 +77,12 @@ def call_row(pf32, wp, length=24_000):
 ])
 def test_chromosomal_para_does_not_override_a_plasmid_hit(pf32, wp, length, expected):
     assert decide_call(call_row(pf32, wp, length))[0] == expected
+
+
+@pytest.mark.parametrize("hit_id, strain, name", [
+    ("HO14_NovelPFam32_DatabaseShortContig_ParA_X", "HO14", "unknown"),
+    ("RS01295_JD1_JD1_cp32-5_ParA_X", "RS01295", "cp32-5"),
+    ("NE_5261_chromosome_ParA_2", "NE_5261", "chromosome"),
+])
+def test_parse_hit_id(hit_id, strain, name):
+    assert pc.parse_hit_id(hit_id) == (strain, name)

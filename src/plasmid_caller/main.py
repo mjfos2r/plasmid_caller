@@ -231,13 +231,8 @@ def parse_hit_id(hit_id):
         strain = gene_id_list[0]
     pattern = r"chromosome|(?:lp|cp)\d{1,2}(?:[-+#](?:lp|cp)?\d{1,2})*"
     match = re.findall(pattern, hit_id.replace("_", "-"))
-    plasmid_id = (
-        match[0]
-        if match
-        else "HO14_NovelPFam32"
-        if "HO14_NovelPFam32_DatabaseShortContig" in hit_id
-        else None
-    )  # bad hardcode. needs to be dropped.
+    # A blank name would read as no hit downstream, so unnamed references stay visible.
+    plasmid_id = match[0] if match else "unknown"
     return strain, plasmid_id
 
 
