@@ -1,0 +1,3 @@
+old_id	new_id	reason
+RS01295_JD1_JD1_cp32-1+5_ParA_X	RS01295_JD1_JD1_cp32-5_ParA_X	ParA is cp32-5 (99.6% identity); a single ParA cannot show the plasmid is fused
+RS01095_ZS7_ZS7_cp32-3+10_ParA_X	RS01095_ZS7_ZS7_cp32-10_ParA_X	ParA is cp32-10 (89.6% identity); a single ParA cannot show the plasmid is fused

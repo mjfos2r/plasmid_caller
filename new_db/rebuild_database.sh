@@ -29,6 +29,9 @@ Options:
   --min-wp-bp N         Drop WP references shorter than this (default: 1000)
   --exclude PATH        WP references to remove, with reasons
                         (default: new_db/excluded_references.tsv)
+  --pf32-corrections PATH
+                        Seed PF32 records to rename, with reasons
+                        (default: new_db/pf32_name_corrections.tsv)
   --threads N           Self-test threads (default: 15)
   --skip-test           Build/check indexes without running the caller self-test
   -h, --help            Show this help
@@ -47,6 +50,7 @@ seed_db=; seed_wp=ref_seqs/wp_v2.fna; seed_pf32=ref_seqs/pf32_v4.faa
 assemblies=new_db/assemblies.tsv; pfam32=new_db/pfam32_references.tsv
 renames=new_db/plasmid_name_corrections.tsv; tools_dir=tools
 blast_bin=; python_bin=; localized=; overrides=; excluded=new_db/excluded_references.tsv
+pf32_corrections=new_db/pf32_name_corrections.tsv
 build="new_db/rebuild_$(date +%Y%m%d_%H%M%S)"; threads=15; run_test=1; min_wp_bp=1000
 while (($#)); do
   case "$1" in
@@ -63,6 +67,7 @@ while (($#)); do
     --python) python_bin=$2 ;; --build) build=$2 ;;
     --localized) localized=$2 ;; --overrides) overrides=$2 ;;
     --threads) threads=$2 ;; --min-wp-bp) min_wp_bp=$2 ;; --exclude) excluded=$2 ;;
+    --pf32-corrections) pf32_corrections=$2 ;;
     *) die "Unknown option: $1" ;;
   esac
   shift 2
@@ -78,7 +83,7 @@ fi
 "${PY[@]}" -c 'import sys; assert sys.version_info >= (3, 9)'
 [[ "$seed_wp" = /* ]] || seed_wp="$seed_db/$seed_wp"
 [[ "$seed_pf32" = /* ]] || seed_pf32="$seed_db/$seed_pf32"
-for file in "$assemblies" "$pfam32" "$seed_wp" "$seed_pf32" "$excluded" \
+for file in "$assemblies" "$pfam32" "$seed_wp" "$seed_pf32" "$excluded" "$pf32_corrections" \
   "$seed_db/blast_parsing_dict.pkl" \
   "$tools_dir/format_plasmid_headers.py" "$tools_dir/build_reference_taxa.py" \
   "$tools_dir/sync_reference_taxa.py" "$tools_dir/filter_short_references.py"; do
@@ -108,6 +113,7 @@ makeblastdb -version
 cp "$assemblies" "$build/manifests/assemblies.tsv"
 cp "$pfam32" "$build/manifests/pfam32_references.tsv"
 cp "$excluded" "$build/manifests/excluded_references.tsv"
+cp "$pf32_corrections" "$build/manifests/pf32_name_corrections.tsv"
 cp "$seed_wp" "$build/seed/ref_seqs/wp_v2.fna"
 cp "$seed_pf32" "$build/seed/ref_seqs/pf32_v4.faa"
 cp "$seed_db/blast_parsing_dict.pkl" "$build/seed/"
@@ -221,6 +227,7 @@ printf '\n3. Format, deduplicate, and quarantine conflicts\n'
   --existing-db "$build/seed" --localized "$build/localized" \
   --assemblies "$build/manifests/assemblies.tsv" \
   --pfam32 "$build/manifests/pfam32_references.tsv" "${rename_args[@]}" \
+  --pf32-corrections "$build/manifests/pf32_name_corrections.tsv" \
   --label-conflicts separate --out "$build/deduplicated_refs"
 printf '\n4. Rebuild taxonomy and synchronize the dictionary\n'
 "${PY[@]}" "$build/helpers/build_reference_taxa.py" \

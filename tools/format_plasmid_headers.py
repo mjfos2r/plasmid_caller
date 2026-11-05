@@ -271,16 +271,38 @@ def existing_pf32_label(ident):
     return matches[0] if matches else None
 
 
+def read_pf32_corrections(path):
+    if not path:
+        return {}
+    corrections = {row['old_id']: row['new_id'] for row in table(path)}
+    if len(set(corrections.values())) != len(corrections):
+        raise ValueError(f'{path}: two entries share a new_id')
+    return corrections
+
+
+def correct_pf32_header(header, corrections, applied):
+    """Rename a seed PF32 record. The caller reads the plasmid name from this ID."""
+    ident, _, rest = header.partition(' ')
+    if ident not in corrections:
+        return header
+    applied.add(ident)
+    return f'{corrections[ident]} {rest}'.rstrip()
+
+
 def load_existing(args, pf32, wp):
     db = Path(args.existing_db)
     with open(db / 'blast_parsing_dict.pkl', 'rb') as f:
         lookup = DataOnlyUnpickler(f).load()
     pf_path = db / args.existing_pf32
     wp_path = db / args.existing_wp
+    corrections, applied = read_pf32_corrections(args.pf32_corrections), set()
     for header, sequence in fasta(pf_path):
+        header = correct_pf32_header(header, corrections, applied)
         ident = header.split()[0]
         strain = '_'.join(ident.split('_')[:2]) if ident.startswith('NE_') else ident.split('_')[0]
         pf32.add(header, sequence, existing_pf32_label(ident), strain, str(pf_path))
+    if set(corrections) - applied:
+        raise ValueError(f'PF32 corrections matched nothing: {sorted(set(corrections) - applied)}')
     for header, sequence in fasta(wp_path):
         ident = header.split()[0]
         if ident not in lookup:
@@ -459,6 +481,7 @@ def main():
     p.add_argument('--localized', default='localized', help='Directory from the localization commands')
     p.add_argument('--assemblies', default='assemblies.tsv')
     p.add_argument('--pfam32', default='pfam32_references.tsv', help='Expanded PFam32 TSV')
+    p.add_argument('--pf32-corrections', help='TSV of old_id, new_id for seed PF32 records')
     p.add_argument('--renames', help='Optional accession-specific plasmid_name_corrections.tsv from S3')
     p.add_argument('--label-conflicts', choices=['separate', 'error', 'keep-first'], default='separate',
                    help='Default: separate all conflicting entries into review/ and write clean merged references. error stops; keep-first explicitly retains the first label.')
