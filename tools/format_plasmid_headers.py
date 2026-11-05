@@ -93,6 +93,18 @@ def named_type(value):
     return matches[0] if len(set(matches)) == 1 else None
 
 
+def scaffold_type(header):
+    """Name the replicon in a WGS scaffold title, such as A91S_cp32-3lp25_to_PBi.
+
+    NCBI files unplaced scaffolds under location "Chromosome", so that field says
+    nothing about them. A title with no replicon token returns None and is skipped.
+    """
+    title = header.split(',')[0]
+    if re.search(r'_chr(?:_|$)', title):
+        return 'chromosome'
+    return named_type(re.sub(r'(?<=\d)(?=lp|cp)', '-', title))
+
+
 def pf32_header(row, metadata):
     accession = row['protein_accession']
     info = metadata.get(accession, {})
@@ -379,10 +391,13 @@ def format_references(args):
             report = reports.get(record_id, {})
             location = report.get('assignedMoleculeLocationType', report.get('assigned_molecule_location_type', ''))
             name = overrides.get(record_id) or overrides.get(record_id.split('.')[0])
-            if not name and location.lower() == 'chromosome':
-                name = 'chromosome'
+            # Unplaced scaffolds carry location and chrName "chromosome" whatever they are.
+            unplaced = location.lower() == 'chromosome' and report.get('role') != 'assembled-molecule'
             if not name:
-                name = named_type(info.get('plasmid')) or named_type(report.get('chrName', report.get('chr_name', '')))
+                name = scaffold_type(header) if unplaced else 'chromosome' if location.lower() == 'chromosome' else None
+            if not name:
+                chr_name = '' if unplaced else report.get('chrName', report.get('chr_name', ''))
+                name = named_type(info.get('plasmid')) or named_type(chr_name)
             if not name:
                 match = re.search(r'\b(plasmid\s+.*|chromosome\b)', header, re.I)
                 name = named_type(match[0].lower()) if match else None

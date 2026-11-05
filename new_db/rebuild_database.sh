@@ -27,6 +27,8 @@ Options:
   --overrides PATH      Taxon override TSV: database, reference_id, genospecies
                         Only explicit reviewed overrides, not a whole old taxa TSV
   --min-wp-bp N         Drop WP references shorter than this (default: 1000)
+  --exclude PATH        WP references to remove, with reasons
+                        (default: new_db/excluded_references.tsv)
   --threads N           Self-test threads (default: 15)
   --skip-test           Build/check indexes without running the caller self-test
   -h, --help            Show this help
@@ -44,7 +46,7 @@ die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 seed_db=; seed_wp=ref_seqs/wp_v2.fna; seed_pf32=ref_seqs/pf32_v4.faa
 assemblies=new_db/assemblies.tsv; pfam32=new_db/pfam32_references.tsv
 renames=new_db/plasmid_name_corrections.tsv; tools_dir=tools
-blast_bin=; python_bin=; localized=; overrides=
+blast_bin=; python_bin=; localized=; overrides=; excluded=new_db/excluded_references.tsv
 build="new_db/rebuild_$(date +%Y%m%d_%H%M%S)"; threads=15; run_test=1; min_wp_bp=1000
 while (($#)); do
   case "$1" in
@@ -60,7 +62,7 @@ while (($#)); do
     --tools) tools_dir=$2 ;; --blast-bin) blast_bin=$2 ;;
     --python) python_bin=$2 ;; --build) build=$2 ;;
     --localized) localized=$2 ;; --overrides) overrides=$2 ;;
-    --threads) threads=$2 ;; --min-wp-bp) min_wp_bp=$2 ;;
+    --threads) threads=$2 ;; --min-wp-bp) min_wp_bp=$2 ;; --exclude) excluded=$2 ;;
     *) die "Unknown option: $1" ;;
   esac
   shift 2
@@ -76,7 +78,7 @@ fi
 "${PY[@]}" -c 'import sys; assert sys.version_info >= (3, 9)'
 [[ "$seed_wp" = /* ]] || seed_wp="$seed_db/$seed_wp"
 [[ "$seed_pf32" = /* ]] || seed_pf32="$seed_db/$seed_pf32"
-for file in "$assemblies" "$pfam32" "$seed_wp" "$seed_pf32" \
+for file in "$assemblies" "$pfam32" "$seed_wp" "$seed_pf32" "$excluded" \
   "$seed_db/blast_parsing_dict.pkl" \
   "$tools_dir/format_plasmid_headers.py" "$tools_dir/build_reference_taxa.py" \
   "$tools_dir/sync_reference_taxa.py" "$tools_dir/filter_short_references.py"; do
@@ -105,6 +107,7 @@ printf 'Build directory: %s\n' "$build"
 makeblastdb -version
 cp "$assemblies" "$build/manifests/assemblies.tsv"
 cp "$pfam32" "$build/manifests/pfam32_references.tsv"
+cp "$excluded" "$build/manifests/excluded_references.tsv"
 cp "$seed_wp" "$build/seed/ref_seqs/wp_v2.fna"
 cp "$seed_pf32" "$build/seed/ref_seqs/pf32_v4.faa"
 cp "$seed_db/blast_parsing_dict.pkl" "$build/seed/"
@@ -237,7 +240,7 @@ cp "$build/deduplicated_refs/pf32.faa" "$build/db/ref_seqs/"
   --wp "$build/deduplicated_refs/wp.fna" \
   --taxa "$build/taxon_metadata_final/reference_taxa.tsv" \
   --lookup "$build/taxon_metadata_final/blast_parsing_dict.pkl" \
-  --min-bp "$min_wp_bp" --out "$build/db"
+  --min-bp "$min_wp_bp" --exclude "$build/manifests/excluded_references.tsv" --out "$build/db"
 if [[ -f src/plasmid_caller/db/__init__.py ]]; then cp src/plasmid_caller/db/__init__.py "$build/db/"; fi
 makeblastdb -in "$build/db/ref_seqs/wp.fna" -dbtype nucl -parse_seqids -title wp -out "$build/db/wp/wp"
 makeblastdb -in "$build/db/ref_seqs/pf32.faa" -dbtype prot -parse_seqids -title pf32 -out "$build/db/pf32/pf32"
