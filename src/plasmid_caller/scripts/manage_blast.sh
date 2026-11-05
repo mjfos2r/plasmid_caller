@@ -130,8 +130,8 @@ install_local_blast() {
 }
 
 record_source() {
-    mkdir -p "$VENDOR_DIR"
-    echo "$1" >"$VENDOR_DIR/BLAST_SOURCE"
+    # Only a record, so a read-only install must not fail on it.
+    { mkdir -p "$VENDOR_DIR" && echo "$1" >"$VENDOR_DIR/BLAST_SOURCE"; } 2>/dev/null || true
 }
 
 get_blast_path() {
