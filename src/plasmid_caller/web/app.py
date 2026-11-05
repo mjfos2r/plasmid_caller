@@ -32,6 +32,7 @@ IDENTITY_COLUMNS = [
     "query_covered_length", "strain", "plasmid_id", "passes", "top", "score", "fusion", "parts",
     "ref_length", "ref_covered_length", "query_intervals",
 ]
+LOCUS_COLUMNS = ["plasmid_name", "locus_idx", "locus_start", "locus_end"]
 PF32_COLUMNS = [
     "plasmid_name", "strain", "plasmid_id", "overall_percent_identity", "query_covered_length",
     "query_intervals",
@@ -74,6 +75,20 @@ def to_records(frame):
 def read_records(path, columns=None):
     frame = read_table(path)
     return to_records(frame.reindex(columns=columns) if columns else frame)
+
+
+def replicon_totals(contigs):
+    """Sum called bases per replicon. A multi-locus contig counts towards each of its names."""
+    totals = {}
+    for row in contigs:
+        call = row.get("filtered_call")
+        if not call or call == "unclassified":
+            continue
+        for name in {part.rstrip("*") for part in call.split(":::")}:
+            entry = totals.setdefault(name, {"contigs": 0, "bp": 0})
+            entry["contigs"] += 1
+            entry["bp"] += int(row["contig_len"])
+    return totals
 
 
 def identity_cells(hits, by, fold_fusions=True):
@@ -199,6 +214,22 @@ def create_app(settings):
             raise HTTPException(404, "Batch not found")
         return batch
 
+    @app.get("/api/batches/{batch_id}/overview")
+    def get_overview(batch_id: str):
+        batch = get_batch(batch_id)
+        overview = []
+        for job in batch["jobs"]:
+            if job["status"] != "done":
+                continue
+            output = store.output_dir(job)
+            overview.append({
+                "id": job["id"], "name": job["name"],
+                "composition": read_records(output / "genospecies_composition.tsv"),
+                "replicons": replicon_totals(
+                    read_records(output / "summary_best_hits.tsv", SUMMARY_COLUMNS)),
+            })
+        return overview
+
     @app.get("/api/jobs/{job_id}")
     def get_job(job_id: str):
         return job_or_404(job_id)
@@ -214,8 +245,8 @@ def create_app(settings):
             "downloads": [*DOWNLOADS, "renamed.fasta", "provenance.json"],
         }
 
-    def hit_table(job, database):
-        tables = list((store.output_dir(job) / database / "tables").glob("*_all.tsv"))
+    def hit_table(job, database, suffix="all"):
+        tables = list((store.output_dir(job) / database / "tables").glob(f"*_{suffix}.tsv"))
         return read_table(tables[0]) if tables else None
 
     @app.get("/api/jobs/{job_id}/identity")
@@ -249,6 +280,8 @@ def create_app(settings):
             return [{**row, "query_intervals": _parse_intervals(row["query_intervals"])} for row in records]
 
         has_wp = wp is not None and not wp.empty
+        loci = hit_table(job, "pf32", "multi_loci")
+        loci = loci[loci["contig_id"] == contig_id] if loci is not None else pd.DataFrame()
         return {
             "job": job,
             "contig": to_records(calls.reindex(columns=SUMMARY_COLUMNS))[0],
@@ -256,6 +289,7 @@ def create_app(settings):
             "plasmids": with_intervals(identity_cells(wp, "plasmid_name", fold_fusions=False)) if has_wp else [],
             "genospecies": with_intervals(identity_cells(wp, "genospecies")) if has_wp else [],
             "pf32": with_intervals(to_records(pf32.reindex(columns=PF32_COLUMNS))) if pf32 is not None else [],
+            "loci": to_records(loci.reindex(columns=LOCUS_COLUMNS)),
             "tiling": tile_contig(wp) if has_wp else [],
         }
 

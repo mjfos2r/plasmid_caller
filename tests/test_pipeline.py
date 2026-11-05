@@ -2,6 +2,7 @@ import gzip
 
 import pytest
 
+from plasmid_caller.scoring import decide_call
 from plasmid_caller import main as pc
 from plasmid_caller.scoring import _parse_intervals
 
@@ -60,3 +61,19 @@ def test_get_contig_lengths_plain_and_gzipped(tmp_path):
 
 def test_parse_intervals_reads_tsv_strings():
     assert _parse_intervals("[(1, 246), (300, 400)]") == [(1, 246), (300, 400)]
+
+
+def call_row(pf32, wp, length=24_000):
+    return {"plasmid_name_pf32": pf32, "plasmid_name_wp": wp, "contig_len": length,
+            "query_covered_length_pf32": 785, "query_coverage_percent_wp": 99,
+            "query_covered_length_wp": length, "multiple_loci_pf32": False}
+
+
+@pytest.mark.parametrize("pf32, wp, length, expected", [
+    ("chromosome", "lp21-cp9", 24_000, "lp21-cp9"),
+    ("chromosome", "chromosome", 24_000, "chromosome"),
+    ("lp21", "lp21-cp9", 24_000, "lp21"),
+    ("chromosome", "lp21", 500_000, "chromosome"),
+])
+def test_chromosomal_para_does_not_override_a_plasmid_hit(pf32, wp, length, expected):
+    assert decide_call(call_row(pf32, wp, length))[0] == expected

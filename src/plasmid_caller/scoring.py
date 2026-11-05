@@ -198,6 +198,9 @@ def decide_call(row):
         return row["plasmid_name_wp"], "WP passed and PF32 did not."
 
     if pf32_ok and wp_ok:
+        # Plasmids can carry a ParA close to a chromosomal one, so this hit alone is not a chromosome.
+        if row["plasmid_name_pf32"].lower() == "chromosome" and row["plasmid_name_wp"].lower() != "chromosome":
+            return row["plasmid_name_wp"], f"PF32 hit a chromosomal ParA on a contig under {CHROMOSOME_MIN_BP:,} bp, so the passing WP hit decides."
         return row["plasmid_name_pf32"], "PF32 and WP both passed, and PF32 takes priority."
 
     return "unclassified", "Hits exist, but neither PF32 nor WP passed its threshold."

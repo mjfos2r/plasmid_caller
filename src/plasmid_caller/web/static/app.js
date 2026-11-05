@@ -77,8 +77,64 @@ async function home() {
     el("tbody", {}, ...rows))));
 }
 
+function compositionBars(jobs) {
+  const totals = new Map();
+  for (const job of jobs) for (const row of job.composition) {
+    if (row.percent_composition > 0) totals.set(row.genospecies, (totals.get(row.genospecies) ?? 0) + row.percent_composition);
+  }
+  if (!totals.size) return [];
+  // Colour follows the species for the whole batch; anything past the seventh folds into Other.
+  const named = [...totals.keys()].sort((a, b) => totals.get(b) - totals.get(a) || a.localeCompare(b)).slice(0, 7);
+  const slot = (name) => named.includes(name) ? `var(--c${named.indexOf(name)})` : "var(--muted)";
+  const swatch = (label, colour) => {
+    const mark = el("span", { class: "swatch" });
+    mark.style.background = colour;
+    return el("span", {}, mark, label);
+  };
+  const legend = el("div", { class: "legend" }, ...named.map((name) => swatch(name, slot(name))),
+    totals.size > named.length ? swatch("Other", "var(--muted)") : null);
+  const rows = jobs.map((job) => {
+    const parts = job.composition.filter((row) => row.percent_composition > 0)
+      .sort((a, b) => b.percent_composition - a.percent_composition);
+    const text = parts.map((row) => `${row.genospecies} ${number(row.percent_composition, 1)}%`).join(", ");
+    const stack = el("div", { class: "stack", role: "img", "aria-label": text || "No classified contigs" },
+      ...parts.map((row) => {
+        const part = el("span", { title: `${row.genospecies}: ${number(row.percent_composition, 1)}%` });
+        part.style.flexGrow = row.percent_composition;
+        part.style.background = slot(row.genospecies);
+        return part;
+      }));
+    return el("div", { class: "track composition" }, el("div", { class: "track-label", title: job.name },
+      el("a", { href: `#/job/${job.id}` }, job.name)),
+      el("div", {}, stack, el("div", { class: "muted" }, text || "No classified contigs")));
+  });
+  return [el("h2", {}, "Genospecies composition"), legend, ...rows];
+}
+
+function repliconTable(jobs) {
+  const names = [...new Set(jobs.flatMap((job) => Object.keys(job.replicons)))].sort(chromosomeFirst);
+  if (!names.length) return [];
+  const peak = Object.fromEntries(names.map((name) => [name, Math.max(...jobs.map((job) => job.replicons[name]?.bp ?? 0))]));
+  const cell = (job, name) => {
+    const entry = job.replicons[name];
+    if (!entry) return el("td");
+    const node = el("td", { class: "num", title: `${name}: ${number(entry.bp)} bp in ${number(entry.contigs)} contig(s)` },
+      number(entry.bp / 1000, 1));
+    node.style.setProperty("--shade", `${10 + entry.bp / peak[name] * 35}%`);
+    return node;
+  };
+  return [el("h2", {}, "Called replicons (kb)"),
+    el("p", { class: "muted" }, "Bases called to each replicon, shaded within each column. A multi-locus contig counts towards each of its names."),
+    el("div", { class: "scroll matrix" }, el("table", {},
+      el("thead", {}, el("tr", {}, el("th", { scope: "col" }, "Assembly"),
+        ...names.map((name) => el("th", { class: "num" }, name)))),
+      el("tbody", {}, ...jobs.map((job) => el("tr", {},
+        el("th", { scope: "row", title: job.name }, el("a", { href: `#/job/${job.id}` }, job.name)),
+        ...names.map((name) => cell(job, name)))))))];
+}
+
 async function batchPage(id) {
-  const batch = await api(`/api/batches/${id}`);
+  const [batch, overview] = await Promise.all([api(`/api/batches/${id}`), api(`/api/batches/${id}/overview`)]);
   const rows = batch.jobs.map((job) => el("tr", {},
     el("td", {}, job.status === "done" ? el("a", { href: `#/job/${job.id}` }, job.name) : job.name),
     statusCell(job),
@@ -91,7 +147,8 @@ async function batchPage(id) {
     el("div", { class: "scroll" }, el("table", {},
       el("thead", {}, el("tr", {}, el("th", {}, "Assembly"), el("th", {}, "Status"),
         el("th", { class: "num" }, "Contigs"), el("th", { class: "num" }, "Bases"), el("th", {}, "Note"))),
-      el("tbody", {}, ...rows))));
+      el("tbody", {}, ...rows))),
+    ...compositionBars(overview), ...repliconTable(overview));
   if (batch.jobs.some((job) => job.status === "queued" || job.status === "running")) {
     poll = setTimeout(() => batchPage(id).catch(showError), 2000);
   }
@@ -317,14 +374,15 @@ function wpTracks(cells, length, name) {
   return [list, toggle];
 }
 
-function fusionPanel(contig, pf32, tiling) {
+function fusionPanel(contig, loci, tiling) {
   const lines = [];
   if (contig.multiple_loci_pf32) {
-    lines.push(`PF32: hits at separate loci (${[...new Set(pf32.map((hit) => hit.plasmid_name))].join(", ")}).`);
+    lines.push(`PF32 loci: ${loci.map((locus) =>
+      `${locus.plasmid_name} at ${number(locus.locus_start)}–${number(locus.locus_end)}`).join(", ")}`);
   }
   if (tiling.length >= 2) {
-    lines.push(`WP: no single plasmid explains this contig. Unfused references tile it as ${
-      tiling.map(([name, bp]) => `${name} (+${number(bp)} bp)`).join(", ")}. Part names are reliable for lp + cp pairs, not cp32 + cp32.`);
+    lines.push(`WP tiling: ${tiling.map(([name, bp], index) =>
+      `${name} (${index ? "+" : ""}${number(bp)} bp)`).join(", ")}`);
   }
   if (!lines.length) return el("p", { class: "muted" }, "No fusion signals on this contig.");
   return el("div", { class: "notice" }, el("strong", {}, "Fusion candidate: needs validation"),
@@ -332,7 +390,7 @@ function fusionPanel(contig, pf32, tiling) {
 }
 
 async function contigPage(jobId, contigId) {
-  const { job, contig, rule, plasmids, genospecies, pf32, tiling } =
+  const { job, contig, rule, plasmids, genospecies, pf32, loci, tiling } =
     await api(`/api/jobs/${jobId}/contig?contig_id=${encodeURIComponent(contigId)}`);
   const length = contig.contig_len;
   const species = genospecies.filter((cell) => cell.passes).sort((a, b) => b.score - a.score);
@@ -346,7 +404,7 @@ async function contigPage(jobId, contigId) {
     el("h1", {}, contig.contig_id),
     el("p", { class: "muted" }, `${number(length)} bp · ${contig.genospecies ?? "no genospecies"}`),
     el("p", {}, "Call: ", el("strong", {}, contig.filtered_call ?? "none"), rule ? ` · ${rule}` : ""),
-    fusionPanel(contig, pf32, tiling),
+    fusionPanel(contig, loci, tiling),
     el("div", { class: "axis muted" }, el("span", {}, "1"), el("span", {}, `${number(length)} bp`)),
     el("h2", {}, "PF32 hits"),
     ...(pf32Tracks.length ? pf32Tracks : [el("p", { class: "muted" }, "No PF32 hits on this contig.")]),

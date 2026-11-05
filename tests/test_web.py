@@ -11,7 +11,7 @@ fastapi = pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
 from plasmid_caller.web import auth
-from plasmid_caller.web.app import create_app, guard_cell, identity_cells
+from plasmid_caller.web.app import create_app, guard_cell, identity_cells, replicon_totals
 from plasmid_caller.web.jobs import JobStore, Settings, safe_filename, validate_fasta
 
 jwt = pytest.importorskip("jwt")
@@ -28,6 +28,9 @@ out = pathlib.Path(sys.argv[1]); out.mkdir(parents=True)
 (out / "genospecies_composition.tsv").write_text("genospecies\\tpercent_composition\\nafzelii\\t100\\n")
 (out / "x_renamed.fasta").write_text(">c\\nA\\n")
 xml = out / "wp" / "xml_files"; xml.mkdir(parents=True); (xml / "a.xml").write_text("x")
+pf32 = out / "pf32" / "tables"; pf32.mkdir(parents=True)
+(pf32 / "a_multi_loci.tsv").write_text(
+    "contig_id\\tplasmid_name\\tlocus_idx\\tlocus_start\\tlocus_end\\n001\\tlp17\\t1\\t10\\t90\\n")
 tables = out / "wp" / "tables"; tables.mkdir()
 (tables / "a_all.tsv").write_text(
     "contig_id\\tcontig_len\\tplasmid_id\\tplasmid_name\\tstrain\\tgenospecies\\toverall_percent_identity\\t"
@@ -162,6 +165,31 @@ def test_fusions_share_one_cell_and_keep_their_name():
     assert fusion["fusion"] == "lp21-cp9" and fusion["parts"] == ["lp21", "cp9"] and fusion["top"]
 
 
+def test_replicon_totals_split_multi_locus_calls():
+    totals = replicon_totals([
+        {"filtered_call": "lp56:::cp32-10", "contig_len": 50000},
+        {"filtered_call": "cp32-12*", "contig_len": 30000},
+        {"filtered_call": "lp56", "contig_len": 2000},
+        {"filtered_call": "unclassified", "contig_len": 999},
+        {"filtered_call": None, "contig_len": 999},
+    ])
+    assert totals == {"lp56": {"contigs": 2, "bp": 52000}, "cp32-10": {"contigs": 1, "bp": 50000},
+                      "cp32-12": {"contigs": 1, "bp": 30000}}
+
+
+def test_batch_overview_lists_finished_jobs_only(tmp_path, monkeypatch):
+    with client_for(tmp_path, monkeypatch) as client:
+        response = client.post("/api/batches", files=[
+            ("files", ("good.fna", io.BytesIO(FASTA))), ("files", ("bad.fna", io.BytesIO(b"nope")))]).json()
+        good = next(job for job in response["jobs"] if job["name"] == "good.fna")
+        wait_for(client, good["id"])
+        overview = client.get(f"/api/batches/{response['id']}/overview").json()
+        assert [job["name"] for job in overview] == ["good.fna"]
+        assert overview[0]["replicons"] == {"lp17": {"contigs": 1, "bp": 10}}
+        assert overview[0]["composition"][0]["genospecies"] == "afzelii"
+        assert client.get("/api/batches/nope/overview").status_code == 404
+
+
 def test_contig_endpoint(tmp_path, monkeypatch):
     with client_for(tmp_path, monkeypatch) as client:
         job = wait_for(client, upload(client).json()["jobs"][0]["id"])
@@ -169,6 +197,7 @@ def test_contig_endpoint(tmp_path, monkeypatch):
         body = client.get(url, params={"contig_id": "001"}).json()
         assert body["rule"] == "No PF32 or WP hit." and body["contig"]["filtered_call"] == "lp17"
         assert body["plasmids"][0]["query_intervals"] == [[1, 9000]] and body["tiling"] == [["lp17", 9000]]
+        assert body["loci"][0]["plasmid_name"] == "lp17" and body["loci"][0]["locus_end"] == 90
         assert client.get(url, params={"contig_id": "nope"}).status_code == 404
 
 
