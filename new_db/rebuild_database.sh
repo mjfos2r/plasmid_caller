@@ -17,7 +17,7 @@ Options:
   --pfam32 PATH         Default: new_db/pfam32_references.tsv
   --renames PATH        Default: new_db/plasmid_name_corrections.tsv
   --no-renames          Do not apply a plasmid-name corrections table
-  --tools PATH          Directory containing the three Python helpers (default: tools)
+  --tools PATH          Directory containing the four Python helpers (default: tools)
   --blast-bin PATH      BLAST binary directory; otherwise use bundled BLAST or PATH
   --python PATH         Python executable; default: uv run python
   --build PATH          New output directory; must not already exist
@@ -26,12 +26,14 @@ Options:
                         pfam32_proteins.gp, optional pfam32_cds.fna
   --overrides PATH      Taxon override TSV: database, reference_id, genospecies
                         Only explicit reviewed overrides, not a whole old taxa TSV
+  --min-wp-bp N         Drop WP references shorter than this (default: 1000)
   --threads N           Self-test threads (default: 15)
   --skip-test           Build/check indexes without running the caller self-test
   -h, --help            Show this help
 
 Required helpers:
-  format_plasmid_headers.py, build_reference_taxa.py, sync_reference_taxa.py
+  format_plasmid_headers.py, build_reference_taxa.py, sync_reference_taxa.py,
+  filter_short_references.py
 
 Conflicts are quarantined. Unresolved labels are reported. All output goes to
 --build. The installed database is NOT replaced. Existing manual taxonomy edits
@@ -43,7 +45,7 @@ seed_db=; seed_wp=ref_seqs/wp_v2.fna; seed_pf32=ref_seqs/pf32_v4.faa
 assemblies=new_db/assemblies.tsv; pfam32=new_db/pfam32_references.tsv
 renames=new_db/plasmid_name_corrections.tsv; tools_dir=tools
 blast_bin=; python_bin=; localized=; overrides=
-build="new_db/rebuild_$(date +%Y%m%d_%H%M%S)"; threads=15; run_test=1
+build="new_db/rebuild_$(date +%Y%m%d_%H%M%S)"; threads=15; run_test=1; min_wp_bp=1000
 while (($#)); do
   case "$1" in
     -h|--help) usage; exit 0 ;;
@@ -58,12 +60,14 @@ while (($#)); do
     --tools) tools_dir=$2 ;; --blast-bin) blast_bin=$2 ;;
     --python) python_bin=$2 ;; --build) build=$2 ;;
     --localized) localized=$2 ;; --overrides) overrides=$2 ;;
-    --threads) threads=$2 ;; *) die "Unknown option: $1" ;;
+    --threads) threads=$2 ;; --min-wp-bp) min_wp_bp=$2 ;;
+    *) die "Unknown option: $1" ;;
   esac
   shift 2
 done
 [[ -n "$seed_db" ]] || die '--seed-db is required'
 [[ "$threads" =~ ^[1-9][0-9]*$ ]] || die '--threads must be a positive integer'
+[[ "$min_wp_bp" =~ ^[0-9]+$ ]] || die '--min-wp-bp must be a non-negative integer'
 [[ ! -e "$build" ]] || die "Build directory already exists: $build"
 if [[ -n "$python_bin" ]]; then PY=("$python_bin"); else
   command -v uv >/dev/null || die 'uv not found; use --python /path/to/python'
@@ -75,7 +79,7 @@ fi
 for file in "$assemblies" "$pfam32" "$seed_wp" "$seed_pf32" \
   "$seed_db/blast_parsing_dict.pkl" \
   "$tools_dir/format_plasmid_headers.py" "$tools_dir/build_reference_taxa.py" \
-  "$tools_dir/sync_reference_taxa.py"; do
+  "$tools_dir/sync_reference_taxa.py" "$tools_dir/filter_short_references.py"; do
   [[ -s "$file" ]] || die "Missing or empty file: $file"
 done
 [[ -z "$renames" || -s "$renames" ]] || die "Missing corrections table: $renames (or use --no-renames)"
@@ -104,7 +108,7 @@ cp "$pfam32" "$build/manifests/pfam32_references.tsv"
 cp "$seed_wp" "$build/seed/ref_seqs/wp_v2.fna"
 cp "$seed_pf32" "$build/seed/ref_seqs/pf32_v4.faa"
 cp "$seed_db/blast_parsing_dict.pkl" "$build/seed/"
-for helper in format_plasmid_headers build_reference_taxa sync_reference_taxa; do
+for helper in format_plasmid_headers build_reference_taxa sync_reference_taxa filter_short_references; do
   cp "$tools_dir/$helper.py" "$build/helpers/"
 done
 rename_args=(); override_args=()
@@ -228,8 +232,12 @@ printf '\n4. Rebuild taxonomy and synchronize the dictionary\n'
   --db "$build/taxon_metadata" --out "$build/taxon_metadata_final"
 printf '\n5. Stage final database and build indexes\n'
 mkdir -p "$build/db"/{ref_seqs,wp,pf32}
-cp "$build/deduplicated_refs/wp.fna" "$build/deduplicated_refs/pf32.faa" "$build/db/ref_seqs/"
-cp "$build/taxon_metadata_final/reference_taxa.tsv" "$build/taxon_metadata_final/blast_parsing_dict.pkl" "$build/db/"
+cp "$build/deduplicated_refs/pf32.faa" "$build/db/ref_seqs/"
+"${PY[@]}" "$build/helpers/filter_short_references.py" \
+  --wp "$build/deduplicated_refs/wp.fna" \
+  --taxa "$build/taxon_metadata_final/reference_taxa.tsv" \
+  --lookup "$build/taxon_metadata_final/blast_parsing_dict.pkl" \
+  --min-bp "$min_wp_bp" --out "$build/db"
 if [[ -f src/plasmid_caller/db/__init__.py ]]; then cp src/plasmid_caller/db/__init__.py "$build/db/"; fi
 makeblastdb -in "$build/db/ref_seqs/wp.fna" -dbtype nucl -parse_seqids -title wp -out "$build/db/wp/wp"
 makeblastdb -in "$build/db/ref_seqs/pf32.faa" -dbtype prot -parse_seqids -title pf32 -out "$build/db/pf32/pf32"
