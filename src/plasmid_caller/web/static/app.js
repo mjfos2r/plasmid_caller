@@ -97,6 +97,8 @@ async function batchPage(id) {
   }
 }
 
+const contigHref = (jobId, contigId) => `#/job/${jobId}/contig/${encodeURIComponent(contigId)}`;
+
 const COLUMNS = [
   { key: "contig_id", label: "Contig" },
   { key: "contig_len", label: "Length", num: true },
@@ -107,12 +109,13 @@ const COLUMNS = [
   { key: "strain_wp", label: "WP strain" },
   { key: "overall_percent_identity_wp", label: "WP identity %", num: true, digits: 2 },
   { key: "query_coverage_percent_wp", label: "WP coverage %", num: true, digits: 1 },
+  { key: "fusion_signal", label: "Fusion candidate" },
 ];
 
 const isFlagged = (row) => row.genospecies === "ambiguous" || (row.plasmid_name_pf32 &&
   row.plasmid_name_wp && row.plasmid_name_pf32 !== row.plasmid_name_wp);
 
-function contigTable(contigs) {
+function contigTable(contigs, jobId) {
   let sortKey = "contig_len", ascending = false, query = "";
   const body = el("tbody");
   const render = () => {
@@ -127,6 +130,7 @@ function contigTable(contigs) {
       });
     body.replaceChildren(...rows.map((row) => el("tr", { class: isFlagged(row) ? "flagged" : null },
       ...COLUMNS.map((col) => el("td", { class: col.num ? "num" : null },
+        col.key === "contig_id" ? el("a", { href: contigHref(jobId, row.contig_id) }, row.contig_id) :
         col.num ? number(row[col.key], col.digits) : row[col.key] ?? "")))));
   };
   const head = COLUMNS.map((col) => el("th", { class: col.num ? "num" : null }, el("button", {
@@ -141,8 +145,123 @@ function contigTable(contigs) {
   return [filter, el("div", { class: "scroll" }, el("table", {}, el("thead", {}, el("tr", {}, ...head)), body))];
 }
 
+const chromosomeFirst = (a, b) => (b === "chromosome") - (a === "chromosome") ||
+  a.localeCompare(b, undefined, { numeric: true });
+// Callable hits rank above grey ones, so a short uncallable 100% can't lead the table.
+const columnRank = (cell) => !cell ? -1 : cell.overall_percent_identity + (cell.passes ? 1000 : 0);
+const identityShade = (identity) => `${Math.max(0, Math.min(1, (identity - 80) / 20)) * 45}%`;
+
+function identityCell(label, row, otherLabel) {
+  const cell = row.get(label), fused = row.get("fusion");
+  const isPart = Boolean(fused?.passes && fused.parts.includes(label));
+  if (!cell) return isPart ? el("td", { class: "num part", title: `Part of ${fused.fusion}, with no unfused hit` }, "–") : el("td");
+  const lines = [
+    `${cell.label}: ${number(cell.overall_percent_identity, 2)}% identity`,
+    `Covers ${number(cell.query_coverage_percent, 1)}% of the contig (${number(cell.query_covered_length)} bp)`,
+    `${otherLabel}: ${cell.other ?? "unknown"}`,
+    `Reference: ${cell.strain ?? "unknown strain"} ${cell.plasmid_id ?? ""}`,
+  ];
+  if (cell.fusion) {
+    lines[0] = `${cell.fusion}: ${number(cell.overall_percent_identity, 2)}% identity`;
+    lines.push(`Parts: ${cell.parts.map((part) => {
+      const hit = row.get(part);
+      return `${part} ${hit ? `${number(hit.overall_percent_identity, 2)}%` : "no unfused hit"}`;
+    }).join(", ")}`);
+  }
+  if (isPart) lines.push(`Part of ${fused.fusion}`);
+  if (cell.top) lines.push("Highest-scoring WP hit on this contig");
+  if (!cell.passes) lines.push("Below the coverage gates: cannot be called");
+  const node = el("td", { class: `num${cell.top ? " top" : ""}${cell.passes ? "" : " weak"}${isPart ? " part" : ""}`,
+    title: lines.join("\n") }, number(cell.overall_percent_identity, 2),
+    cell.fusion ? el("div", { class: "muted" }, cell.fusion) : null);
+  if (cell.passes) node.style.setProperty("--shade", identityShade(cell.overall_percent_identity));
+  return node;
+}
+
+function identityTable(contigs, cells, otherLabel, jobId) {
+  if (!cells.length) return [el("p", { class: "muted" }, "No WP hits for this assembly.")];
+  const labels = [...new Set(cells.flatMap((cell) => [cell.label, ...cell.parts]))].sort(chromosomeFirst);
+  const hits = new Map(contigs.map((row) => [row.contig_id, new Map()]));
+  for (const cell of cells) hits.get(cell.contig_id)?.set(cell.label, cell);
+  const identity = (row, label) => hits.get(row.contig_id).get(label)?.overall_percent_identity ?? -1;
+  const peak = new Map(labels.map((label) => [label, -1]));
+  for (const cell of cells) peak.set(cell.label, Math.max(peak.get(cell.label), columnRank(cell)));
+  let sortLabel = null, query = "", anchor = null;
+  const body = el("tbody"), headRow = el("tr");
+  const anchorOption = el("option", { value: "contig" });
+  const order = el("select", { "aria-label": "Column order", onchange: () => {
+    if (order.value !== "contig") setAnchor(null);
+    render();
+  } }, el("option", { value: "identity" }, "Highest identity"), el("option", { value: "name" }, "Alphabetical"));
+  const setAnchor = (contigId) => {
+    anchor = contigId;
+    if (anchor === null) {
+      if (order.value === "contig") order.value = "identity";
+      anchorOption.remove();
+    } else {
+      anchorOption.textContent = `Contig ${anchor}`;
+      order.append(anchorOption);
+      order.value = "contig";
+    }
+  };
+  const columns = () => {
+    if (order.value === "name") return labels;
+    const rank = (label) => anchor === null ? peak.get(label) : columnRank(hits.get(anchor).get(label));
+    return [...labels].sort((a, b) => rank(b) - rank(a) || chromosomeFirst(a, b));
+  };
+  const render = () => {
+    const shown = columns();
+    headRow.replaceChildren(el("th", { scope: "col" }, "Contig"), ...shown.map((label) =>
+      el("th", { class: "num" }, el("button", {
+        onclick: () => { sortLabel = sortLabel === label ? null : label; render(); } }, label))));
+    const rows = contigs
+      .filter((row) => `${row.contig_id} ${row.filtered_call ?? ""}`.toLowerCase().includes(query))
+      .sort((a, b) => sortLabel === null ? b.contig_len - a.contig_len : identity(b, sortLabel) - identity(a, sortLabel));
+    body.replaceChildren(...rows.map((row) => el("tr", { class: row.contig_id === anchor ? "anchor" : null },
+      el("th", { scope: "row", title: row.contig_id },
+        el("button", { "aria-pressed": row.contig_id === anchor, onclick: () => {
+          setAnchor(row.contig_id === anchor ? null : row.contig_id);
+          render();
+        } }, row.contig_id),
+        el("div", { class: "muted" }, `${row.filtered_call ?? "no call"} · ${number(row.contig_len)} bp · `,
+          el("a", { href: contigHref(jobId, row.contig_id) }, "open"))),
+      ...shown.map((label) => identityCell(label, hits.get(row.contig_id), otherLabel)))));
+  };
+  const filter = el("input", { class: "filter", type: "search", placeholder: "Filter contigs",
+    "aria-label": "Filter contigs", oninput: (event) => { query = event.target.value.toLowerCase(); render(); } });
+  render();
+  return [el("div", { class: "controls" }, filter, el("label", {}, "Columns ", order)),
+    el("div", { class: "scroll matrix" }, el("table", {}, el("thead", {}, headRow), body))];
+}
+
+const fusionNote = "The fusion column holds the contig's best hit to any fused reference; dotted underlines mark that fusion's parts, each with its own unfused identity. ";
+const identityKey = (noun, gates) => el("p", { class: "muted" },
+  `Best WP hit for each contig and ${noun}, as % identity. Darker cells are closer to 100%. ` +
+  "The outlined bold cell scored highest on coverage × identity, which is how WP picks its hit; " +
+  "the contig's call can still differ because it prefers PF32. " +
+  (gates ? `Grey cells cover under ${gates.coverage_pct}% of the contig and under ${number(gates.covered_bp)} bp, so they can't be called. ` : "") +
+  (noun === "plasmid" ? fusionNote : "") +
+  "Columns run from highest to lowest identity, with grey cells after the rest. " +
+  "Hover a cell for coverage and reference. Click a column to sort rows by it, or a contig to order columns by it.");
+
+function tabs(panels) {
+  const bodies = panels.map(([, nodes]) => el("div", {}, ...nodes));
+  const buttons = panels.map(([label], index) => el("button", { class: "tab", onclick: () => show(index) }, label));
+  const show = (index) => {
+    bodies.forEach((body, i) => { body.hidden = i !== index; });
+    buttons.forEach((button, i) => button.setAttribute("aria-pressed", i === index));
+  };
+  show(0);
+  return [el("div", { class: "tabs" }, ...buttons), ...bodies];
+}
+
 async function jobPage(id) {
-  const { job, contigs, composition, downloads } = await api(`/api/jobs/${id}/results`);
+  const [{ job, contigs, composition, downloads }, identity] = await Promise.all([
+    api(`/api/jobs/${id}/results`), api(`/api/jobs/${id}/identity`)]);
+  for (const row of contigs) {
+    const signals = [row.multiple_loci_pf32 && "PF32", identity.candidates[row.contig_id] && "WP"].filter(Boolean);
+    row.fusion_signal = signals.length ? signals.join(" + ") : null;
+  }
   const classified = composition.filter((row) => row.genospecies !== "unclassified");
   const summary = classified.map((row) => `${row.genospecies} ${number(row.percent_composition, 1)}%`).join(" · ");
   const flagged = contigs.filter(isFlagged).length;
@@ -150,17 +269,98 @@ async function jobPage(id) {
     el("p", {}, el("a", { href: `#/batch/${job.batch_id}` }, "Back to batch")),
     el("h1", {}, job.name),
     el("p", { class: "muted" }, `${number(job.contigs)} contigs · ${number(job.bases)} bp · ${summary || "no classified contigs"}`),
-    el("h2", {}, flagged ? `Contigs (${flagged} flagged: PF32/WP disagree or ambiguous genospecies)` : "Contigs"),
-    ...contigTable(contigs),
+    ...tabs([
+      ["Contigs", [
+        el("h2", {}, flagged ? `Contigs (${flagged} flagged: PF32/WP disagree or ambiguous genospecies)` : "Contigs"),
+        ...contigTable(contigs, id)]],
+      ["Plasmid identity", [identityKey("plasmid", identity.gates),
+        ...identityTable(contigs, identity.plasmid, "Genospecies", id)]],
+      ["Genospecies identity", [identityKey("genospecies", identity.gates),
+        ...identityTable(contigs, identity.genospecies, "Plasmid", id)]],
+    ]),
     el("h2", {}, "Downloads"),
     el("div", { class: "links" }, ...downloads.map((name) =>
       el("a", { href: `/api/jobs/${id}/download/${name}` }, name))));
 }
 
+function hitTrack(label, hit, length, { detail, weak = false }) {
+  const bar = el("div", { class: "bar" });
+  for (const [start, end] of hit.query_intervals) {
+    const span = el("span", { class: weak ? "weak" : null });
+    span.style.left = `${(start - 1) / length * 100}%`;
+    span.style.width = `${Math.max((end - start + 1) / length * 100, 0.2)}%`;
+    if (!weak) span.style.setProperty("--shade", `${30 + parseFloat(identityShade(hit.overall_percent_identity)) * 1.5}%`);
+    bar.append(span);
+  }
+  return el("div", { class: "track", title: detail.join("\n") },
+    el("div", { class: "track-label" }, label), bar,
+    el("div", { class: "num muted" }, `${number(hit.overall_percent_identity, 2)}%`));
+}
+
+function wpTracks(cells, length, name) {
+  if (!cells.length) return [el("p", { class: "muted" }, "No WP hits on this contig.")];
+  const ranked = [...cells].sort((a, b) => b.passes - a.passes || b.score - a.score);
+  const list = el("div");
+  const render = (showGrey) => list.replaceChildren(...ranked.filter((cell) => showGrey || cell.passes).map((cell) =>
+    hitTrack(name(cell), cell, length, { weak: !cell.passes, detail: [
+      `${number(cell.overall_percent_identity, 2)}% identity over ${number(cell.query_coverage_percent, 1)}% of the contig (${number(cell.query_covered_length)} bp)`,
+      `Reference: ${cell.strain ?? "unknown strain"} ${cell.plasmid_id ?? ""}, ${number(cell.ref_covered_length)} of ${number(cell.ref_length)} bp covered`,
+      ...(cell.fusion ? [`Fused reference: ${cell.parts.join(" + ")}`] : []),
+      ...(cell.passes ? [] : ["Below the coverage gates: cannot be called"]),
+    ] })));
+  render(false);
+  const grey = cells.length - cells.filter((cell) => cell.passes).length;
+  const toggle = grey ? el("label", { class: "muted" }, el("input", { type: "checkbox",
+    onchange: (event) => render(event.target.checked) }), ` Show ${grey} hits below the coverage gates`) : null;
+  return [list, toggle];
+}
+
+function fusionPanel(contig, pf32, tiling) {
+  const lines = [];
+  if (contig.multiple_loci_pf32) {
+    lines.push(`PF32: hits at separate loci (${[...new Set(pf32.map((hit) => hit.plasmid_name))].join(", ")}).`);
+  }
+  if (tiling.length >= 2) {
+    lines.push(`WP: no single plasmid explains this contig. Unfused references tile it as ${
+      tiling.map(([name, bp]) => `${name} (+${number(bp)} bp)`).join(", ")}. Part names are reliable for lp + cp pairs, not cp32 + cp32.`);
+  }
+  if (!lines.length) return el("p", { class: "muted" }, "No fusion signals on this contig.");
+  return el("div", { class: "notice" }, el("strong", {}, "Fusion candidate: needs validation"),
+    ...lines.map((line) => el("div", {}, line)));
+}
+
+async function contigPage(jobId, contigId) {
+  const { job, contig, rule, plasmids, genospecies, pf32, tiling } =
+    await api(`/api/jobs/${jobId}/contig?contig_id=${encodeURIComponent(contigId)}`);
+  const length = contig.contig_len;
+  const species = genospecies.filter((cell) => cell.passes).sort((a, b) => b.score - a.score);
+  const margin = species.length > 1 ? `${species[0].label} leads ${species[1].label} on coverage × identity: ` +
+    `${number(species[0].score / 100, 1)} against ${number(species[1].score / 100, 1)}.` : null;
+  const pf32Tracks = pf32.map((hit) => hitTrack(`${hit.plasmid_name} · ${hit.strain ?? "?"}`, hit, length, { detail: [
+    `${number(hit.overall_percent_identity, 2)}% identity over ${number(hit.query_covered_length)} bp`,
+    `Reference: ${hit.strain ?? "unknown strain"} ${hit.plasmid_id ?? ""}`] }));
+  view.replaceChildren(
+    el("p", {}, el("a", { href: `#/job/${jobId}` }, `Back to ${job.name}`)),
+    el("h1", {}, contig.contig_id),
+    el("p", { class: "muted" }, `${number(length)} bp · ${contig.genospecies ?? "no genospecies"}`),
+    el("p", {}, "Call: ", el("strong", {}, contig.filtered_call ?? "none"), rule ? ` · ${rule}` : ""),
+    fusionPanel(contig, pf32, tiling),
+    el("div", { class: "axis muted" }, el("span", {}, "1"), el("span", {}, `${number(length)} bp`)),
+    el("h2", {}, "PF32 hits"),
+    ...(pf32Tracks.length ? pf32Tracks : [el("p", { class: "muted" }, "No PF32 hits on this contig.")]),
+    ...tabs([
+      ["WP by plasmid", wpTracks(plasmids, length, (cell) => cell.label)],
+      ["WP by genospecies", [margin ? el("p", { class: "muted" }, margin) : null,
+        ...wpTracks(genospecies, length, (cell) => cell.label)].filter(Boolean)],
+    ]));
+}
+
 function route() {
   clearTimeout(poll);
-  const [, page, id] = location.hash.split("/");
-  const load = page === "batch" ? batchPage(id) : page === "job" ? jobPage(id) : home();
+  const [, page, id, sub, contig] = location.hash.split("/");
+  const load = page === "batch" ? batchPage(id) :
+    page === "job" && sub === "contig" ? contigPage(id, decodeURIComponent(contig)) :
+    page === "job" ? jobPage(id) : home();
   load.catch(showError);
 }
 

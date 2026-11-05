@@ -3,23 +3,30 @@ import io
 import sys
 import time
 
+import pandas as pd
 import pytest
 
 fastapi = pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
-from plasmid_caller.web.app import create_app
+from plasmid_caller.web.app import create_app, identity_cells
 from plasmid_caller.web.jobs import JobStore, Settings, safe_filename, validate_fasta
 
 FASTA = b">contig_1\nACGTACGTAC\n>contig_2\nACGT\n"
 FAKE_CLI = """
 import pathlib, sys
 out = pathlib.Path(sys.argv[1]); out.mkdir(parents=True)
-(out / "summary_best_hits.tsv").write_text("contig_id\\tcontig_len\\tfinal_call\\nc1\\t10\\tlp17\\n")
-(out / "summary_all_calls.tsv").write_text("contig_id\\nc1\\n")
+(out / "summary_best_hits.tsv").write_text(
+    "contig_id\\tcontig_len\\tfinal_call\\tfiltered_call\\n001\\t10\\tlp17\\tlp17\\n")
+(out / "summary_all_calls.tsv").write_text("contig_id\\tcontig_len\\tfinal_call\\n001\\t10\\tunclassified\\n")
 (out / "genospecies_composition.tsv").write_text("genospecies\\tpercent_composition\\nafzelii\\t100\\n")
 (out / "x_renamed.fasta").write_text(">c\\nA\\n")
 xml = out / "wp" / "xml_files"; xml.mkdir(parents=True); (xml / "a.xml").write_text("x")
+tables = out / "wp" / "tables"; tables.mkdir()
+(tables / "a_all.tsv").write_text(
+    "contig_id\\tcontig_len\\tplasmid_id\\tplasmid_name\\tstrain\\tgenospecies\\toverall_percent_identity\\t"
+    "query_coverage_percent\\tquery_covered_length\\tquery_intervals\\n"
+    "001\\t10000\\tgb|A|\\tlp17\\tB31\\tburgdorferi\\t98\\t90\\t9000\\t[(1, 9000)]\\n")
 """
 
 
@@ -92,6 +99,71 @@ def test_upload_run_results_and_cleanup(tmp_path, monkeypatch):
         assert results["contigs"][0]["genospecies"] is None
         assert client.get(f"/api/jobs/{job['id']}/download/renamed.fasta").status_code == 200
         assert not list((tmp_path / "runs").rglob("xml_files"))
+
+
+def hit(contig, name, species, identity, coverage, length):
+    return {"contig_id": contig, "plasmid_name": name, "genospecies": species, "strain": "s",
+            "plasmid_id": "gb|A|", "overall_percent_identity": identity,
+            "query_coverage_percent": coverage, "query_covered_length": length}
+
+
+def cells(rows, by="plasmid_name"):
+    return {(cell["contig_id"], cell["label"]): cell for cell in identity_cells(pd.DataFrame(rows), by)}
+
+
+def test_identity_cell_keeps_the_hit_the_caller_prefers():
+    result = cells([
+        hit("c1", "lp28", "burgdorferi", 100, 2, 300),
+        hit("c1", "lp28", "garinii", 98, 95, 19000),
+        hit("c1", "lp17", "afzelii", 99, 10, 2000),
+    ])
+    lp28, lp17 = result["c1", "lp28"], result["c1", "lp17"]
+    assert lp28["overall_percent_identity"] == 98 and lp28["other"] == "garinii"
+    assert lp28["top"] and not lp17["top"] and lp17["passes"]
+
+
+def test_identity_cell_below_gates_is_kept_but_never_top():
+    result = cells([hit("c1", "lp28", "burgdorferi", 100, 5, 300), hit("c2", None, None, None, None, None)])
+    assert list(result) == [("c1", "lp28")]
+    assert not result["c1", "lp28"]["passes"] and not result["c1", "lp28"]["top"]
+
+
+def test_identity_ties_are_all_top():
+    result = cells([hit("c1", "lp28", "burgdorferi", 99, 90, 9000),
+                    hit("c1", "lp28", "garinii", 99, 90, 9000)], "genospecies")
+    assert result["c1", "burgdorferi"]["top"] and result["c1", "garinii"]["top"]
+
+
+def test_identity_endpoint_matches_summary_contig_ids(tmp_path, monkeypatch):
+    with client_for(tmp_path, monkeypatch) as client:
+        job = wait_for(client, upload(client).json()["jobs"][0]["id"])
+        contig = client.get(f"/api/jobs/{job['id']}/results").json()["contigs"][0]
+        identity = client.get(f"/api/jobs/{job['id']}/identity").json()
+        assert contig["contig_id"] == "001"
+        assert identity["plasmid"][0]["contig_id"] == "001" and identity["plasmid"][0]["top"] is True
+        assert identity["genospecies"][0]["label"] == "burgdorferi"
+        assert identity["gates"]["covered_bp"] == 1000
+
+
+def test_fusions_share_one_cell_and_keep_their_name():
+    result = cells([
+        hit("c1", "lp21-cp9", "burgdorferi", 99.9, 95, 18000),
+        hit("c1", "cp32-1+3", "garinii", 90, 20, 4000),
+        hit("c1", "lp21", "burgdorferi", 99, 90, 17000),
+    ])
+    assert set(result) == {("c1", "fusion"), ("c1", "lp21")}
+    fusion = result["c1", "fusion"]
+    assert fusion["fusion"] == "lp21-cp9" and fusion["parts"] == ["lp21", "cp9"] and fusion["top"]
+
+
+def test_contig_endpoint(tmp_path, monkeypatch):
+    with client_for(tmp_path, monkeypatch) as client:
+        job = wait_for(client, upload(client).json()["jobs"][0]["id"])
+        url = f"/api/jobs/{job['id']}/contig"
+        body = client.get(url, params={"contig_id": "001"}).json()
+        assert body["rule"] == "No PF32 or WP hit." and body["contig"]["filtered_call"] == "lp17"
+        assert body["plasmids"][0]["query_intervals"] == [[1, 9000]] and body["tiling"] == [["lp17", 9000]]
+        assert client.get(url, params={"contig_id": "nope"}).status_code == 404
 
 
 def test_download_only_serves_known_files(tmp_path, monkeypatch):

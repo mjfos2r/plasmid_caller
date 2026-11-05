@@ -9,6 +9,8 @@ from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
+from ..replicons import fusion_candidates, is_fusion, replicon_parts, tile_contig
+from ..scoring import WP_MIN_COV_BP, WP_MIN_COV_PCT, _parse_intervals, decide_call, wp_hit_passes
 from .jobs import ID_PATTERN, JobStore, QueueFull
 
 STATIC = Path(__file__).parent / "static"
@@ -24,6 +26,15 @@ SUMMARY_COLUMNS = [
     "overall_percent_identity_wp", "query_coverage_percent_wp",
     "overall_percent_identity_pf32", "query_coverage_percent_pf32", "multiple_loci_pf32",
 ]
+IDENTITY_COLUMNS = [
+    "contig_id", "label", "overall_percent_identity", "query_coverage_percent",
+    "query_covered_length", "strain", "plasmid_id", "passes", "top", "score", "fusion", "parts",
+    "ref_length", "ref_covered_length", "query_intervals",
+]
+PF32_COLUMNS = [
+    "plasmid_name", "strain", "plasmid_id", "overall_percent_identity", "query_covered_length",
+    "query_intervals",
+]
 DOWNLOADS = {
     "summary_best_hits.tsv": "text/tab-separated-values",
     "summary_all_calls.tsv": "text/tab-separated-values",
@@ -32,12 +43,48 @@ DOWNLOADS = {
 }
 
 
+def read_table(path):
+    # Contig IDs stay text: "001" must not become 1.
+    return pd.read_csv(path, sep="\t", keep_default_na=True, na_values=[""],
+                       dtype={"contig_id": str})
+
+
+def to_records(frame):
+    return frame.astype(object).where(frame.notna(), None).to_dict(orient="records")
+
+
 def read_records(path, columns=None):
-    frame = pd.read_csv(path, sep="\t", keep_default_na=True, na_values=[""])
-    if columns:
-        frame = frame.reindex(columns=columns)
-    frame = frame.astype(object).where(frame.notna(), None)
-    return frame.to_dict(orient="records")
+    frame = read_table(path)
+    return to_records(frame.reindex(columns=columns) if columns else frame)
+
+
+def identity_cells(hits, by, fold_fusions=True):
+    """One row per contig and `by` value: the hit the caller would prefer among them.
+
+    `top` marks the highest-scoring hit on the contig, ties included, as in
+    taxonomy.annotate_best_hits. Hits below the WP gates can never be top.
+    With `fold_fusions`, fused plasmids share a single "fusion" label.
+    """
+    hits = hits.dropna(subset=[by]).copy()
+    label = hits[by].astype(object)
+    hits["fusion"], hits["parts"] = None, [[] for _ in range(len(hits))]
+    if by == "plasmid_name":
+        fused = hits["plasmid_name"].map(is_fusion)
+        hits.loc[fused, "fusion"] = hits.loc[fused, "plasmid_name"]
+        hits["parts"] = [replicon_parts(name) if flag else []
+                         for name, flag in zip(hits["plasmid_name"], fused)]
+        if fold_fusions:
+            label = label.where(~fused, "fusion")
+    hits["label"] = label
+    hits["passes"] = wp_hit_passes(hits)
+    hits["score"] = hits["query_coverage_percent"] * hits["overall_percent_identity"]
+    best = (hits.sort_values(["passes", "score"], ascending=False, kind="stable")
+            .drop_duplicates(["contig_id", "label"]))
+    peak = best.loc[best["passes"]].groupby("contig_id")["score"].max()
+    peak = best["contig_id"].map(peak)
+    best["top"] = best["passes"] & ((best["score"] - peak).abs() <= 1e-9 * peak)
+    best["other"] = best["genospecies" if by == "plasmid_name" else "plasmid_name"]
+    return to_records(best.reindex(columns=IDENTITY_COLUMNS + ["other"]))
 
 
 def create_app(settings):
@@ -138,6 +185,51 @@ def create_app(settings):
             "contigs": read_records(output / "summary_best_hits.tsv", SUMMARY_COLUMNS),
             "composition": read_records(output / "genospecies_composition.tsv"),
             "downloads": [*DOWNLOADS, "renamed.fasta"],
+        }
+
+    def hit_table(job, database):
+        tables = list((store.output_dir(job) / database / "tables").glob("*_all.tsv"))
+        return read_table(tables[0]) if tables else None
+
+    @app.get("/api/jobs/{job_id}/identity")
+    def get_identity(job_id: str):
+        hits = hit_table(finished_job(job_id), "wp")
+        if hits is None or hits.empty:
+            return {"gates": None, "plasmid": [], "genospecies": [], "candidates": {}}
+        return {
+            "gates": {"coverage_pct": WP_MIN_COV_PCT, "covered_bp": WP_MIN_COV_BP},
+            "plasmid": identity_cells(hits, "plasmid_name"),
+            "genospecies": identity_cells(hits, "genospecies"),
+            "candidates": fusion_candidates(hits),
+        }
+
+    @app.get("/api/jobs/{job_id}/contig")
+    def get_contig(job_id: str, contig_id: str):
+        job = finished_job(job_id)
+        output = store.output_dir(job)
+        summary = read_table(output / "summary_all_calls.tsv")
+        rows = summary[summary["contig_id"] == contig_id]
+        calls = read_table(output / "summary_best_hits.tsv")
+        calls = calls[calls["contig_id"] == contig_id]
+        if rows.empty or calls.empty:
+            raise HTTPException(404, "Contig not found")
+        call, rule = decide_call(rows.iloc[0])
+        wp, pf32 = hit_table(job, "wp"), hit_table(job, "pf32")
+        wp = wp[(wp["contig_id"] == contig_id) & wp["plasmid_id"].notna()] if wp is not None else None
+        pf32 = pf32[(pf32["contig_id"] == contig_id) & pf32["plasmid_id"].notna()] if pf32 is not None else None
+
+        def with_intervals(records):
+            return [{**row, "query_intervals": _parse_intervals(row["query_intervals"])} for row in records]
+
+        has_wp = wp is not None and not wp.empty
+        return {
+            "job": job,
+            "contig": to_records(calls.reindex(columns=SUMMARY_COLUMNS))[0],
+            "rule": rule if call == rows.iloc[0].get("final_call") else None,
+            "plasmids": with_intervals(identity_cells(wp, "plasmid_name", fold_fusions=False)) if has_wp else [],
+            "genospecies": with_intervals(identity_cells(wp, "genospecies")) if has_wp else [],
+            "pf32": with_intervals(to_records(pf32.reindex(columns=PF32_COLUMNS))) if pf32 is not None else [],
+            "tiling": tile_contig(wp) if has_wp else [],
         }
 
     @app.get("/api/jobs/{job_id}/download/{name}")

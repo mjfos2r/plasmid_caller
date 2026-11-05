@@ -45,12 +45,16 @@ def best_pf32_hit(df: pandas.DataFrame) -> pandas.DataFrame:
         .reset_index(drop=True)
     )
 
+def wp_hit_passes(df: pandas.DataFrame) -> pandas.Series:
+    """True for wp hits with enough coverage to be considered for a call."""
+    return ((df["query_coverage_percent"] >= WP_MIN_COV_PCT) |
+            (df["query_covered_length"] >= WP_MIN_COV_BP))
+
+
 def best_wp_hit(df: pandas.DataFrame) -> pandas.DataFrame:
     """score each wp hit by the product of the percent coverage and the percent identity. (as long as coverage is either over 10% or greater than 1000bp) """
     # todo add modular params to tweak these cutoffs # done
-    df = df[
-            (df["query_coverage_percent"] >= WP_MIN_COV_PCT) |
-            (df["query_covered_length"] >= WP_MIN_COV_BP) ]
+    df = df[wp_hit_passes(df)]
     if df.empty:
         return df
     df["_score"] = (df["query_coverage_percent"] *
@@ -166,12 +170,12 @@ def summarise_multiple_pf32(full_pf32_df: pandas.DataFrame, min_cov_bp: int = PF
 
     return multi_best_df, concat
 
-def choose_final_call(row):
-    """Determine the best replicon call from merged pf32/wp hits.
+def decide_call(row):
+    """Determine the best replicon call from merged pf32/wp hits, and the rule that made it.
     No size filtering — every contig gets its best possible call.
     Use filter_calls() to apply size thresholds afterward."""
     if pandas.isna(row.get("plasmid_name_pf32")) and pandas.isna(row.get("plasmid_name_wp")):
-        return "unclassified"
+        return "unclassified", "No PF32 or WP hit."
 
     pf32_ok = not pandas.isna(row.get("plasmid_name_pf32")) and _valid_pf32(row)
     wp_ok = not pandas.isna(row.get("plasmid_name_wp")) and _valid_wp(row)
@@ -180,23 +184,27 @@ def choose_final_call(row):
     if row["contig_len"] >= CHROMOSOME_MIN_BP:
         if (pf32_ok and row["plasmid_name_pf32"].lower() == "chromosome") or \
             (wp_ok and row["plasmid_name_wp"].lower() == "chromosome"):
-                return "chromosome"
+                return "chromosome", f"Contig is at least {CHROMOSOME_MIN_BP:,} bp and has a passing chromosome hit."
         else:
-            return row["plasmid_name_wp"]
+            return row["plasmid_name_wp"], f"Contig is at least {CHROMOSOME_MIN_BP:,} bp with no passing chromosome hit, so WP decides."
 
     if row.get("multiple_loci_pf32", False):
-        return row["concat_call_pf32"]
+        return row["concat_call_pf32"], "PF32 found hits at separate loci, so the call joins them."
 
     if pf32_ok and not wp_ok:
-        return row["plasmid_name_pf32"]
+        return row["plasmid_name_pf32"], "PF32 passed and WP did not."
 
     if wp_ok and not pf32_ok:
-        return row["plasmid_name_wp"]
+        return row["plasmid_name_wp"], "WP passed and PF32 did not."
 
     if pf32_ok and wp_ok:
-        return row["plasmid_name_pf32"]
+        return row["plasmid_name_pf32"], "PF32 and WP both passed, and PF32 takes priority."
 
-    return "unclassified"
+    return "unclassified", "Hits exist, but neither PF32 nor WP passed its threshold."
+
+
+def choose_final_call(row):
+    return decide_call(row)[0]
 
 
 def filter_calls(df: pandas.DataFrame,
