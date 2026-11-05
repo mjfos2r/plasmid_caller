@@ -1,0 +1,9 @@
+# Cloud Build uploads the working tree; the portal image only needs src/ and the build files.
+.git
+old_code/
+new_db/
+notes/
+tests/
+tools/
+taxon_metadata/
+src/plasmid_caller/test_data/
