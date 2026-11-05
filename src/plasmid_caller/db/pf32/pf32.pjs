@@ -6,9 +6,9 @@
   "description": "pf32",
   "number-of-letters": 37547,
   "number-of-sequences": 146,
-  "last-updated": "2026-11-05T18:40:00",
+  "last-updated": "2026-11-05T21:20:00",
   "number-of-volumes": 1,
-  "bytes-total": 119179,
+  "bytes-total": 119171,
   "bytes-to-cache": 38942,
   "files": [
     "pf32.pdb",
