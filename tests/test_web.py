@@ -2,6 +2,7 @@ import gzip
 import io
 import sys
 import time
+from types import SimpleNamespace
 
 import pandas as pd
 import pytest
@@ -9,9 +10,14 @@ import pytest
 fastapi = pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
-from plasmid_caller.web.app import create_app, identity_cells
+from plasmid_caller.web import auth
+from plasmid_caller.web.app import create_app, guard_cell, identity_cells
 from plasmid_caller.web.jobs import JobStore, Settings, safe_filename, validate_fasta
 
+jwt = pytest.importorskip("jwt")
+from cryptography.hazmat.primitives.asymmetric import rsa
+
+ACCESS_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 FASTA = b">contig_1\nACGTACGTAC\n>contig_2\nACGT\n"
 FAKE_CLI = """
 import pathlib, sys
@@ -216,6 +222,84 @@ def test_limits_and_origin_checks(tmp_path, monkeypatch):
         evil = {"origin": "http://evil.example"}
         assert client.post("/api/batches", files=files, headers=evil).status_code == 403
         assert client.get("/", headers={"host": "evil.example"}).status_code == 403
+
+
+@pytest.mark.parametrize("cell, expected", [
+    ("=cmd()", "'=cmd()"), ("+1+1", "'+1+1"), ("@sum", "'@sum"), ("-x", "'-x"),
+    ("-1.5", "-1.5"), ("contig_1", "contig_1"), ("cp32-1+3", "cp32-1+3"), ("", ""),
+])
+def test_guard_cell(cell, expected):
+    assert guard_cell(cell) == expected
+
+
+def test_tsv_downloads_are_guarded(tmp_path, monkeypatch):
+    script = FAKE_CLI.replace("001", "=cmd()")
+    with client_for(tmp_path, monkeypatch, script=script) as client:
+        job = wait_for(client, upload(client).json()["jobs"][0]["id"])
+        text = client.get(f"/api/jobs/{job['id']}/download/summary_best_hits.tsv").text
+        assert "\n'=cmd()\t" in text
+        assert client.get(f"/api/jobs/{job['id']}/results").json()["contigs"][0]["contig_id"] == "=cmd()"
+
+
+def test_jobs_are_stamped_with_provenance(tmp_path, monkeypatch):
+    with client_for(tmp_path, monkeypatch) as client:
+        version = client.get("/api/version").json()
+        assert len(version["database_sha256"]) == 64 and version["blast_version"] != "unknown"
+        job = wait_for(client, upload(client).json()["jobs"][0]["id"])
+        assert job["provenance"] == version
+        stamp = client.get(f"/api/jobs/{job['id']}/download/provenance.json").json()
+        assert stamp["database_sha256"] == version["database_sha256"]
+
+
+class FakeJWKS:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def get_signing_key_from_jwt(self, token):
+        return SimpleNamespace(key=ACCESS_KEY.public_key())
+
+
+def access_client(tmp_path, monkeypatch):
+    monkeypatch.setenv("CF_TEAM_DOMAIN", "team.cloudflareaccess.com")
+    monkeypatch.setenv("CF_ACCESS_AUD", "aud")
+    monkeypatch.setattr(auth, "PyJWKClient", FakeJWKS)
+    return client_for(tmp_path, monkeypatch, access=True, public_host="portal.example.org")
+
+
+def access_headers():
+    now = int(time.time())
+    token = jwt.encode({"aud": ["aud"], "iss": "https://team.cloudflareaccess.com", "iat": now,
+                        "exp": now + 600, "email": "pi@example.org"}, ACCESS_KEY, algorithm="RS256")
+    return {"Cf-Access-Jwt-Assertion": token, "host": "portal-abc.a.run.app"}
+
+
+@pytest.mark.parametrize("path", ["/", "/static/app.js", "/api/batches", "/api/version",
+                                  "/api/jobs/x", "/nonexistent", "/docs"])
+def test_every_route_needs_access_token(tmp_path, monkeypatch, path):
+    with access_client(tmp_path, monkeypatch) as client:
+        assert client.get(path, headers={"host": "portal-abc.a.run.app"}).status_code == 403
+
+
+def test_access_serves_run_app_host_and_public_origin(tmp_path, monkeypatch):
+    with access_client(tmp_path, monkeypatch) as client:
+        headers = access_headers()
+        assert client.get("/api/version", headers=headers).status_code == 200
+        files = [("files", ("a.fna", io.BytesIO(FASTA)))]
+        response = client.post("/api/batches", files=files,
+                               headers={**headers, "origin": "https://portal.example.org"})
+        assert response.status_code == 201
+        files = [("files", ("a.fna", io.BytesIO(FASTA)))]
+        response = client.post("/api/batches", files=files,
+                               headers={**headers, "origin": "https://evil.example"})
+        assert response.status_code == 403
+
+
+def test_access_refuses_to_start_half_configured(tmp_path, monkeypatch):
+    monkeypatch.delenv("CF_TEAM_DOMAIN", raising=False)
+    monkeypatch.delenv("CF_ACCESS_AUD", raising=False)
+    monkeypatch.delenv("ALLOW_INSECURE_DEV", raising=False)
+    with pytest.raises(RuntimeError):
+        create_app(Settings(runs_dir=tmp_path / "runs", access=True))
 
 
 def test_token_required_when_configured(tmp_path, monkeypatch):

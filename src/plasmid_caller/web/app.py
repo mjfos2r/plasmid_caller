@@ -6,11 +6,12 @@ from urllib.parse import urlsplit
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from ..replicons import fusion_candidates, is_fusion, replicon_parts, tile_contig
 from ..scoring import WP_MIN_COV_BP, WP_MIN_COV_PCT, _parse_intervals, decide_call, wp_hit_passes
+from .auth import install_access_auth
 from .jobs import ID_PATTERN, JobStore, QueueFull
 
 STATIC = Path(__file__).parent / "static"
@@ -35,12 +36,29 @@ PF32_COLUMNS = [
     "plasmid_name", "strain", "plasmid_id", "overall_percent_identity", "query_covered_length",
     "query_intervals",
 ]
+FORMULA_PREFIXES = ("=", "+", "-", "@")
 DOWNLOADS = {
     "summary_best_hits.tsv": "text/tab-separated-values",
     "summary_all_calls.tsv": "text/tab-separated-values",
     "genospecies_composition.tsv": "text/tab-separated-values",
     "summary_best_hits.json": "application/json",
 }
+
+
+def guard_cell(cell):
+    """Stop a contig name like =cmd() running as a formula when a TSV opens in a spreadsheet."""
+    if cell[:1] not in FORMULA_PREFIXES:
+        return cell
+    try:
+        float(cell)
+        return cell
+    except ValueError:
+        return f"'{cell}"
+
+
+def guarded_tsv(path):
+    lines = Path(path).read_text().splitlines()
+    return "".join("\t".join(map(guard_cell, line.split("\t"))) + "\n" for line in lines)
 
 
 def read_table(path):
@@ -110,7 +128,8 @@ def create_app(settings):
     @app.middleware("http")
     async def guard(request: Request, call_next):
         host = request.headers.get("host", "")
-        if not settings.token and urlsplit(f"//{host}").hostname not in {"localhost", "127.0.0.1", "::1"}:
+        loopback = urlsplit(f"//{host}").hostname in {"localhost", "127.0.0.1", "::1"}
+        if not settings.token and not settings.access and not loopback:
             # DNS rebinding: an unauthenticated server only answers to loopback names.
             return JSONResponse({"detail": "Unknown host"}, 403)
         if request.url.path == "/" and settings.token and "token" in request.query_params:
@@ -125,7 +144,8 @@ def create_app(settings):
             return JSONResponse({"detail": "Open the link containing the access token"}, 401)
         if request.method == "POST":
             origin = request.headers.get("origin")
-            if origin and urlsplit(origin).netloc != host:
+            # Behind the Worker, Host is the run.app address but Origin is the public name.
+            if origin and urlsplit(origin).netloc not in {host, settings.public_host}:
                 return JSONResponse({"detail": "Cross-origin request refused"}, 403)
             length = request.headers.get("content-length")
             if length is None:
@@ -136,6 +156,9 @@ def create_app(settings):
         response = await call_next(request)
         response.headers.update(SECURITY_HEADERS)
         return response
+
+    def attachment(filename):
+        return {"Content-Disposition": f'attachment; filename="{filename}"'}
 
     def job_or_404(job_id):
         job = store.get_job(job_id) if ID_PATTERN.match(job_id) else None
@@ -148,6 +171,10 @@ def create_app(settings):
         if job["status"] != "done":
             raise HTTPException(409, f"Job is {job['status']}")
         return job
+
+    @app.get("/api/version")
+    def version():
+        return store.provenance
 
     @app.get("/")
     def index():
@@ -184,7 +211,7 @@ def create_app(settings):
             "job": job,
             "contigs": read_records(output / "summary_best_hits.tsv", SUMMARY_COLUMNS),
             "composition": read_records(output / "genospecies_composition.tsv"),
-            "downloads": [*DOWNLOADS, "renamed.fasta"],
+            "downloads": [*DOWNLOADS, "renamed.fasta", "provenance.json"],
         }
 
     def hit_table(job, database):
@@ -243,10 +270,19 @@ def create_app(settings):
                 raise HTTPException(404, "File not found")
             return FileResponse(matches[0], media_type="text/plain",
                                 filename=f"{stem}_renamed.fasta")
+        if name == "provenance.json":
+            return JSONResponse({"job": job["id"], "finished_at": job["finished_at"],
+                                 **(job.get("provenance") or {})},
+                                headers=attachment(f"{stem}_{name}"))
         if name not in DOWNLOADS:
             raise HTTPException(404, "File not found")
+        if name.endswith(".tsv"):
+            return Response(guarded_tsv(output / name), media_type=DOWNLOADS[name],
+                            headers=attachment(f"{stem}_{name}"))
         return FileResponse(output / name, media_type=DOWNLOADS[name],
                             filename=f"{stem}_{name}")
 
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
+    if settings.access:
+        install_access_auth(app)  # Added last, so it runs first and covers every route.
     return app

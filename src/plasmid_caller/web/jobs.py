@@ -18,6 +18,7 @@ from pathlib import Path
 from Bio import SeqIO
 
 from ..__about__ import __version__
+from .provenance import collect
 
 log = logging.getLogger("plasmid_caller.web")
 
@@ -40,6 +41,8 @@ class Settings:
     retention_days: int = 0
     database: Path | None = None
     token: str | None = None
+    access: bool = False
+    public_host: str | None = None
 
 
 class QueueFull(Exception):
@@ -102,10 +105,12 @@ class JobStore:
         self.running = {}
         self.stopping = False
         self.executor = None
+        self.provenance = None
 
     # ---------- lifecycle ----------
     def start(self):
         self.runs_dir.mkdir(parents=True, exist_ok=True)
+        self.provenance = collect(self.settings.database)
         self.executor = ThreadPoolExecutor(self.settings.jobs, thread_name_prefix="job")
         self._load()
         self.prune()
@@ -207,6 +212,7 @@ class JobStore:
             "id": uuid.uuid4().hex, "batch_id": batch_id, "name": filename,
             "status": "queued", "error": None, "contigs": None, "bases": None,
             "created_at": time.time(), "started_at": None, "finished_at": None,
+            "provenance": self.provenance,
         }
         input_dir = self.job_dir(job) / "input"
         input_dir.mkdir(parents=True)

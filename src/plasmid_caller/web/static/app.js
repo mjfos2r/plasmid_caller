@@ -278,6 +278,8 @@ async function jobPage(id) {
       ["Genospecies identity", [identityKey("genospecies", identity.gates),
         ...identityTable(contigs, identity.genospecies, "Plasmid", id)]],
     ]),
+    job.provenance ? el("p", { class: "muted" }, `plasmid_caller ${job.provenance.caller_version} · BLAST ${job.provenance.blast_version} · ` +
+      `database ${job.provenance.database_sha256.slice(0, 12)} · run ${when(job.finished_at)}`) : null,
     el("h2", {}, "Downloads"),
     el("div", { class: "links" }, ...downloads.map((name) =>
       el("a", { href: `/api/jobs/${id}/download/${name}` }, name))));
