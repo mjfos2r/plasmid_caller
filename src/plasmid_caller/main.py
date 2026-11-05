@@ -614,6 +614,10 @@ def _merge_summary_frames(frames):
 
 ## Define main function logic.
 def main(args=None):
+    if sys.argv[1:2] == ["serve"]:
+        from .web.serve import serve
+        return serve(sys.argv[2:])
+
     parser = argparse.ArgumentParser(
         prog="plasmid_caller",
         description="Plasmid/replicon classifier for a single FASTA file containing B.burgdorferi contigs.",

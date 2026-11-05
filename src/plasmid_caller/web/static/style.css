@@ -1,0 +1,43 @@
+:root {
+  --bg: #fbfaf8; --surface: #fff; --text: #1f2328; --muted: #656d76;
+  --line: #dcd9d3; --accent: #1f6f6b; --warn: #9a5b00; --bad: #b3261e; --good: #1a7f4b;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15181c; --surface: #1d2126; --text: #e6e8ea; --muted: #99a1aa;
+    --line: #343a41; --accent: #5cc4bd; --warn: #e0a64a; --bad: #f2867e; --good: #62c98f;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, sans-serif; }
+header { padding: 14px 24px; border-bottom: 1px solid var(--line); font-weight: 600; }
+header a { color: inherit; text-decoration: none; }
+main { max-width: 1280px; margin: 0 auto; padding: 24px; }
+a { color: var(--accent); }
+h1 { font-size: 20px; margin: 0 0 4px; overflow-wrap: anywhere; }
+h2 { font-size: 15px; margin: 28px 0 10px; }
+.muted { color: var(--muted); }
+.drop {
+  display: block; padding: 44px 20px; text-align: center; cursor: pointer;
+  background: var(--surface); border: 2px dashed var(--line); border-radius: 8px;
+}
+.drop.over, .drop:focus-within { border-color: var(--accent); }
+.drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.error { color: var(--bad); margin: 10px 0; }
+.scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { padding: 7px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+th { color: var(--muted); font-weight: 500; }
+th button { all: unset; cursor: pointer; }
+th button:focus-visible { outline: 2px solid var(--accent); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.flagged td:first-child { box-shadow: inset 3px 0 var(--warn); }
+.status-done { color: var(--good); }
+.status-failed, .status-rejected { color: var(--bad); }
+.status-running, .status-queued { color: var(--warn); }
+.links { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.filter { width: 100%; max-width: 320px; margin-bottom: 10px; padding: 7px 10px; font: inherit;
+  color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+@media (max-width: 640px) { main { padding: 16px; } header { padding: 12px 16px; } }
