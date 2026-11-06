@@ -45,7 +45,7 @@ class Settings:
     jobs: int = 4
     threads: int = 4
     max_upload_mb: int = 500
-    max_assembly_mb: int = 200
+    max_assembly_mb: int = 250
     max_queued: int = 200
     job_timeout: int = 3600
     retention_days: int = 0
