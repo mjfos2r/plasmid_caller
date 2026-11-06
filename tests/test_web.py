@@ -430,6 +430,9 @@ def test_batch_visibility_controls_the_public_batch_overview(tmp_path, monkeypat
         assert client.get(f"/api/public/batches/{batch['id']}").status_code == 404
         toggled = client.post(f"/api/batches/{batch['id']}/visibility", json={"visible": True}).json()
         assert toggled == {"batch_id": batch["id"], "visible": True}
+        assert client.get("/api/public/batches").json() == []
+        assert client.get(f"/api/public/batches/{batch['id']}").status_code == 404
+        client.post(f"/api/jobs/{batch['jobs'][0]['id']}/visibility", json={"visible": True})
         assert [b["id"] for b in client.get("/api/public/batches").json()] == [batch["id"]]
         public_batch = client.get(f"/api/public/batches/{batch['id']}")
         assert public_batch.status_code == 200 and public_batch.json()["visible"] is True
@@ -438,6 +441,57 @@ def test_batch_visibility_controls_the_public_batch_overview(tmp_path, monkeypat
         assert client.post(f"/api/batches/{batch['id']}/visibility", json={"visible": False}).status_code == 200
         assert client.get(f"/api/public/batches/{batch['id']}").status_code == 404
         assert client.post("/api/batches/nope/visibility", json={"visible": True}).status_code == 404
+
+
+def test_public_responses_do_not_expose_publisher_or_job_ids(tmp_path, monkeypatch):
+    with access_client(tmp_path, monkeypatch) as client:
+        headers = access_headers()
+        files = [("files", ("a.fna", io.BytesIO(FASTA)))]
+        batch = client.post("/api/batches", files=files, headers=headers).json()
+        job = batch["jobs"][0]
+        for _ in range(200):
+            state = client.get(f"/api/jobs/{job['id']}", headers=headers).json()
+            if state["status"] not in {"queued", "running"}:
+                break
+            time.sleep(0.05)
+        hash_ = state["genome_hash"]
+        client.post(f"/api/jobs/{job['id']}/visibility", json={"visible": True}, headers=headers)
+        client.post(f"/api/batches/{batch['id']}/visibility", json={"visible": True}, headers=headers)
+        paths = ["/api/public/genomes", f"/api/public/genomes/{hash_}", "/api/public/batches",
+                 f"/api/public/genomes/{hash_}/contig?contig_id=001",
+                 f"/api/public/batches/{batch['id']}", f"/api/public/batches/{batch['id']}/overview",
+                 f"/api/public/genomes/{hash_}/download/provenance.json"]
+        for path in paths:
+            response = client.get(path, headers={"host": "portal-abc.a.run.app"})
+            assert response.status_code == 200, path
+            assert "pi@example.org" not in response.text and job["id"] not in response.text, path
+            assert "visible_by" not in response.text and "job_id" not in response.text, path
+
+
+def test_public_batch_hides_unpublished_and_failed_jobs(tmp_path, monkeypatch):
+    with client_for(tmp_path, monkeypatch) as client:
+        batch = client.post("/api/batches", files=[
+            ("files", ("shown.fna", io.BytesIO(FASTA))),
+            ("files", ("hidden.fna", io.BytesIO(b">other\nACGTTGCA\n"))),
+            ("files", ("rejected.fna", io.BytesIO(b"nope"))),
+        ]).json()
+        jobs = {job["name"]: job for job in batch["jobs"]}
+        shown = wait_for(client, jobs["shown.fna"]["id"])
+        hidden = wait_for(client, jobs["hidden.fna"]["id"])
+        client.post(f"/api/batches/{batch['id']}/visibility", json={"visible": True})
+        client.post(f"/api/jobs/{shown['id']}/visibility", json={"visible": True})
+        published = [f"/api/public/batches/{batch['id']}", f"/api/public/batches/{batch['id']}/overview",
+                     "/api/public/batches"]
+        for path in published:
+            text = client.get(path).text
+            assert "shown.fna" in text, path
+            assert "hidden.fna" not in text and hidden["genome_hash"] not in text, path
+            assert "rejected.fna" not in text, path
+        overview = client.get(published[1]).json()
+        assert [row["name"] for row in overview] == ["shown.fna"]
+        client.post(f"/api/jobs/{shown['id']}/visibility", json={"visible": False})
+        assert client.get(published[0]).status_code == 404
+        assert client.get("/api/public/batches").json() == []
 
 
 def test_public_routes_bypass_token_auth_but_the_toggle_does_not(tmp_path, monkeypatch):
