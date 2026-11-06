@@ -21,6 +21,11 @@ TOKEN_COOKIE = "plasmid_caller_token"
 # Unauthenticated, read-only, kept out of search indexes (see robots() and the noindex header below).
 PUBLIC_PATHS = frozenset({"/public", "/robots.txt", "/static/public.js", "/static/common.js", "/static/style.css"})
 PUBLIC_PREFIX = "/api/public/"
+# Public responses copy only these fields, so anything added to a record stays private by default.
+PUBLIC_GENOME_FIELDS = ("hash", "name", "contigs", "bases", "created_at", "provenance")
+PUBLIC_BATCH_FIELDS = ("id", "created_at", "version", "visible")
+PUBLIC_JOB_FIELDS = ("genome_hash", "name", "contigs", "bases", "status")
+PUBLIC_OVERVIEW_FIELDS = ("genome_hash", "name", "visible", "contigs", "bases", "composition", "replicons")
 SECURITY_HEADERS = {
     "Content-Security-Policy": "default-src 'self'; frame-ancestors 'none'; base-uri 'none'",
     "X-Content-Type-Options": "nosniff",
@@ -132,6 +137,24 @@ def replicon_totals(contigs):
     return totals
 
 
+def pick(record, fields):
+    return {field: record[field] for field in fields}
+
+
+def public_genome(row, catalog=None):
+    return {**pick(row, PUBLIC_GENOME_FIELDS), **reference_db.genome_reference_info(row["name"], catalog)}
+
+
+def public_jobs(batch):
+    """Publishing a batch never reveals a genome that isn't itself published."""
+    return [job for job in batch["jobs"] if job["visible"] and job["status"] in {"done", "found"}]
+
+
+def public_batch(batch):
+    return {**pick(batch, PUBLIC_BATCH_FIELDS),
+            "jobs": [pick(job, PUBLIC_JOB_FIELDS) for job in public_jobs(batch)]}
+
+
 def identity_cells(hits, by, fold_fusions=True):
     """One row per contig and `by` value: the hit the caller would prefer among them.
 
@@ -236,7 +259,7 @@ def create_app(settings):
         row = store.index.lookup(genome_hash) if HASH_PATTERN.match(genome_hash) else None
         if row is None or not row["visible"]:
             raise HTTPException(404, "Not found")
-        return {**row, **reference_db.genome_reference_info(row["name"])}
+        return row
 
     @app.get("/api/version")
     def version():
@@ -417,34 +440,34 @@ def create_app(settings):
 
     def visible_batch_or_404(batch_id):
         batch = store.get_batch(batch_id) if ID_PATTERN.match(batch_id) else None
-        if batch is None or not batch["visible"]:
+        if batch is None or not batch["visible"] or not public_jobs(batch):
             raise HTTPException(404, "Not found")
         return batch
 
     @app.get("/api/public/batches")
     def list_public_batches():
-        return store.list_visible_batches()
+        return [public_batch(batch) for batch in store.list_visible_batches() if public_jobs(batch)]
 
     @app.get("/api/public/batches/{batch_id}")
     def get_public_batch(batch_id: str):
-        return visible_batch_or_404(batch_id)
+        return public_batch(visible_batch_or_404(batch_id))
 
     @app.get("/api/public/batches/{batch_id}/overview")
     def get_public_overview(batch_id: str):
         catalog = reference_db.assembly_catalog()
-        overview = batch_overview(visible_batch_or_404(batch_id)["jobs"])
-        return [{**row, **reference_db.genome_reference_info(row["name"], catalog)} for row in overview]
+        overview = batch_overview(public_jobs(visible_batch_or_404(batch_id)))
+        return [{**pick(row, PUBLIC_OVERVIEW_FIELDS), **reference_db.genome_reference_info(row["name"], catalog)}
+                for row in overview]
 
     @app.get("/api/public/genomes")
     def list_public_genomes():
         catalog = reference_db.assembly_catalog()
-        return [{**row, **reference_db.genome_reference_info(row["name"], catalog)}
-                for row in store.index.list_visible()]
+        return [public_genome(row, catalog) for row in store.index.list_visible()]
 
     @app.get("/api/public/genomes/{genome_hash}")
     def get_public_genome(genome_hash: str):
         row = genome_or_404(genome_hash)
-        return {"genome": row, **results_payload(store.output_dir_for_hash(genome_hash))}
+        return {"genome": public_genome(row), **results_payload(store.output_dir_for_hash(genome_hash))}
 
     @app.get("/api/public/genomes/{genome_hash}/identity")
     def get_public_identity(genome_hash: str):
@@ -454,7 +477,7 @@ def create_app(settings):
     @app.get("/api/public/genomes/{genome_hash}/contig")
     def get_public_contig(genome_hash: str, contig_id: str):
         row = genome_or_404(genome_hash)
-        return {"genome": row, **contig_payload(store.output_dir_for_hash(genome_hash), contig_id)}
+        return {"genome": public_genome(row), **contig_payload(store.output_dir_for_hash(genome_hash), contig_id)}
 
     @app.get("/api/public/genomes/{genome_hash}/contig/{contig_id}/fasta", response_class=PlainTextResponse)
     def get_public_contig_fasta(genome_hash: str, contig_id: str):
@@ -470,8 +493,7 @@ def create_app(settings):
         row = genome_or_404(genome_hash)
         stem = Path(row["name"]).name.split(".")[0]
         if name == "provenance.json":
-            return JSONResponse({"job": row["job_id"], "finished_at": row["created_at"],
-                                 **(row.get("provenance") or {})},
+            return JSONResponse({"finished_at": row["created_at"], **(row.get("provenance") or {})},
                                 headers=attachment(f"{stem}_{name}"))
         return download_payload(store.output_dir_for_hash(genome_hash), name, stem)
 
