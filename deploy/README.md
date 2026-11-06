@@ -54,7 +54,7 @@ gcloud run deploy plasmid-portal \
   --service-account=portal-runtime@<PROJECT_ID>.iam.gserviceaccount.com \
   --allow-unauthenticated \
   --max-instances=1 --concurrency=10 --no-cpu-throttling \
-  --cpu=2 --memory=4Gi --timeout=300 \
+  --cpu=2 --memory=8Gi --timeout=300 \
   --set-env-vars=CF_TEAM_DOMAIN=<TEAM>.cloudflareaccess.com,CF_ACCESS_AUD=<AUD>,PUBLIC_HOSTNAME=<PRIVATE_HOSTNAME>,BUCKET_NAME=<BUCKET>
 ```
 

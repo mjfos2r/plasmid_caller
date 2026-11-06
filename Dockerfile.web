@@ -34,4 +34,4 @@ WORKDIR /data
 EXPOSE 8080
 
 # One job at a time: each one needs about 500 MB of scratch, which counts as memory on Cloud Run.
-CMD ["sh", "-c", "exec plasmid_caller serve --host 0.0.0.0 --port ${PORT:-8080} --runs-dir ${RUNS_DIR:-/data/runs} --jobs 1 --threads ${BLAST_THREADS:-2} --max-upload-mb 20 --max-assembly-mb 50 --max-queued 20 --job-timeout 900"]
+CMD ["sh", "-c", "exec plasmid_caller serve --host 0.0.0.0 --port ${PORT:-8080} --runs-dir ${RUNS_DIR:-/data/runs} --jobs 1 --threads ${BLAST_THREADS:-2} --max-upload-mb 30 --max-assembly-mb 250 --max-queued 20 --job-timeout 900"]

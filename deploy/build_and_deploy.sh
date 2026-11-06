@@ -36,7 +36,7 @@ gcloud run deploy "${SERVICE}" \
   --service-account="${RUNTIME_SA}" \
   --allow-unauthenticated \
   --max-instances=1 --concurrency=10 --no-cpu-throttling \
-  --cpu=2 --memory=4Gi --timeout=300 \
+  --cpu=2 --memory=8Gi --timeout=300 \
   --set-env-vars="CF_TEAM_DOMAIN=${CF_TEAM_DOMAIN},CF_ACCESS_AUD=${CF_ACCESS_AUD},PUBLIC_HOSTNAME=${PRIVATE_HOSTNAME},BUCKET_NAME=${BUCKET_NAME}"
 
 echo "==> Done: ${img}"
