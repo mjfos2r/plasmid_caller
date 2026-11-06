@@ -7,3 +7,12 @@ tests/
 tools/
 taxon_metadata/
 src/plasmid_caller/test_data/
+# Local-only, nothing the build needs: a fetched BLAST install, the venv, and job output
+# from local runs (the latter can reach hundreds of MB after a real batch).
+src/plasmid_caller/vendor/
+.venv/
+runs/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+**/.ipynb_checkpoints/
