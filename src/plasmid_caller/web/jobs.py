@@ -303,6 +303,9 @@ class JobStore:
         return path
 
     def output_dir(self, job):
+        # Jobs from before dedup have no hash, and their results stayed in their own folder.
+        if job.get("genome_hash") is None:
+            return self.job_dir(job) / "output"
         return self.output_dir_for_hash(job["genome_hash"])
 
     # ---------- writes ----------

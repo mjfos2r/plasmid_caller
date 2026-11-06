@@ -333,6 +333,8 @@ def create_app(settings):
         job = finished_job(job_id)
         claims = getattr(request.state, "access_claims", None)
         by = claims.get("email") if claims else None
+        if job.get("genome_hash") is None:
+            raise HTTPException(409, "This job predates publishing. Upload it again to publish it.")
         store.index.set_visible(job["genome_hash"], payload.visible, by=by)
         return {"genome_hash": job["genome_hash"], "visible": payload.visible}
 

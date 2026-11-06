@@ -1,5 +1,7 @@
 import gzip
 import io
+import json
+import shutil
 import sys
 import time
 from types import SimpleNamespace
@@ -477,6 +479,24 @@ def test_public_responses_do_not_expose_publisher_or_job_ids(tmp_path, monkeypat
             assert response.status_code == 200, path
             assert "pi@example.org" not in response.text and job["id"] not in response.text, path
             assert "visible_by" not in response.text and "job_id" not in response.text, path
+
+
+def test_jobs_from_before_dedup_keep_their_results(tmp_path, monkeypatch):
+    with client_for(tmp_path, monkeypatch) as client:
+        batch = upload(client).json()
+        job = wait_for(client, batch["jobs"][0]["id"])
+        output = next((tmp_path / "runs" / "genomes").glob("*/output"))
+    legacy = tmp_path / "runs" / job["batch_id"] / job["id"]
+    shutil.move(output, legacy / "output")
+    saved = json.loads((legacy / "job.json").read_text())
+    del saved["genome_hash"]
+    (legacy / "job.json").write_text(json.dumps(saved))
+    (tmp_path / "runs" / "genomes.sqlite").unlink(missing_ok=True)
+    with client_for(tmp_path, monkeypatch) as client:
+        assert client.get(f"/api/jobs/{job['id']}/results").status_code == 200
+        assert client.get(f"/api/batches/{job['batch_id']}/overview").status_code == 200
+        response = client.post(f"/api/jobs/{job['id']}/visibility", json={"visible": True})
+        assert response.status_code == 409
 
 
 def test_public_batch_hides_unpublished_and_failed_jobs(tmp_path, monkeypatch):
