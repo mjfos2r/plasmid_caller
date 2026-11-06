@@ -103,7 +103,7 @@ async function genomeContigPage(hash, contigId, focus) {
       ["WP by plasmid", wpTracks(plasmids, length, plasmidHref)],
       ["WP by genospecies", [margin ? el("p", { class: "muted" }, margin) : null,
         ...wpTracks(genospecies, length, genospeciesHref)].filter(Boolean)],
-      ...(tiling.length >= 2 ? [["Fusion view", fusionView(tiling, plasmids, length)]] : []),
+      ["Fusion view", fusionView(tiling, plasmids, length)],
     ], initialTab));
 }
 
