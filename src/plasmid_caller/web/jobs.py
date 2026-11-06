@@ -258,14 +258,22 @@ class JobStore:
             batches = [self._batch_view(batch) for batch in self.batches.values() if batch.get("visible")]
         return sorted(batches, key=lambda batch: batch["created_at"], reverse=True)
 
-    def set_batch_visible(self, batch_id, visible):
+    def set_batch_visible(self, batch_id, visible, by=None):
+        """Publishing a batch also publishes every genome already called in it -- otherwise its
+        own table is just a page of names with no links. Un-publishing does NOT reverse this:
+        a genome made visible this way may be shared (by content hash) with another batch that's
+        still public, so hiding it back is left as a deliberate per-genome action."""
         with self.lock:
             batch = self.batches.get(batch_id)
             if batch is None:
                 return False
             batch["visible"] = visible
             snapshot = dict(batch)
+            jobs = self._batch_jobs(batch_id) if visible else []
         _write_json(self.runs_dir / batch_id / "batch.json", snapshot)
+        for job in jobs:
+            if job["status"] in {"done", "found"} and job.get("genome_hash"):
+                self.index.set_visible(job["genome_hash"], True, by=by)
         return True
 
     def get_job(self, job_id):

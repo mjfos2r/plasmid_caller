@@ -440,6 +440,18 @@ def test_batch_visibility_controls_the_public_batch_overview(tmp_path, monkeypat
         assert client.post("/api/batches/nope/visibility", json={"visible": True}).status_code == 404
 
 
+def test_publishing_a_batch_cascades_to_its_genomes_but_unpublishing_does_not(tmp_path, monkeypatch):
+    with client_for(tmp_path, monkeypatch) as client:
+        batch = upload(client).json()
+        job = wait_for(client, batch["jobs"][0]["id"])
+        genome_hash = job["genome_hash"]
+        assert client.get("/api/public/genomes").json() == []
+        client.post(f"/api/batches/{batch['id']}/visibility", json={"visible": True})
+        assert [g["hash"] for g in client.get("/api/public/genomes").json()] == [genome_hash]
+        client.post(f"/api/batches/{batch['id']}/visibility", json={"visible": False})
+        assert [g["hash"] for g in client.get("/api/public/genomes").json()] == [genome_hash]
+
+
 def test_public_routes_bypass_token_auth_but_the_toggle_does_not(tmp_path, monkeypatch):
     monkeypatch.setattr(JobStore, "_command", fake_command(FAKE_CLI))
     app = create_app(Settings(runs_dir=tmp_path / "runs", token="secret"))

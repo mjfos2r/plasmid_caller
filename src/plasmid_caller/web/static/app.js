@@ -119,7 +119,7 @@ async function batchPage(id) {
     el("h1", {}, "Batch"),
     el("p", { class: "muted" }, `Submitted ${when(batch.created_at)} · plasmid_caller ${batch.version}`),
     visibilityToggle(`/api/batches/${batch.id}/visibility`, batch.visible,
-      "Visible on the public page (the whole-batch charts below, plus each genome you've made visible individually)"),
+      "Visible on the public page (publishes every called genome in this batch too)"),
     el("div", { class: "scroll" }, el("table", {},
       el("thead", {}, el("tr", {}, el("th", {}, "Assembly"), el("th", {}, "Status"),
         el("th", { class: "num" }, "Contigs"), el("th", { class: "num" }, "Bases"), el("th", {}, "Note"))),

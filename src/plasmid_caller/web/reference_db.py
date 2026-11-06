@@ -10,10 +10,10 @@ from ..main import parse_hit_id
 
 log = logging.getLogger(__name__)
 DB_ROOT = Path(__file__).resolve().parent.parent / "db"
-# new_db/ is a build-time directory, not shipped with the installed package -- this is a
-# dev-only convenience (linking a called reference strain back to its result) that degrades
-# to no links wherever that manifest isn't present, e.g. in a deployed container.
-ASSEMBLIES_MANIFEST = Path(__file__).resolve().parents[3] / "new_db" / "assemblies.tsv"
+# A copy of new_db/assemblies.tsv, kept alongside the shipped reference DB so it's actually
+# present in a deployed container -- new_db/ itself is a build-time-only directory and never
+# ships. Re-copy it here after editing the manifest or rebuilding the database.
+ASSEMBLIES_MANIFEST = DB_ROOT / "assemblies.tsv"
 ASSEMBLY_ACCESSION = re.compile(r"^(GC[AF]_\d+\.\d+)")
 
 

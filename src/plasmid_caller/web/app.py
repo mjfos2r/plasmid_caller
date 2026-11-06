@@ -314,8 +314,10 @@ def create_app(settings):
         return {"genome_hash": job["genome_hash"], "visible": payload.visible}
 
     @app.post("/api/batches/{batch_id}/visibility")
-    def set_batch_visibility(batch_id: str, payload: VisibilityIn):
-        if not store.set_batch_visible(batch_id, payload.visible):
+    def set_batch_visibility(batch_id: str, payload: VisibilityIn, request: Request):
+        claims = getattr(request.state, "access_claims", None)
+        by = claims.get("email") if claims else None
+        if not store.set_batch_visible(batch_id, payload.visible, by=by):
             raise HTTPException(404, "Batch not found")
         return {"batch_id": batch_id, "visible": payload.visible}
 
