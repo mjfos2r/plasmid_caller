@@ -76,15 +76,19 @@ genome short-circuits to a `found` result instead of rerunning BLAST.
 
 ## 4. Cloudflare: two hostnames, one Worker
 
-Create a Worker from `worker.js` and set the variable `ORIGIN` to the `run.app` URL. It's a plain
-passthrough -- it doesn't know or care which hostname a request came in on, so one Worker serves
-both:
+Create a Worker from `worker.js` and set the variable `ORIGIN` to the `run.app` URL. It's almost a
+plain passthrough -- it doesn't care which hostname a request came in on for auth purposes, so one
+Worker serves both:
 
 - Add `<PRIVATE_HOSTNAME>` as a custom domain on the Worker, and put a Cloudflare Access
   application in front of it with your login policy. This must match the Access application's
   hostname.
 - Add `<PUBLIC_HOSTNAME>` as a second custom domain on the *same* Worker, with **no** Access
-  application in front of it.
+  application in front of it. Also set the Worker variable `PUBLIC_SITE_HOSTNAME` to this same
+  hostname -- **not** the same thing as Cloud Run's `PUBLIC_HOSTNAME` env var from step 3, which
+  is the *private* hostname. The Worker uses it to rewrite `/` to `/public` for this domain only,
+  so visitors never see `/public` in the address bar; everything past that is client-side hash
+  routing (`#/genome/...`), which the Worker never sees, so nothing else needs rewriting.
 
 The split needs no app code to enforce it: Cloudflare Access only attaches a
 `Cf-Access-Jwt-Assertion` header to requests on a hostname that has an Access application, and the
