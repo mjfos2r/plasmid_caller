@@ -28,7 +28,7 @@ revision="$(git rev-parse HEAD)"
 
 echo "==> Building ${img} from ${revision}"
 gcloud builds submit --config=deploy/cloudbuild.web.yaml \
-  --substitutions=_IMG="${img}",_REVISION="${revision}" .
+  --substitutions=_IMG="${img}",_REVISION="${revision}",_WEB_VERSION="${tag}" .
 
 echo "==> Deploying ${img} to ${SERVICE}"
 gcloud run deploy "${SERVICE}" \

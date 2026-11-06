@@ -36,7 +36,7 @@ gcloud auth configure-docker us-east1-docker.pkg.dev
 ```bash
 IMG=us-east1-docker.pkg.dev/<PROJECT_ID>/portal/web:<TAG>
 docker build --platform linux/amd64 -f Dockerfile.web \
-  --build-arg SOURCE_REVISION=$(git rev-parse HEAD) -t $IMG .
+  --build-arg SOURCE_REVISION=$(git rev-parse HEAD) --build-arg WEB_VERSION=<TAG> -t $IMG .
 docker push $IMG
 ```
 

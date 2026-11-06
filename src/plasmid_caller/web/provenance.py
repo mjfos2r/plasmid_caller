@@ -44,6 +44,8 @@ def _attempt(function, *args):
 def collect(database=None):
     return {
         "caller_version": __version__,
+        # The web app is versioned by its image tag, separately from the caller.
+        "web_version": os.environ.get("WEB_VERSION", "unknown"),
         "database_sha256": _attempt(database_hash, Path(database) if database else DB_ROOT),
         "blast_version": _attempt(blast_version),
         # Set at image build; a running container cannot read its own digest.

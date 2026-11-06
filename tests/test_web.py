@@ -274,8 +274,10 @@ def test_tsv_downloads_are_guarded(tmp_path, monkeypatch):
 
 
 def test_jobs_are_stamped_with_provenance(tmp_path, monkeypatch):
+    monkeypatch.setenv("WEB_VERSION", "v0.5.0")
     with client_for(tmp_path, monkeypatch) as client:
         version = client.get("/api/version").json()
+        assert version["web_version"] == "v0.5.0"
         assert len(version["database_sha256"]) == 64 and version["blast_version"] != "unknown"
         job = wait_for(client, upload(client).json()["jobs"][0]["id"])
         assert job["provenance"] == version
