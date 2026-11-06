@@ -6,21 +6,27 @@ from urllib.parse import urlsplit
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from ..replicons import fusion_candidates, is_fusion, replicon_parts, tile_contig
 from ..scoring import WP_MIN_COV_BP, WP_MIN_COV_PCT, _parse_intervals, decide_call, wp_hit_passes
+from . import reference_db
 from .auth import install_access_auth
-from .jobs import ID_PATTERN, JobStore, QueueFull
+from .jobs import HASH_PATTERN, ID_PATTERN, JobStore, QueueFull
 
 STATIC = Path(__file__).parent / "static"
 TOKEN_COOKIE = "plasmid_caller_token"
+# Unauthenticated, read-only, kept out of search indexes (see robots() and the noindex header below).
+PUBLIC_PATHS = frozenset({"/public", "/robots.txt", "/static/public.js", "/static/common.js", "/static/style.css"})
+PUBLIC_PREFIX = "/api/public/"
 SECURITY_HEADERS = {
     "Content-Security-Policy": "default-src 'self'; frame-ancestors 'none'; base-uri 'none'",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
 }
+NOINDEX_HEADER = {"X-Robots-Tag": "noindex, nofollow"}
 SUMMARY_COLUMNS = [
     "contig_id", "contig_len", "final_call", "filtered_call", "genospecies",
     "genospecies_candidates", "plasmid_name_pf32", "plasmid_name_wp", "strain_wp",
@@ -43,7 +49,12 @@ DOWNLOADS = {
     "summary_all_calls.tsv": "text/tab-separated-values",
     "genospecies_composition.tsv": "text/tab-separated-values",
     "summary_best_hits.json": "application/json",
+    "bundle.tar.gz": "application/gzip",
+    "bundle.zip": "application/zip",
 }
+# The bundles get their own buttons at the top of the results view, not a line in this list.
+RESULT_DOWNLOADS = [name for name in [*DOWNLOADS, "renamed.fasta", "provenance.json"]
+                    if name not in {"bundle.tar.gz", "bundle.zip"}]
 
 
 def guard_cell(cell):
@@ -70,6 +81,36 @@ def read_table(path):
 
 def to_records(frame):
     return frame.astype(object).where(frame.notna(), None).to_dict(orient="records")
+
+
+def with_intervals(records):
+    return [{**row, "query_intervals": _parse_intervals(row["query_intervals"])} for row in records]
+
+
+def extract_contig_fasta(renamed_fasta, contig_id):
+    """Pull one contig's own record out of the renamed multi-FASTA, by its original contig_id.
+
+    Headers there look like "{file_id}_{contig_id}__{call}" (rename_fasta_headers in main.py),
+    so a record belongs to contig_id when its header, with the call suffix stripped, ends with
+    it. Streamed line by line rather than loaded whole, since an assembly can run to ~200 MB.
+    """
+    suffix = f"_{contig_id}"
+    sequence, found = [], False
+    with open(renamed_fasta) as handle:
+        for line in handle:
+            if line.startswith(">"):
+                if found:
+                    break
+                header = line[1:].strip().rsplit("__", 1)[0]
+                found = header == contig_id or header.endswith(suffix)
+                continue
+            if found:
+                sequence.append(line.strip())
+    if not found:
+        return None
+    bases = "".join(sequence)
+    wrapped = "\n".join(bases[i:i + 70] for i in range(0, len(bases), 70))
+    return f">{contig_id}\n{wrapped}\n"
 
 
 def read_records(path, columns=None):
@@ -147,7 +188,9 @@ def create_app(settings):
         if not settings.token and not settings.access and not loopback:
             # DNS rebinding: an unauthenticated server only answers to loopback names.
             return JSONResponse({"detail": "Unknown host"}, 403)
-        if request.url.path == "/" and settings.token and "token" in request.query_params:
+        path = request.url.path
+        is_public = path in PUBLIC_PATHS or path.startswith(PUBLIC_PREFIX)
+        if path == "/" and settings.token and "token" in request.query_params:
             supplied = request.query_params["token"]
             if not secrets.compare_digest(supplied.encode(), settings.token.encode()):
                 return JSONResponse({"detail": "Invalid token"}, 401)
@@ -155,7 +198,7 @@ def create_app(settings):
             response.set_cookie(TOKEN_COOKIE, supplied, httponly=True, samesite="strict",
                                 secure=request.url.scheme == "https")
             return response
-        if not authorised(request):
+        if not is_public and not authorised(request):
             return JSONResponse({"detail": "Open the link containing the access token"}, 401)
         if request.method == "POST":
             origin = request.headers.get("origin")
@@ -170,6 +213,8 @@ def create_app(settings):
                     {"detail": f"Upload exceeds {settings.max_upload_mb} MB"}, 413)
         response = await call_next(request)
         response.headers.update(SECURITY_HEADERS)
+        if is_public:
+            response.headers.update(NOINDEX_HEADER)
         return response
 
     def attachment(filename):
@@ -183,17 +228,37 @@ def create_app(settings):
 
     def finished_job(job_id):
         job = job_or_404(job_id)
-        if job["status"] != "done":
+        if job["status"] not in {"done", "found"}:
             raise HTTPException(409, f"Job is {job['status']}")
         return job
+
+    def genome_or_404(genome_hash):
+        row = store.index.lookup(genome_hash) if HASH_PATTERN.match(genome_hash) else None
+        if row is None or not row["visible"]:
+            raise HTTPException(404, "Not found")
+        return {**row, **reference_db.genome_reference_info(row["name"])}
 
     @app.get("/api/version")
     def version():
         return store.provenance
 
+    @app.get("/api/reference-db")
+    def get_reference_db():
+        db = store.reference_db
+        links = reference_db.strain_job_links(store.finished_jobs())
+        return {**db, "wp": [{**row, "job_id": links.get(row["strain"])} for row in db["wp"]]}
+
+    @app.get("/robots.txt", response_class=PlainTextResponse)
+    def robots():
+        return "User-agent: *\nDisallow: /\n"
+
     @app.get("/")
     def index():
         return FileResponse(STATIC / "index.html")
+
+    @app.get("/public")
+    def public_index():
+        return FileResponse(STATIC / "public.html")
 
     @app.get("/api/batches")
     def list_batches():
@@ -214,57 +279,69 @@ def create_app(settings):
             raise HTTPException(404, "Batch not found")
         return batch
 
-    @app.get("/api/batches/{batch_id}/overview")
-    def get_overview(batch_id: str):
-        batch = get_batch(batch_id)
+    def batch_overview(jobs):
         overview = []
-        for job in batch["jobs"]:
-            if job["status"] != "done":
+        for job in jobs:
+            if job["status"] not in {"done", "found"}:
                 continue
             output = store.output_dir(job)
             overview.append({
-                "id": job["id"], "name": job["name"],
+                "id": job["id"], "name": job["name"], "genome_hash": job["genome_hash"],
+                "visible": job["visible"], "contigs": job["contigs"], "bases": job["bases"],
                 "composition": read_records(output / "genospecies_composition.tsv"),
                 "replicons": replicon_totals(
                     read_records(output / "summary_best_hits.tsv", SUMMARY_COLUMNS)),
             })
         return overview
 
+    @app.get("/api/batches/{batch_id}/overview")
+    def get_overview(batch_id: str):
+        return batch_overview(get_batch(batch_id)["jobs"])
+
     @app.get("/api/jobs/{job_id}")
     def get_job(job_id: str):
         return job_or_404(job_id)
 
-    @app.get("/api/jobs/{job_id}/results")
-    def get_results(job_id: str):
+    class VisibilityIn(BaseModel):
+        visible: bool
+
+    @app.post("/api/jobs/{job_id}/visibility")
+    def set_visibility(job_id: str, payload: VisibilityIn, request: Request):
         job = finished_job(job_id)
-        output = store.output_dir(job)
+        claims = getattr(request.state, "access_claims", None)
+        by = claims.get("email") if claims else None
+        store.index.set_visible(job["genome_hash"], payload.visible, by=by)
+        return {"genome_hash": job["genome_hash"], "visible": payload.visible}
+
+    @app.post("/api/batches/{batch_id}/visibility")
+    def set_batch_visibility(batch_id: str, payload: VisibilityIn):
+        if not store.set_batch_visible(batch_id, payload.visible):
+            raise HTTPException(404, "Batch not found")
+        return {"batch_id": batch_id, "visible": payload.visible}
+
+    def results_payload(output):
         return {
-            "job": job,
             "contigs": read_records(output / "summary_best_hits.tsv", SUMMARY_COLUMNS),
             "composition": read_records(output / "genospecies_composition.tsv"),
-            "downloads": [*DOWNLOADS, "renamed.fasta", "provenance.json"],
+            "downloads": RESULT_DOWNLOADS,
         }
 
-    def hit_table(job, database, suffix="all"):
-        tables = list((store.output_dir(job) / database / "tables").glob(f"*_{suffix}.tsv"))
+    def hit_table(output, database, suffix="all"):
+        tables = list((output / database / "tables").glob(f"*_{suffix}.tsv"))
         return read_table(tables[0]) if tables else None
 
-    @app.get("/api/jobs/{job_id}/identity")
-    def get_identity(job_id: str):
-        hits = hit_table(finished_job(job_id), "wp")
+    def identity_payload(output):
+        hits = hit_table(output, "wp")
         if hits is None or hits.empty:
             return {"gates": None, "plasmid": [], "genospecies": [], "candidates": {}}
         return {
             "gates": {"coverage_pct": WP_MIN_COV_PCT, "covered_bp": WP_MIN_COV_BP},
-            "plasmid": identity_cells(hits, "plasmid_name"),
-            "genospecies": identity_cells(hits, "genospecies"),
+            "plasmid": with_intervals(identity_cells(hits, "plasmid_name")),
+            "genospecies": with_intervals(identity_cells(hits, "genospecies")),
             "candidates": fusion_candidates(hits),
         }
 
-    @app.get("/api/jobs/{job_id}/contig")
-    def get_contig(job_id: str, contig_id: str):
-        job = finished_job(job_id)
-        output = store.output_dir(job)
+    def contig_payload(output, contig_id):
         summary = read_table(output / "summary_all_calls.tsv")
         rows = summary[summary["contig_id"] == contig_id]
         calls = read_table(output / "summary_best_hits.tsv")
@@ -272,18 +349,14 @@ def create_app(settings):
         if rows.empty or calls.empty:
             raise HTTPException(404, "Contig not found")
         call, rule = decide_call(rows.iloc[0])
-        wp, pf32 = hit_table(job, "wp"), hit_table(job, "pf32")
+        wp, pf32 = hit_table(output, "wp"), hit_table(output, "pf32")
         wp = wp[(wp["contig_id"] == contig_id) & wp["plasmid_id"].notna()] if wp is not None else None
         pf32 = pf32[(pf32["contig_id"] == contig_id) & pf32["plasmid_id"].notna()] if pf32 is not None else None
 
-        def with_intervals(records):
-            return [{**row, "query_intervals": _parse_intervals(row["query_intervals"])} for row in records]
-
         has_wp = wp is not None and not wp.empty
-        loci = hit_table(job, "pf32", "multi_loci")
+        loci = hit_table(output, "pf32", "multi_loci")
         loci = loci[loci["contig_id"] == contig_id] if loci is not None else pd.DataFrame()
         return {
-            "job": job,
             "contig": to_records(calls.reindex(columns=SUMMARY_COLUMNS))[0],
             "rule": rule if call == rows.iloc[0].get("final_call") else None,
             "plasmids": with_intervals(identity_cells(wp, "plasmid_name", fold_fusions=False)) if has_wp else [],
@@ -293,21 +366,13 @@ def create_app(settings):
             "tiling": tile_contig(wp) if has_wp else [],
         }
 
-    @app.get("/api/jobs/{job_id}/download/{name}")
-    def download(job_id: str, name: str):
-        job = finished_job(job_id)
-        output = store.output_dir(job)
-        stem = Path(job["name"]).name.split(".")[0]
+    def download_payload(output, name, stem):
         if name == "renamed.fasta":
             matches = list(output.glob("*_renamed.fasta"))
             if not matches:
                 raise HTTPException(404, "File not found")
             return FileResponse(matches[0], media_type="text/plain",
                                 filename=f"{stem}_renamed.fasta")
-        if name == "provenance.json":
-            return JSONResponse({"job": job["id"], "finished_at": job["finished_at"],
-                                 **(job.get("provenance") or {})},
-                                headers=attachment(f"{stem}_{name}"))
         if name not in DOWNLOADS:
             raise HTTPException(404, "File not found")
         if name.endswith(".tsv"):
@@ -316,7 +381,100 @@ def create_app(settings):
         return FileResponse(output / name, media_type=DOWNLOADS[name],
                             filename=f"{stem}_{name}")
 
+    @app.get("/api/jobs/{job_id}/results")
+    def get_results(job_id: str):
+        job = finished_job(job_id)
+        return {"job": job, **results_payload(store.output_dir(job))}
+
+    @app.get("/api/jobs/{job_id}/identity")
+    def get_identity(job_id: str):
+        return identity_payload(store.output_dir(finished_job(job_id)))
+
+    @app.get("/api/jobs/{job_id}/contig")
+    def get_contig(job_id: str, contig_id: str):
+        job = finished_job(job_id)
+        return {"job": job, **contig_payload(store.output_dir(job), contig_id)}
+
+    @app.get("/api/jobs/{job_id}/contig/{contig_id}/fasta", response_class=PlainTextResponse)
+    def get_contig_fasta(job_id: str, contig_id: str):
+        matches = list(store.output_dir(finished_job(job_id)).glob("*_renamed.fasta"))
+        fasta = extract_contig_fasta(matches[0], contig_id) if matches else None
+        if fasta is None:
+            raise HTTPException(404, "Contig not found")
+        return fasta
+
+    @app.get("/api/jobs/{job_id}/download/{name}")
+    def download(job_id: str, name: str):
+        job = finished_job(job_id)
+        stem = Path(job["name"]).name.split(".")[0]
+        if name == "provenance.json":
+            return JSONResponse({"job": job["id"], "finished_at": job["finished_at"],
+                                 **(job.get("provenance") or {})},
+                                headers=attachment(f"{stem}_{name}"))
+        return download_payload(store.output_dir(job), name, stem)
+
+    def visible_batch_or_404(batch_id):
+        batch = store.get_batch(batch_id) if ID_PATTERN.match(batch_id) else None
+        if batch is None or not batch["visible"]:
+            raise HTTPException(404, "Not found")
+        return batch
+
+    @app.get("/api/public/batches")
+    def list_public_batches():
+        return store.list_visible_batches()
+
+    @app.get("/api/public/batches/{batch_id}")
+    def get_public_batch(batch_id: str):
+        return visible_batch_or_404(batch_id)
+
+    @app.get("/api/public/batches/{batch_id}/overview")
+    def get_public_overview(batch_id: str):
+        catalog = reference_db.assembly_catalog()
+        overview = batch_overview(visible_batch_or_404(batch_id)["jobs"])
+        return [{**row, **reference_db.genome_reference_info(row["name"], catalog)} for row in overview]
+
+    @app.get("/api/public/genomes")
+    def list_public_genomes():
+        catalog = reference_db.assembly_catalog()
+        return [{**row, **reference_db.genome_reference_info(row["name"], catalog)}
+                for row in store.index.list_visible()]
+
+    @app.get("/api/public/genomes/{genome_hash}")
+    def get_public_genome(genome_hash: str):
+        row = genome_or_404(genome_hash)
+        return {"genome": row, **results_payload(store.output_dir_for_hash(genome_hash))}
+
+    @app.get("/api/public/genomes/{genome_hash}/identity")
+    def get_public_identity(genome_hash: str):
+        genome_or_404(genome_hash)
+        return identity_payload(store.output_dir_for_hash(genome_hash))
+
+    @app.get("/api/public/genomes/{genome_hash}/contig")
+    def get_public_contig(genome_hash: str, contig_id: str):
+        row = genome_or_404(genome_hash)
+        return {"genome": row, **contig_payload(store.output_dir_for_hash(genome_hash), contig_id)}
+
+    @app.get("/api/public/genomes/{genome_hash}/contig/{contig_id}/fasta", response_class=PlainTextResponse)
+    def get_public_contig_fasta(genome_hash: str, contig_id: str):
+        genome_or_404(genome_hash)
+        matches = list(store.output_dir_for_hash(genome_hash).glob("*_renamed.fasta"))
+        fasta = extract_contig_fasta(matches[0], contig_id) if matches else None
+        if fasta is None:
+            raise HTTPException(404, "Contig not found")
+        return fasta
+
+    @app.get("/api/public/genomes/{genome_hash}/download/{name}")
+    def download_public(genome_hash: str, name: str):
+        row = genome_or_404(genome_hash)
+        stem = Path(row["name"]).name.split(".")[0]
+        if name == "provenance.json":
+            return JSONResponse({"job": row["job_id"], "finished_at": row["created_at"],
+                                 **(row.get("provenance") or {})},
+                                headers=attachment(f"{stem}_{name}"))
+        return download_payload(store.output_dir_for_hash(genome_hash), name, stem)
+
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
     if settings.access:
-        install_access_auth(app)  # Added last, so it runs first and covers every route.
+        # Added last, so it runs first and covers every route except the public surface.
+        install_access_auth(app, exempt_paths=PUBLIC_PATHS, exempt_prefixes=frozenset({PUBLIC_PREFIX}))
     return app

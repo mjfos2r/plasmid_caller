@@ -186,6 +186,24 @@ def test_jwks_outage_is_503():
     assert call(client_with(Down()), make_token()).status_code == 503
 
 
+def test_exempt_prefix_bypasses_auth_but_only_that_prefix():
+    app = FastAPI()
+
+    @app.get("/api/public/anything")
+    def public_anything():
+        return {"ok": True}
+
+    @app.get("/api/public-not-really/x")
+    def not_really():
+        return {"ok": True}
+
+    app.add_middleware(CloudflareAccessMiddleware, config=CFG, jwks_client=FakeJWKS(),
+                       exempt_prefixes=frozenset({"/api/public/"}))
+    client = TestClient(app)
+    assert client.get("/api/public/anything").status_code == 200
+    assert client.get("/api/public-not-really/x").status_code == 403
+
+
 def test_insecure_dev_allowed_locally(monkeypatch):
     monkeypatch.setenv("ALLOW_INSECURE_DEV", "1")
     monkeypatch.delenv("K_SERVICE", raising=False)

@@ -51,6 +51,7 @@ def serve(argv):
     # Any sign of a Cloudflare deployment turns Access on, and it refuses to start half-configured.
     access = any(os.environ.get(name) for name in ACCESS_VARIABLES)
     public_host = os.environ.get("PUBLIC_HOSTNAME")
+    bucket = os.environ.get("BUCKET_NAME")
     token = None if access else os.environ.get("PLASMID_CALLER_TOKEN")
     if not access and not token and not _is_loopback(args.host):
         parser.error("Set PLASMID_CALLER_TOKEN before binding to a non-loopback address.")
@@ -67,7 +68,7 @@ def serve(argv):
         runs_dir=args.runs_dir, jobs=args.jobs, threads=args.threads,
         max_upload_mb=args.max_upload_mb, max_assembly_mb=args.max_assembly_mb,
         max_queued=args.max_queued, job_timeout=args.job_timeout,
-        retention_days=args.retention_days, database=args.database, token=token,
+        retention_days=args.retention_days, database=args.database, bucket=bucket, token=token,
         access=access, public_host=public_host,
     )
     url = f"http://{args.host}:{args.port}/" + (f"?token={token}" if token else "")

@@ -11,7 +11,7 @@ fastapi = pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient
 
 from plasmid_caller.web import auth
-from plasmid_caller.web.app import create_app, guard_cell, identity_cells, replicon_totals
+from plasmid_caller.web.app import create_app, extract_contig_fasta, guard_cell, identity_cells, replicon_totals
 from plasmid_caller.web.jobs import JobStore, Settings, safe_filename, validate_fasta
 
 jwt = pytest.importorskip("jwt")
@@ -152,6 +152,9 @@ def test_identity_endpoint_matches_summary_contig_ids(tmp_path, monkeypatch):
         assert identity["plasmid"][0]["contig_id"] == "001" and identity["plasmid"][0]["top"] is True
         assert identity["genospecies"][0]["label"] == "burgdorferi"
         assert identity["gates"]["covered_bp"] == 1000
+        # Parsed into real [start, end] pairs, not left as the TSV's stringified tuple list --
+        # labelContigsTable draws tracks straight from this endpoint.
+        assert identity["plasmid"][0]["query_intervals"] == [[1, 9000]]
 
 
 def test_fusions_share_one_cell_and_keep_their_name():
@@ -337,3 +340,120 @@ def test_token_required_when_configured(tmp_path, monkeypatch):
         assert client.get("/?token=wrong").status_code == 401
         assert client.get("/?token=secret", follow_redirects=False).status_code == 303
         assert client.get("/api/batches").status_code == 200
+
+
+def test_extract_contig_fasta_matches_by_header_suffix(tmp_path):
+    path = tmp_path / "x_renamed.fasta"
+    path.write_text(">file_id_001__lp17\nACGTACGTAC\nACGT\n>file_id_002__cp26\nTTTT\n")
+    assert extract_contig_fasta(path, "001") == ">001\nACGTACGTACACGT\n"
+    assert extract_contig_fasta(path, "002") == ">002\nTTTT\n"
+    assert extract_contig_fasta(path, "nope") is None
+
+
+def test_contig_fasta_endpoint(tmp_path, monkeypatch):
+    script = FAKE_CLI.replace(
+        '(out / "x_renamed.fasta").write_text(">c\\nA\\n")',
+        '(out / "x_renamed.fasta").write_text(">file_001__lp17\\nACGTACGTAC\\n")')
+    with client_for(tmp_path, monkeypatch, script=script) as client:
+        job = wait_for(client, upload(client).json()["jobs"][0]["id"])
+        response = client.get(f"/api/jobs/{job['id']}/contig/001/fasta")
+        assert response.status_code == 200 and response.text == ">001\nACGTACGTAC\n"
+        assert client.get(f"/api/jobs/{job['id']}/contig/nope/fasta").status_code == 404
+
+
+def test_reference_db_endpoint(tmp_path, monkeypatch):
+    with client_for(tmp_path, monkeypatch) as client:
+        db = client.get("/api/reference-db").json()
+        assert db["wp"] and db["pf32"]
+        assert {"accession", "name", "strain", "genospecies", "length"} <= db["wp"][0].keys()
+        assert {"accession", "name", "strain"} <= db["pf32"][0].keys()
+        assert any(row["name"] != "unknown" for row in db["pf32"])
+
+
+def test_duplicate_upload_is_found_not_done(tmp_path, monkeypatch):
+    with client_for(tmp_path, monkeypatch) as client:
+        first = wait_for(client, upload(client, name="a.fna").json()["jobs"][0]["id"])
+        assert first["status"] == "done" and first["genome_hash"]
+        second = upload(client, name="b.fna").json()["jobs"][0]
+        assert second["status"] == "found"  # no polling needed: it's already finished
+        assert second["genome_hash"] == first["genome_hash"]
+        first_results = client.get(f"/api/jobs/{first['id']}/results").json()
+        second_results = client.get(f"/api/jobs/{second['id']}/results").json()
+        assert first_results["contigs"] == second_results["contigs"]
+
+
+def test_bundle_downloads_are_built_and_served(tmp_path, monkeypatch):
+    with client_for(tmp_path, monkeypatch) as client:
+        job = wait_for(client, upload(client).json()["jobs"][0]["id"])
+        for name in ["bundle.tar.gz", "bundle.zip"]:
+            response = client.get(f"/api/jobs/{job['id']}/download/{name}")
+            assert response.status_code == 200 and response.content
+
+
+def test_visibility_toggle_controls_the_public_surface(tmp_path, monkeypatch):
+    with client_for(tmp_path, monkeypatch) as client:
+        job = wait_for(client, upload(client).json()["jobs"][0]["id"])
+        genome_hash = job["genome_hash"]
+        assert client.get("/api/public/genomes").json() == []
+        assert client.get(f"/api/public/genomes/{genome_hash}").status_code == 404
+        toggled = client.post(f"/api/jobs/{job['id']}/visibility", json={"visible": True}).json()
+        assert toggled == {"genome_hash": genome_hash, "visible": True}
+        assert [g["hash"] for g in client.get("/api/public/genomes").json()] == [genome_hash]
+        public = client.get(f"/api/public/genomes/{genome_hash}")
+        assert public.status_code == 200 and public.json()["contigs"][0]["final_call"] == "lp17"
+        assert public.headers["x-robots-tag"].startswith("noindex")
+        assert client.get(f"/api/public/genomes/{genome_hash}/identity").status_code == 200
+        assert client.get(f"/api/public/genomes/{genome_hash}/contig",
+                          params={"contig_id": "001"}).status_code == 200
+        assert client.get(f"/api/public/genomes/{genome_hash}/download/summary_best_hits.tsv").status_code == 200
+        assert "Disallow: /" in client.get("/robots.txt").text
+        assert client.post(f"/api/jobs/{job['id']}/visibility", json={"visible": False}).status_code == 200
+        assert client.get(f"/api/public/genomes/{genome_hash}").status_code == 404
+
+
+def test_batch_overview_includes_found_jobs_not_just_done(tmp_path, monkeypatch):
+    with client_for(tmp_path, monkeypatch) as client:
+        wait_for(client, upload(client, name="a.fna").json()["jobs"][0]["id"])
+        batch = upload(client, name="b.fna").json()
+        dedup_job = batch["jobs"][0]
+        assert dedup_job["status"] == "found"
+        overview = client.get(f"/api/batches/{batch['id']}/overview").json()
+        assert [row["name"] for row in overview] == ["b.fna"]
+        assert overview[0]["replicons"] == {"lp17": {"contigs": 1, "bp": 10}}
+
+
+def test_batch_visibility_controls_the_public_batch_overview(tmp_path, monkeypatch):
+    with client_for(tmp_path, monkeypatch) as client:
+        batch = upload(client).json()
+        wait_for(client, batch["jobs"][0]["id"])
+        assert client.get("/api/public/batches").json() == []
+        assert client.get(f"/api/public/batches/{batch['id']}").status_code == 404
+        toggled = client.post(f"/api/batches/{batch['id']}/visibility", json={"visible": True}).json()
+        assert toggled == {"batch_id": batch["id"], "visible": True}
+        assert [b["id"] for b in client.get("/api/public/batches").json()] == [batch["id"]]
+        public_batch = client.get(f"/api/public/batches/{batch['id']}")
+        assert public_batch.status_code == 200 and public_batch.json()["visible"] is True
+        overview = client.get(f"/api/public/batches/{batch['id']}/overview").json()
+        assert overview[0]["replicons"] == {"lp17": {"contigs": 1, "bp": 10}}
+        assert client.post(f"/api/batches/{batch['id']}/visibility", json={"visible": False}).status_code == 200
+        assert client.get(f"/api/public/batches/{batch['id']}").status_code == 404
+        assert client.post("/api/batches/nope/visibility", json={"visible": True}).status_code == 404
+
+
+def test_public_routes_bypass_token_auth_but_the_toggle_does_not(tmp_path, monkeypatch):
+    monkeypatch.setattr(JobStore, "_command", fake_command(FAKE_CLI))
+    app = create_app(Settings(runs_dir=tmp_path / "runs", token="secret"))
+    with TestClient(app, base_url="http://localhost") as admin, \
+         TestClient(app, base_url="http://localhost") as anon:
+        admin.get("/?token=secret", follow_redirects=False)
+        job = wait_for(admin, upload(admin).json()["jobs"][0]["id"])
+        admin.post(f"/api/jobs/{job['id']}/visibility", json={"visible": True})
+        admin.post(f"/api/batches/{job['batch_id']}/visibility", json={"visible": True})
+        genome_hash = job["genome_hash"]
+        assert anon.get("/api/public/genomes").status_code == 200
+        assert anon.get(f"/api/public/genomes/{genome_hash}").status_code == 200
+        assert anon.get("/api/public/batches").status_code == 200
+        assert anon.get(f"/api/public/batches/{job['batch_id']}/overview").status_code == 200
+        assert anon.get("/api/batches").status_code == 401
+        assert anon.post(f"/api/jobs/{job['id']}/visibility", json={"visible": True}).status_code == 401
+        assert anon.post(f"/api/batches/{job['batch_id']}/visibility", json={"visible": True}).status_code == 401

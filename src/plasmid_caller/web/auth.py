@@ -81,6 +81,7 @@ class CloudflareAccessMiddleware:
         config: AccessConfig,
         jwks_client: SigningKeySource | None = None,
         exempt_paths: frozenset[str] = frozenset(),
+        exempt_prefixes: frozenset[str] = frozenset(),
         leeway_seconds: int = 30,
     ) -> None:
         self.app = app
@@ -90,6 +91,7 @@ class CloudflareAccessMiddleware:
             config.certs_url, cache_keys=True, lifespan=3600
         )
         self.exempt_paths = exempt_paths
+        self.exempt_prefixes = exempt_prefixes
         self.leeway = leeway_seconds
 
     def _verify(self, token: str) -> dict[str, Any]:
@@ -109,7 +111,8 @@ class CloudflareAccessMiddleware:
             await self.app(scope, receive, send)  # lifespan etc.
             return
 
-        if scope.get("path") in self.exempt_paths:
+        path = scope.get("path")
+        if path in self.exempt_paths or any(path.startswith(prefix) for prefix in self.exempt_prefixes):
             await self.app(scope, receive, send)
             return
 

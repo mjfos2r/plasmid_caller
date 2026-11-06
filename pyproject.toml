@@ -25,6 +25,7 @@ dependencies = [
 [project.optional-dependencies]
 web = [
     "fastapi>=0.115.0",
+    "google-cloud-storage>=2.18.0",
     "pyjwt[crypto]>=2.8",
     "python-multipart>=0.0.18",
     "uvicorn>=0.32.0",
